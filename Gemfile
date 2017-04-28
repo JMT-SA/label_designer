@@ -4,7 +4,7 @@ gem 'roda', '~> 2.25'
 gem 'sass'
 gem 'tilt'
 
-gem 'crossbeams-label_designer', path: File.join(File.dirname(__FILE__), '..', 'crossbeams-label_designer')
+gem 'crossbeams-label_designer', path: File.expand_path('../../crossbeams-label_designer', __FILE__)
 
 gem 'pry'
 gem 'rerun' # actually just for dev...
