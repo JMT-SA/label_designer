@@ -21,6 +21,13 @@ class LabelDesigner < Roda
       view('home')
     end
 
+    r.is 'versions' do
+      s = '<h2>Gem Versions</h2><ul><li>'
+      s << [Crossbeams::LabelDesigner].map { |k| "#{k}: #{k.const_get('VERSION')}" }.join('</li><li>')
+      s << '</li></ul>'
+      view(inline: s)
+    end
+
     r.on 'label_designer' do
       r.is do
         view(inline: label_designer_page)
