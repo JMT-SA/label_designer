@@ -3,14 +3,18 @@ require 'crossbeams/label_designer'
 
 Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration for label designer gem.
   config.json_load_path = '/load_label'
+  config.json_save_path = '/save_label'
 end
 
 class LabelDesigner < Roda
+    use Rack::Session::Cookie, secret: "some_nice_long_random_string_DSKJH4378EYR7EGKUFH", key: "_lbld_session"
+
   plugin :render
   plugin :assets, css: 'style.scss'
   plugin :public # serve assets from public folder.
   plugin :content_for, append: true
   plugin :indifferent_params
+  plugin :json_parser
 
   route do |r|
     r.assets unless ENV['RACK_ENV'] == 'production'
@@ -37,6 +41,10 @@ class LabelDesigner < Roda
         view(inline: label_designer_page(id))
       end
     end
+
+    r.post 'save_label' do
+      params.to_json
+    end
   end
 
   def label_designer_page(file_name = nil)
@@ -45,6 +53,8 @@ class LabelDesigner < Roda
     html = page.render
     css  = page.css
     js   = page.javascript
+
+    # TODO: include csrf headers in the page....
 
     <<-EOC
     #{html}
