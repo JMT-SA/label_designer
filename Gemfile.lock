@@ -3,6 +3,7 @@ PATH
   specs:
     crossbeams-label_designer (0.1.0)
       dry-configurable
+      erubi
       json
 
 GEM
@@ -12,6 +13,7 @@ GEM
     concurrent-ruby (1.0.5)
     dry-configurable (0.7.0)
       concurrent-ruby (~> 1.0)
+    erubi (1.6.0)
     ffi (1.9.18)
     json (2.1.0)
     listen (3.1.5)

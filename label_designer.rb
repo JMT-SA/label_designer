@@ -43,6 +43,7 @@ class LabelDesigner < Roda
     end
 
     r.post 'save_label' do
+      response['Content-Type'] = 'application/json'
       params.to_json
     end
   end
