@@ -7,7 +7,7 @@ Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration f
 end
 
 class LabelDesigner < Roda
-    use Rack::Session::Cookie, secret: "some_nice_long_random_string_DSKJH4378EYR7EGKUFH", key: "_lbld_session"
+  use Rack::Session::Cookie, secret: "some_nice_long_random_string_DSKJH4378EYR7EGKUFH", key: "_lbld_session"
 
   plugin :render
   plugin :assets, css: 'style.scss'
@@ -49,6 +49,10 @@ class LabelDesigner < Roda
   end
 
   def label_designer_page(file_name = nil)
+    Crossbeams::LabelDesigner::Config.configure do |config|
+      config.label_config = label_config(file_name).to_json
+    end
+
     page = Crossbeams::LabelDesigner::Page.new(file_name)
     # page.json_load_path = '/load_label_via_json' # Override config just before use.
     html = page.render
@@ -66,5 +70,14 @@ class LabelDesigner < Roda
       #{js}
     <% end %>
     EOC
+  end
+
+  def label_config(file_name)
+    config = {labelState: file_name.nil? ? 'new' : 'edit',
+              labelName: 'A Test label',    # Get from file/DB
+              labelJSON: {},                # Load from file/DB.
+              savePath: '/save_label',
+              id: file_name.nil? ? nil : 1} # Get from url.
+    config
   end
 end
