@@ -77,6 +77,7 @@ class LabelDesigner < Roda
               labelName: 'A Test label',    # Get from file/DB
               labelJSON: {},                # Load from file/DB.
               savePath: '/save_label',
+              labelDimension: '8464',
               id: file_name.nil? ? nil : 1} # Get from url.
     config
   end
