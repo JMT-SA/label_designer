@@ -1,0 +1,10 @@
+---
+:dataminer_definition: labels
+:actions:
+  - :url: /label_designer/$:id$
+    :text: edit label
+    :icon: fa-edit
+  - :url: /label_designer/$:id$
+    :text: delete functional area
+    :icon: fa-remove
+    :is_delete: true

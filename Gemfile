@@ -1,10 +1,20 @@
 source 'https://rubygems.org'
+gem 'dry-validation'
+gem 'rack_csrf'
 gem 'roda', '~> 2.25'
+gem 'roda-symbolized_params'
+gem 'pg'
+gem "rom", "~> 3.2"
+gem "rom-repository", "~> 1.3"
+gem "rom-sql", "~> 1.2"
 
 gem 'sass'
 gem 'tilt'
 
+gem 'crossbeams-layout',         path: File.expand_path('../../crossbeams-layout', __FILE__)
 gem 'crossbeams-label_designer', path: File.expand_path('../../crossbeams-label_designer', __FILE__)
+gem 'crossbeams-dataminer',      path: File.expand_path('../../crossbeams-dataminer', __FILE__)
+gem 'roda-data_grid',            path: File.expand_path('../../roda-data_grid', __FILE__)
 
 gem 'pry'
 gem 'rerun' # actually just for dev...

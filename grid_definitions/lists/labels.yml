@@ -1,0 +1,26 @@
+---
+:dataminer_definition: labels
+:actions:
+  - :url: /label_designer/$:id$/edit
+    :text: edit label
+    :icon: fa-edit
+  - :url: /label_designer/$:id$/clone
+    :text: clone label
+    :icon: fa-clone
+  - :url: /label_designer/$:id$/properties
+    :text: change label properties
+    :icon: fa-info
+  - :url: /label_designer/$:id$/preview
+    :text: preview label
+    :icon: fa-eye
+  - :separator: true
+  - :url: /label_designer/$:id$
+    :text: delete label
+    :icon: fa-remove
+    :is_delete: true
+:page_controls:
+  - :control_type: :link
+    :url: /label_designer/new
+    :text: New label
+    :style: :button
+    :behaviour: :popup
