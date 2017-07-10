@@ -48,6 +48,7 @@ class LabelDesigner < Roda
 
     r.root do
       view('home')
+      r.redirect('/list/labels')
     end
 
     r.is 'versions' do
@@ -89,6 +90,23 @@ class LabelDesigner < Roda
           redirect_to_last_grid(r)
         end
 
+        r.post 'update' do
+          schema = Dry::Validation.Schema do
+            required(:label_name).filled(:str?)
+          end
+          errors = schema.call(params[:label]).messages
+          if errors.empty?
+            repo = LabelRepo.new(DB.db)
+            changeset = repo.changeset(id, label_name: params[:label][:label_name],
+                                           label_dimension: params[:label][:label_dimension]).map(:touch)
+            repo.update(id, changeset)
+            redirect_to_last_grid(r)
+          else
+            flash.now[:error] = 'Unable to update label'
+            show_page { Label::Properties.call(id, params[:label], errors) }
+          end
+        end
+
         r.on 'edit' do
           view(inline: label_designer_page(id: id))
         end
@@ -127,6 +145,45 @@ class LabelDesigner < Roda
         r.on 'grid' do
           response['Content-Type'] = 'application/json'
           render_data_grid_rows(id)
+        end
+      end
+    end
+
+    # Generic code for grid searches.
+    r.on 'search' do
+      r.on :id do |id|
+        r.is do
+          render_search_filter(id, params)
+        end
+
+        r.on 'run' do
+          session[:last_grid_url] = "/search/#{id}?rerun=y"
+          show_page { render_search_grid_page(id, params) }
+        end
+
+        r.on 'grid' do
+          response['Content-Type'] = 'application/json'
+          render_search_grid_rows(id, params)
+        end
+
+        r.on 'xls' do
+          begin
+            caption, xls = render_excel_rows(id, params)
+            response.headers['content_type'] = "application/vnd.ms-excel"
+            response.headers['Content-Disposition'] = "attachment; filename=\"#{caption.strip.gsub(/[\/:*?"\\<>\|\r\n]/i, '-') + '.xls'}\""
+            response.write(xls) # NOTE: could this use streaming to start downloading quicker?
+
+          rescue Sequel::DatabaseError => e
+            view(inline: <<-EOS)
+            <p style='color:red;'>There is a problem with the SQL definition of this report:</p>
+            <p>Report: <em>#{caption}</em></p>The error message is:
+            <pre>#{e.message}</pre>
+            <button class="pure-button" onclick="crossbeamsUtils.toggleVisibility('sql_code', this);return false">
+              <i class="fa fa-info"></i> Toggle SQL
+            </button>
+            <pre id="sql_code" style="display:none;"><%= sql_to_highlight(@rpt.runnable_sql) %></pre>
+            EOS
+          end
         end
       end
     end
