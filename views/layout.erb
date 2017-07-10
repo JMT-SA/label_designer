@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="/css/tachyons.min.css">
     <link rel="stylesheet" href="/css/sweetalert2.min.css">
     <link rel="stylesheet" href="/css/jquery.contextMenu.css">
+    <link rel="stylesheet" href="/css/popupwindow.css">
     <%= content_for :late_style %>
 
   </head>
@@ -35,6 +36,7 @@
     <div class="container">
       <%= yield %>
     </div>
+    <div id="dialog-modal" title="Modal dialog"></div>
 
     <footer class="footness">
       <p>Label designer: testing out new framework code.
@@ -55,6 +57,7 @@
       <script src="/js/crossbeams-layout.js" type="text/javascript"></script>
       <script src="/js/crossbeams-grid-loader.js" type="text/javascript"></script>
       <script src="/js/crossbeams-data-miner-params.js" type="text/javascript"></script>
+      <script src="/js/popupwindow.js" type="text/javascript"></script>
     <script>
       // Prefix all jQuery AJAX post requests with the CSRF token.
       const csrf_token = $('meta[name="_csrf"]').attr('content');

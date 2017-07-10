@@ -35,7 +35,6 @@ class LabelDesigner < Roda
   plugin :json_parser
   plugin :data_grid, path: File.dirname(__FILE__),
                      list_url: '/list/%s/grid',
-                     # list_nested_url: '/list/%s/nested_grid',
                      search_url: '/search/%s/grid',
                      filter_url: '/search/%s',
                      run_search_url: '/search/%s/run',
@@ -53,7 +52,10 @@ class LabelDesigner < Roda
 
     r.is 'versions' do
       s = '<h2>Gem Versions</h2><ul><li>'
-      s << [Crossbeams::LabelDesigner].map { |k| "#{k}: #{k.const_get('VERSION')}" }.join('</li><li>')
+      s << [Crossbeams::Dataminer,
+            Crossbeams::Layout,
+            Crossbeams::LabelDesigner,
+            Roda::DataGrid].map { |k| "#{k}: #{k.const_get('VERSION')}" }.join('</li><li>')
       s << '</li></ul>'
       view(inline: s)
     end
@@ -116,14 +118,16 @@ class LabelDesigner < Roda
         end
 
         r.on 'properties' do
-          show_page { Label::Properties.call(id) }
+          # show_page { Label::Properties.call(id) }
+          show_partial { Label::Properties.call(id) }
           # Show form for name + dimensions & then to label
         end
 
         r.on 'preview' do
-          repo = LabelRepo.new(DB.db)
-          label = repo.labels.by_pk(id).one
-          view(inline: "PREVIEW #{label.label_name}<p><img src='/label_designer/#{id}/png' /></p>")
+          # repo = LabelRepo.new(DB.db)
+          # label = repo.labels.by_pk(id).one
+          # view(inline: "PREVIEW #{label.label_name}<p><img src='/label_designer/#{id}/png' /></p>")
+          "<img src='/label_designer/#{id}/png' />"
         end
 
         r.on 'png' do
@@ -292,6 +296,12 @@ class LabelDesigner < Roda
     @layout = block.yield
     @layout.add_csrf_tag(csrf_tag)
     view('crossbeams_layout_page')
+  end
+
+  def show_partial(&block)
+    @layout = block.yield
+    @layout.add_csrf_tag(csrf_tag)
+    @layout.render
   end
 
   PNG_REGEXP = /\Adata:([-\w]+\/[-\w\+\.]+)?;base64,(.*)/m

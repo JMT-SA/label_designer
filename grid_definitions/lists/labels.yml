@@ -10,9 +10,13 @@
   - :url: /label_designer/$:id$/properties
     :text: change label properties
     :icon: fa-info
+    :title: Properties
+    :popup: true
   - :url: /label_designer/$:id$/preview
     :text: preview label
     :icon: fa-eye
+    :title_field: label_name
+    :popup: true
   - :separator: true
   - :url: /label_designer/$:id$
     :text: delete label

@@ -5,6 +5,42 @@
  * @namespace
  */
 const crossbeamsUtils = {
+
+  // On success of AJAX call, load results into dialog.
+  dialogLoadSuccessHandler: function dialogLoadSuccessHandler(data, textStatus, jqXHR) {
+    $('#dialog-modal').html(data);
+  },
+  // // On failure of AJAX call, show an alert.
+  // function errorHandler(jqXHR, textStatus, errorThrown) {
+  //   alert("Something went wrong: " + textStatus + ": " + errorThrown);
+  // }
+
+  // Popup a JQ UI dialog.
+  jmtPopupDialog: function jmtPopupDialog(new_width, new_height, title, text, href) {
+    // if (new_width) {$('#dialog-modal').dialog('option', 'width', new_width);}
+    // if (new_height) {$('#dialog-modal').dialog('option', 'height', new_height);}
+    // $('#dialog-modal').html('');
+    // $('#dialog-modal').dialog('option', 'title', title || text);
+    // $('#dialog-modal').dialog('open');
+    if ($("#dialog-modal").PopupWindow("getState")) $("#dialog-modal").PopupWindow("destroy");
+    $('#dialog-modal').PopupWindow({
+          title       : title,
+          modal       : true,
+          statusBar   : false,
+          height      : 300,
+          width       : 400,
+          buttons     : {minimize: false },
+          // top         : 100,
+          // left        : 300
+    });
+    $.ajax({
+      type: 'get',
+      url: href,
+      //          dataType: "script",
+      success: crossbeamsUtils.dialogLoadSuccessHandler//,
+      //error: errorHandler
+    });
+  },
   /**
    * Toggle the visibility of en element in the DOM:
    * @param {string} id - the id of the DOM element.

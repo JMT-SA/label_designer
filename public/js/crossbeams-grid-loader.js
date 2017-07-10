@@ -264,7 +264,9 @@ const crossbeamsGridFormatters = {
         prompt: item.prompt,
         method: item.method,
         title: item.title,
+        title_field: item.title_field ? params.data[item.title_field] : '',
         icon: item.icon,
+        popup: item.popup,
       };
     }
   },
@@ -854,9 +856,11 @@ $(() => {
             prompt: item.prompt,
             method: item.method,
             title: item.title,
+            title_field: item.title_field,
             icon: item.icon,
             is_separator: item.is_separator,
             is_submenu: item.is_submenu,
+            popup: item.popup,
           };
           if (item.is_submenu) {
             items[item.key].items = buildSubMenuItems(item.items);
@@ -869,7 +873,11 @@ $(() => {
           const item = getItemFromTree(key, items);
           const caller = () => {
             if (item.method === undefined) {
-              window.location = item.url;
+              if (item.popup) {
+                crossbeamsUtils.jmtPopupDialog(100,100, item.title_field, '', item.url)
+              } else {
+                window.location = item.url;
+              }
             } else {
               document.body.innerHTML += `<form id="dynForm" action="${item.url}" method="post">
                 <input name="_method" type="hidden" value="${item.method}" />
@@ -882,6 +890,7 @@ $(() => {
               prompt: item.prompt,
               okFunc: caller,
               title: item.title,
+              title_field: item.title_field,
             });
           } else {
             caller();
