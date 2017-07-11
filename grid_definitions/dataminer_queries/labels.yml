@@ -1,6 +1,6 @@
 ---
 :caption: Labels
-:sql: "SELECT id, label_name, label_dimension, created_at, updated_at\r\n  FROM labels;\r\n"
+:sql: "SELECT id, label_name, label_dimension, created_at, updated_at\r\n  FROM labels\r\n ORDER BY label_name, id;\r\n"
 :limit: 
 :offset: 
 :columns:
