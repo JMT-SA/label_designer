@@ -15,8 +15,9 @@ require './repositories/label_repo'
 Dir['./persistence/changesets/*.rb'].each { |f| require f }
 
 Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration for label designer gem.
-#   config.json_load_path = '/load_label'
-  config.json_save_path = '/save_label'
+  # config.json_load_path = '/load_label'
+  # config.json_save_path = '/save_label'
+  # config.json_save_path = '/save_label'
 end
 DB = DBConnections.new
 
@@ -253,6 +254,7 @@ class LabelDesigner < Roda
   def label_designer_page(opts = {})
     Crossbeams::LabelDesigner::Config.configure do |config|
       config.label_config = label_config(opts).to_json
+      config.label_sizes = label_sizes.to_json
     end
 
     page = Crossbeams::LabelDesigner::Page.new(opts[:id])
@@ -311,5 +313,37 @@ class LabelDesigner < Roda
     # extension = MIME::Types[data_uri_parts[1]].first.preferred_extension
     # file_name = "testpng.#{extension}"
     Base64.decode64(data_uri_parts[2])
+  end
+
+  # def label_config(file_name)
+  #   config = {
+  #     labelState: file_name.nil? ? 'new' : 'edit',
+  #     labelName: 'A Test label',    # Get from file/DB
+  #     # labelJSON: {},                # Load from file/DB.
+  #     labelJSON: {
+  #       'id': 'null',
+  #       'name': 'test',
+  #       'labelWidth': '840',
+  #       'labelHeight': '640',
+  #       'shapes': [
+  #         {'shapeId': 1,'name': 'Image','group': {'attrs': {'fillEnabled': false,'name': 'image'},'className': 'Group','children': [{'attrs': {},'className': 'Image'},{'attrs': {'width': 840,'height': 640,'fill': '','stroke': 'black','visible': false},'className': 'Rect'},{'attrs': {'stroke': '#666','fill': '#ddd','strokeWidth': 1,'radius': 4,'name': 'topLeft','draggable': true,'dragOnTop': false,'visible': false},'className': 'Circle'},{'attrs': {'x': 840,'stroke': '#666','fill': '#ddd','strokeWidth': 1,'radius': 4,'name': 'topRight','draggable': true,'dragOnTop': false,'visible': false},'className': 'Circle'},{'attrs': {'x': 840,'y': 640,'stroke': '#666','fill': '#ddd','strokeWidth': 1,'radius': 4,'name': 'bottomRight','draggable': true,'dragOnTop': false,'visible': false},'className': 'Circle'},{'attrs': {'y': 640,'stroke': '#666','fill': '#ddd','strokeWidth': 1,'radius': 4,'name': 'bottomLeft','draggable': true,'dragOnTop': false,'visible': false},'className': 'Circle'}]},'outerBox': {'attrs': {'width': 840,'height': 640,'fill': '','stroke': 'black','visible': false},'className': 'Rect'},'image': {'attrs': {},'className': 'Image'},'selected': false},
+  #         {'shapeId': 2,'name': 'VariableBox','group': {'attrs': {'x': 19,'y': 492,'fillEnabled': false,'name': 'variableBox'},'className': 'Group','children': [{'attrs': {'text': 'Insert text...','fontSize': '16','fill': 'black','width': 137,'height': 28},'className': 'Text'},{'attrs': {'width': 137,'height': 28,'fill': '','stroke': 'black','fillEnabled': false,'visible': true},'className': 'Rect'},{'attrs': {'stroke': '#666','fill': '#ddd','strokeWidth': 1,'radius': 4,'name': 'topLeft','draggable': true,'dragOnTop': false,'visible': false},'className': 'Circle'},{'attrs': {'x': 137,'y': 28,'stroke': '#666','fill': '#ddd','strokeWidth': 1,'radius': 4,'name': 'bottomRight','draggable': true,'dragOnTop': false,'visible': false},'className': 'Circle'},{'attrs': {'y': 28,'stroke': '#666','fill': '#ddd','strokeWidth': 1,'radius': 4,'name': 'bottomLeft','draggable': true,'dragOnTop': false,'visible': false},'className': 'Circle'},{'attrs': {'x': 137,'stroke': '#666','fill': '#ddd','strokeWidth': 1,'radius': 4,'name': 'topRight','draggable': true,'dragOnTop': false,'visible': false},'className': 'Circle'}]},'outerBox': {'attrs': {'width': 137,'height': 28,'fill': '','stroke': 'black','fillEnabled': false,'visible': true},'className': 'Rect'},'textBox': {'attrs': {'text': 'Insert text...','fontSize': '16','fill': 'black','width': 137,'height': 28},'className': 'Text'},'selected': false,'savedVariableInfo': {'variableId': 2,'variableType': '0','orientation': 0,'position': {'x0': 17,'x1': 159,'y0': 493,'y1': 520},'startX': 17,'startY': 493,'width': 142,'height': 27,'fontSizePx': '16','fontSizePt': 12,'fontFamily': 'Arial','bold': 'No','italic': 'No','underline': 'No','isBarcode': 'No','barcodeMargin': '5','barcodeSymbology': 'barcode-fonts/code-39/'},'savedPosition': {'theta': 0,'groupX': 19,'groupY': 493,'width': 142,'height': 27,'anchorPositions': {'topLeft': {'x': 0,'y': 0},'topRight': {'x': 142,'y': 0},'bottomLeft': {'x': 0,'y': 27},'bottomRight': {'x': 142,'y': 27}}}},
+  #       ]
+  #     }.to_json,
+  #     savePath: '/save_label',
+  #     labelDimension: '8464',
+  #     id: (file_name.nil? ? nil : 1) # Get from url.
+  #   }
+  #   config
+  # end
+
+  def label_sizes
+    sizes = {
+      'a4': {'width': '71', 'height': '54'},
+      'a5': {'width': '35', 'height': '21'},
+      '8464': {'width': '84', 'height': '64'},
+      'custom': {'width': '84', 'height': '64'}
+    }
+    sizes
   end
 end
