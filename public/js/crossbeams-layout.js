@@ -31,15 +31,19 @@
     }
   });
 
+  function disableButton(button, disabledText) {
+    button.dataset.enableWith = button.value;
+    button.value = disabledText;
+    button.classList.remove('dim');
+    button.classList.add('o-50');
+  }
+
   /**
    * Prevent multiple clicks of submit buttons.
    * @returns {void}
    */
   function preventMultipleSubmits() {
-    this.dataset.enableWith = this.value;
-    this.value = this.dataset.disableWith;
-    this.classList.remove('dim');
-    this.classList.add('o-50');
+    disableButton(this, this.dataset.disableWith);
     window.setTimeout(() => {
       this.disabled = true;
     }, 0); // Disable the button with a delay so the form still submits...
@@ -51,11 +55,25 @@
    * @returns {void}
    */
   function revertDisabledButton(element) {
-    console.log('I got called');
     element.disabled = false;
     element.value = element.dataset.enableWith;
     element.classList.add('dim');
     element.classList.remove('o-50');
+  }
+
+  /**
+   * Prevent multiple clicks of submit buttons.
+   * Re-enables the button after a delay of one second.
+   * @returns {void}
+   */
+  function preventMultipleSubmitsBriefly() {
+    disableButton(this, this.dataset.brieflyDisableWith);
+    window.setTimeout(() => {
+      this.disabled = true;
+      window.setTimeout(() => {
+        revertDisabledButton(this);
+      }, 1000); // Re-enable the button with a delay.
+    }, 0); // Disable the button with a delay so the form still submits...
   }
 
   /**
@@ -76,6 +94,9 @@
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-disable-with]').forEach((element) => {
       element.onclick = preventMultipleSubmits;
+    });
+    document.querySelectorAll('[data-briefly-disable-with]').forEach((element) => {
+      element.onclick = preventMultipleSubmitsBriefly;
     });
   });
 }());
