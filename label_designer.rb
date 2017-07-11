@@ -101,8 +101,7 @@ class LabelDesigner < Roda
           errors = schema.call(params[:label]).messages
           if errors.empty?
             repo = LabelRepo.new(DB.db)
-            changeset = repo.changeset(id, label_name: params[:label][:label_name],
-                                           label_dimension: params[:label][:label_dimension]).map(:touch)
+            changeset = repo.changeset(id, label_name: params[:label][:label_name]).map(:touch)
             repo.update(id, changeset)
             redirect_to_last_grid(r)
           else
@@ -236,7 +235,7 @@ class LabelDesigner < Roda
           file.write(image_from_param(params[:imageString]))
         end
         changeset = repo.changeset(NewChangeset).data({label_json: params[:label],
-                                                       label_name: 'a testa',
+                                                       label_name: params[:labelName],
                                                        label_dimension: '8464',
                                                        variable_xml: params[:XMLString],
                                                        png_image: image_from_param(params[:imageString])})
@@ -259,7 +258,7 @@ class LabelDesigner < Roda
 
     page = Crossbeams::LabelDesigner::Page.new(opts[:id])
     # page.json_load_path = '/load_label_via_json' # Override config just before use.
-    page.json_save_path =  opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}"
+    # page.json_save_path =  opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}"
     html = page.render
     css  = page.css
     js   = page.javascript

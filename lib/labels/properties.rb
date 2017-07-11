@@ -5,8 +5,6 @@ module Label
       obj       = this_repo.labels.by_pk(id).one
       rules = { fields: {
         label_name: { },
-        label_dimension: { renderer: :select,
-                           options: ['8464', 'A4', 'A5', 'Custom'] },
       } } #, name: 'label'.freeze }
 
       layout = Crossbeams::Layout::Page.build(rules) do |page|
@@ -16,7 +14,6 @@ module Label
         page.form do |form|
           form.action "/label_designer/#{id}/update"
           form.add_field :label_name
-          form.add_field :label_dimension
         end
       end
 

@@ -6,8 +6,6 @@ module Label
       obj       = this_repo.labels.by_pk(id).one
       rules = { fields: {
         label_name: { },
-        label_dimension: { renderer: :select,
-                           options: ['8464', 'A4', 'A5', 'Custom'] },
         cloned: { renderer: :hidden },
       }, name: 'label'.freeze }
 
@@ -17,7 +15,6 @@ module Label
         page.form do |form|
           form.action '/label_designer/create'
           form.add_field :label_name
-          form.add_field :label_dimension
           form.add_field :cloned
         end
       end
