@@ -63,7 +63,8 @@ class LabelDesigner < Roda
     r.on 'label_designer' do
       r.is do
         view(inline: label_designer_page(label_name: params[:label_name],
-                                         label_dimension: params[:label_dimension]))
+                                         label_dimension: params[:label_dimension],
+                                         cloned: params[:cloned] && params[:cloned] == 'y'))
       end
 
       r.on 'new' do
@@ -279,7 +280,7 @@ class LabelDesigner < Roda
       this_repo = LabelRepo.new(DB.db)
       label     = this_repo.labels.by_pk(opts[:id]).one
     end
-    config = {labelState: opts[:id].nil? ? 'new' : 'edit',
+    config = {labelState: opts[:id].nil? ? opts[:cloned] ? 'edit' : 'new' : 'edit',
               labelName:  label.nil? ? opts[:label_name] : label.label_name,
               labelJSON:  label.nil? ? {} : label.label_json,
               savePath: opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}",
