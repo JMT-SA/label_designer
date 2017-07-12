@@ -64,8 +64,7 @@ class LabelDesigner < Roda
     r.on 'label_designer' do
       r.is do
         view(inline: label_designer_page(label_name: params[:label_name],
-                                         label_dimension: params[:label_dimension],
-                                         cloned: params[:cloned] && params[:cloned] == 'y'))
+                                         label_dimension: params[:label_dimension]))
       end
 
       r.on 'new' do
@@ -118,6 +117,12 @@ class LabelDesigner < Roda
           show_page { Label::Clone.call(id) }
         end
 
+        r.on 'clone_label' do
+          view(inline: label_designer_page(label_name: params[:label][:label_name],
+                                           id: params[:label][:id],
+                                           cloned: true))
+        end
+
         r.on 'properties' do
           # show_page { Label::Properties.call(id) }
           show_partial { Label::Properties.call(id) }
@@ -136,6 +141,10 @@ class LabelDesigner < Roda
           repo = LabelRepo.new(DB.db)
           label = repo.labels.by_pk(id).one
           label.png_image
+        end
+
+        r.on 'download' do
+          # Zip xml + img & download using label_name as all the file names (png, xml, zip).
         end
       end
     end
@@ -281,12 +290,12 @@ class LabelDesigner < Roda
       this_repo = LabelRepo.new(DB.db)
       label     = this_repo.labels.by_pk(opts[:id]).one
     end
-    config = {labelState: opts[:id].nil? ? opts[:cloned] ? 'edit' : 'new' : 'edit',
-              labelName:  label.nil? ? opts[:label_name] : label.label_name,
+    config = {labelState: opts[:id].nil? ? 'new' : 'edit',
+              labelName:  opts[:cloned] || label.nil? ? opts[:label_name] : label.label_name,
               labelJSON:  label.nil? ? {} : label.label_json,
-              savePath: opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}",
+              savePath: opts[:cloned] || opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}",
               labelDimension: label.nil? ? opts[:label_dimension] : label.label_dimension,
-              id: opts[:id].nil? ? nil : opts[:id] }
+              id: opts[:cloned] || opts[:id].nil? ? nil : opts[:id] }
     config
   end
 

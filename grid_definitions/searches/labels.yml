@@ -7,11 +7,12 @@
   - :url: /label_designer/$:id$/clone
     :text: clone label
     :icon: fa-clone
+  - :separator: true
   - :url: /label_designer/$:id$/properties
     :text: change label properties
     :icon: fa-info
   - :url: /label_designer/$:id$/preview
-    :text: preview label
+    :text: preview image
     :icon: fa-eye
   - :separator: true
   - :url: /label_designer/$:id$

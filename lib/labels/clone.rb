@@ -6,16 +6,15 @@ module Label
       obj       = this_repo.labels.by_pk(id).one
       rules = { fields: {
         label_name: { },
-        cloned: { renderer: :hidden },
+        id: { renderer: :hidden },
       }, name: 'label'.freeze }
 
       layout = Crossbeams::Layout::Page.build(rules) do |page|
         page.form_object obj
-        page.form_values cloned: 'y'
         page.form do |form|
-          form.action '/label_designer/create'
+          form.action "/label_designer/#{id}/clone_label"
           form.add_field :label_name
-          form.add_field :cloned
+          form.add_field :id
         end
       end
 
