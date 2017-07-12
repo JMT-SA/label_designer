@@ -18,6 +18,9 @@
     :icon: fa-eye
     :title_field: label_name
     :popup: true
+  - :url: /label_designer/$:id$/download
+    :text: download
+    :icon: fa-download
   - :separator: true
   - :url: /label_designer/$:id$
     :text: delete label

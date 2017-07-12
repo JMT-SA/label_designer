@@ -7,6 +7,7 @@ require 'crossbeams/layout'
 require 'crossbeams/label_designer'
 require 'yaml'
 require 'base64'
+require 'zip'
 require 'dry-validation'
 require './lib/db_connections'
 Dir['./lib/labels/*.rb'].each { |f| require f }
@@ -144,7 +145,19 @@ class LabelDesigner < Roda
         end
 
         r.on 'download' do
-          # Zip xml + img & download using label_name as all the file names (png, xml, zip).
+          repo  = LabelRepo.new(DB.db)
+          label = repo.labels.by_pk(id).one
+          fname = label.label_name.strip.gsub(/[\/:*?"\\<>\|\r\n]/i, '-')
+          stringio = Zip::OutputStream.write_buffer do |zio|
+            zio.put_next_entry("#{fname}.png")
+            zio.write label.png_image
+            zio.put_next_entry("#{fname}.xml")
+            zio.write label.variable_xml
+          end
+          binary_data = stringio.string
+          response.headers['content_type'] = 'application/x-zip-compressed'
+          response.headers['Content-Disposition'] = "attachment; filename=\"#{fname}.zip\""
+          response.write(binary_data)
         end
       end
     end
