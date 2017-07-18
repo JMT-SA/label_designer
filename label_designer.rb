@@ -148,11 +148,14 @@ class LabelDesigner < Roda
           repo  = LabelRepo.new(DB.db)
           label = repo.labels.by_pk(id).one
           fname = label.label_name.strip.gsub(/[\/:*?"\\<>\|\r\n]/i, '-')
+          label_properties = %Q{Client: Name="NoSoft"}
           stringio = Zip::OutputStream.write_buffer do |zio|
             zio.put_next_entry("#{fname}.png")
             zio.write label.png_image
             zio.put_next_entry("#{fname}.xml")
             zio.write label.variable_xml
+            zio.put_next_entry("#{fname}.properties")
+            zio.write label_properties
           end
           binary_data = stringio.string
           response.headers['content_type'] = 'application/x-zip-compressed'
