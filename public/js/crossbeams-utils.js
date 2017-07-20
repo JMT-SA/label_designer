@@ -41,6 +41,10 @@ const crossbeamsUtils = {
       //error: errorHandler
     });
   },
+
+  closeJmtDialog: function closeJmtDialog() {
+    $("#dialog-modal").PopupWindow("destroy");
+  },
   /**
    * Toggle the visibility of en element in the DOM:
    * @param {string} id - the id of the DOM element.

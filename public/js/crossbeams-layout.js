@@ -98,6 +98,11 @@
     document.querySelectorAll('[data-briefly-disable-with]').forEach((element) => {
       element.onclick = preventMultipleSubmitsBriefly;
     });
+    document.body.addEventListener('click', function(event) {
+      if (event.target.classList.contains('close-dialog')) {
+         crossbeamsUtils.closeJmtDialog();
+      }
+    });
   });
 }());
 // CODE FROM HERE...

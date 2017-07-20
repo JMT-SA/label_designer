@@ -30,6 +30,7 @@ const crossbeamsDataMinerParams = {
     const index = crossbeamsUtils.getListIndex(node);
     this.current_values = this.current_values.splice(index, 1);
     node.parentNode.removeChild(node);
+    // TODO: does this work in new JS? node.remove();
   },
 
   /**

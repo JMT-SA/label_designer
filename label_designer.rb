@@ -9,11 +9,19 @@ require 'yaml'
 require 'base64'
 require 'zip'
 require 'dry-validation'
+require 'net/http'
+require 'uri'
 require './lib/db_connections'
 Dir['./lib/labels/*.rb'].each { |f| require f }
 require './repositories/user_repo'
 require './repositories/label_repo'
 Dir['./persistence/changesets/*.rb'].each { |f| require f }
+
+#=================================================
+#### TEMPORARY QUICK CONFIG FOR JF SERVER URI ####
+#=================================================
+LABEL_SERVER_URI = 'http://localhost:9292/uploads'
+#=================================================
 
 Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration for label designer gem.
   # config.json_load_path = '/load_label'
@@ -147,20 +155,66 @@ class LabelDesigner < Roda
         r.on 'download' do
           repo  = LabelRepo.new(DB.db)
           label = repo.labels.by_pk(id).one
-          fname = label.label_name.strip.gsub(/[\/:*?"\\<>\|\r\n]/i, '-')
-          label_properties = %Q{Client: Name="NoSoft"}
-          stringio = Zip::OutputStream.write_buffer do |zio|
-            zio.put_next_entry("#{fname}.png")
-            zio.write label.png_image
-            zio.put_next_entry("#{fname}.xml")
-            zio.write label.variable_xml
-            zio.put_next_entry("#{fname}.properties")
-            zio.write label_properties
-          end
-          binary_data = stringio.string
+          fname, binary_data = make_label_zip(label)
           response.headers['content_type'] = 'application/x-zip-compressed'
           response.headers['Content-Disposition'] = "attachment; filename=\"#{fname}.zip\""
           response.write(binary_data)
+        end
+
+        r.on 'upload' do
+          <<-EOS
+          <div id="crossbeams-processing" class="content-target content-loading"></div>
+          <script>
+            var content_div = document.querySelector('#crossbeams-processing');
+
+            fetch('/label_designer/#{id}/upload_file')
+            .then(function(response) {
+              return response.text();
+            })
+            .then(function(responseText) {
+              content_div.classList.remove('content-loading');
+              content_div.innerHTML = responseText;
+            });
+          </script>
+          EOS
+        end
+
+        r.on 'upload_file' do
+        begin
+          repo               = LabelRepo.new(DB.db)
+          label              = repo.labels.by_pk(id).one
+          fname, binary_data = make_label_zip(label)
+          uri                = URI.parse(LABEL_SERVER_URI)
+          BOUNDARY           = "AaB03x"
+
+          post_body = []
+          post_body << "--#{BOUNDARY}\r\n"
+          post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
+          post_body << "Content-Type: application/x-zip-compressed\r\n"
+          post_body << "\r\n"
+          post_body << binary_data #File.read(file)
+          post_body << "\r\n--#{BOUNDARY}--\r\n"
+
+          http = Net::HTTP.new(uri.host, uri.port)
+          request = Net::HTTP::Post.new(uri.request_uri)
+          request.body = post_body.join
+          request["Content-Type"] = "multipart/form-data, boundary=#{BOUNDARY}"
+
+          response = http.request(request)
+          if response.code == '200'
+            "<strong>The upload was successful</strong><p>#{response.body}</p><button class=\"close-dialog\">Close</button>"
+          elsif response.code.start_with?('5')
+            "The destination server encountered an error. The response code is #{response.code}<button class=\"close-dialog\">Close</button>"
+          else
+            "The request was not successful. The response code is #{response.code}<button class=\"close-dialog\">Close</button>"
+          end
+        rescue Timeout::Error => e
+          "The call to the server timed out.<button class=\"close-dialog\">Close</button>"
+        rescue Errno::ECONNREFUSED => e
+          "The connection was refused. <p>Perhaps the server is not running.</p><button class=\"close-dialog\">Close</button>"
+        rescue StandardError => e
+          "There was an error: <span style='display:none'>#{e.class.name}</span><p>#{e.message}</p><button class=\"close-dialog\">Close</button>"
+        end
         end
       end
     end
@@ -347,5 +401,19 @@ class LabelDesigner < Roda
       'custom': {'width': '84', 'height': '64'}
     }
     sizes
+  end
+
+  def make_label_zip(label)
+    fname = label.label_name.strip.gsub(/[\/:*?"\\<>\|\r\n]/i, '-')
+    label_properties = %Q{Client: Name="NoSoft"}
+    stringio = Zip::OutputStream.write_buffer do |zio|
+      zio.put_next_entry("#{fname}.png")
+      zio.write label.png_image
+      zio.put_next_entry("#{fname}.xml")
+      zio.write label.variable_xml
+      zio.put_next_entry("#{fname}.properties")
+      zio.write label_properties
+    end
+    return [fname, stringio.string]
   end
 end

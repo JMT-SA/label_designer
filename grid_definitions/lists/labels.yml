@@ -22,6 +22,12 @@
     :text: download
     :icon: fa-download
   - :separator: true
+  - :url: /label_designer/$:id$/upload
+    :text: upload
+    :icon: fa-upload
+    :title: Upload
+    :popup: true
+  - :separator: true
   - :url: /label_designer/$:id$
     :text: delete label
     :icon: fa-remove
