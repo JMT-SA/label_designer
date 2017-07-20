@@ -181,6 +181,7 @@ class LabelDesigner < Roda
 
         r.on 'upload_file' do
         begin
+          close_button       = '<p><button class="close-dialog">Close</button></p>'
           repo               = LabelRepo.new(DB.db)
           label              = repo.labels.by_pk(id).one
           fname, binary_data = make_label_zip(label)
@@ -202,18 +203,18 @@ class LabelDesigner < Roda
 
           response = http.request(request)
           if response.code == '200'
-            "<strong>The upload was successful</strong><p>#{response.body}</p><button class=\"close-dialog\">Close</button>"
+            "<strong>The upload was successful</strong><p>#{response.body}</p>#{close_button}"
           elsif response.code.start_with?('5')
-            "The destination server encountered an error. The response code is #{response.code}<button class=\"close-dialog\">Close</button>"
+            "The destination server encountered an error. The response code is #{response.code}#{close_button}"
           else
-            "The request was not successful. The response code is #{response.code}<button class=\"close-dialog\">Close</button>"
+            "The request was not successful. The response code is #{response.code}#{close_button}"
           end
         rescue Timeout::Error => e
-          "The call to the server timed out.<button class=\"close-dialog\">Close</button>"
+          "The call to the server timed out.#{close_button}"
         rescue Errno::ECONNREFUSED => e
-          "The connection was refused. <p>Perhaps the server is not running.</p><button class=\"close-dialog\">Close</button>"
+          "The connection was refused. <p>Perhaps the server is not running.</p>#{close_button}"
         rescue StandardError => e
-          "There was an error: <span style='display:none'>#{e.class.name}</span><p>#{e.message}</p><button class=\"close-dialog\">Close</button>"
+          "There was an error: <span style='display:none'>#{e.class.name}</span><p>#{e.message}</p>#{close_button}"
         end
         end
       end
