@@ -1,4 +1,4 @@
-module Label
+module LabelView
   class Clone
     def self.call(id)
 

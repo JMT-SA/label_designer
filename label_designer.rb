@@ -1,7 +1,4 @@
 require 'roda'
-require 'rom'
-require 'rom-sql'
-require 'rom-repository'
 require 'crossbeams/dataminer'
 require 'crossbeams/layout'
 require 'crossbeams/label_designer'
@@ -9,13 +6,23 @@ require 'yaml'
 require 'base64'
 require 'zip'
 require 'dry-validation'
+require 'dry-struct'
+require 'sequel'
 require 'net/http'
 require 'uri'
 require './lib/db_connections'
-Dir['./lib/labels/*.rb'].each { |f| require f }
-require './repositories/user_repo'
-require './repositories/label_repo'
-Dir['./persistence/changesets/*.rb'].each { |f| require f }
+require './lib/repo_base'
+
+module Types
+  include Dry::Types.module
+end
+
+module Crossbeams
+  class FrameworkError < StandardError
+  end
+end
+
+Dir['./lib/applets/*.rb'].each { |f| require f }
 
 #=================================================
 #### TEMPORARY QUICK CONFIG FOR JF SERVER URI ####
@@ -77,44 +84,43 @@ class LabelDesigner < Roda
       end
 
       r.on 'new' do
-        show_page { Label::New.call }
+        show_page { LabelView::New.call }
       end
 
       r.on 'create' do
-        schema = Dry::Validation.Schema do
-          required(:label_name).filled(:str?)
-        end
-        errors = schema.call(params[:label]).messages
+        # schema = Dry::Validation.Schema do
+        #   required(:label_name).filled(:str?)
+        # end
+        # errors = schema.call(params[:label]).messages
+        errors = LabelSchema.(params[:label]).messages
         if errors.empty?
           qs = params[:label].map{|k,v| [CGI.escape(k.to_s), "=", CGI.escape(v.to_s)]}.map(&:join).join("&")
           r.redirect "/label_designer?#{qs}"
         else
           flash.now[:error] = 'Unable to create label'
-          show_page { Label::New.call(params[:label], errors) }
+          show_page { LabelView::New.call(params[:label], errors) }
         end
       end
 
       r.on :id do |id|
         r.delete do
-          repo = LabelRepo.new(DB.db)
+          repo = LabelRepo.new
           repo.delete(id)
           flash[:notice] = 'Deleted'
           redirect_to_last_grid(r)
         end
 
         r.post 'update' do
-          schema = Dry::Validation.Schema do
-            required(:label_name).filled(:str?)
-          end
-          errors = schema.call(params[:label]).messages
+          res = LabelSchema.(params[:label])
+          errors = res.messages
           if errors.empty?
-            repo = LabelRepo.new(DB.db)
-            changeset = repo.changeset(id, label_name: params[:label][:label_name]).map(:touch)
-            repo.update(id, changeset)
+            repo = LabelRepo.new
+            repo.update(id, res.to_h)
             redirect_to_last_grid(r)
           else
             flash.now[:error] = 'Unable to update label'
-            show_page { Label::Properties.call(id, params[:label], errors) }
+            show_page { LabelView::Properties.call(id, params[:label], errors) }
+            # show_partial { LabelView::Properties.call(id, params[:label], errors) }
           end
         end
 
@@ -123,7 +129,7 @@ class LabelDesigner < Roda
         end
 
         r.on 'clone' do
-          show_page { Label::Clone.call(id) }
+          show_page { LabelView::Clone.call(id) }
         end
 
         r.on 'clone_label' do
@@ -133,28 +139,25 @@ class LabelDesigner < Roda
         end
 
         r.on 'properties' do
-          # show_page { Label::Properties.call(id) }
-          show_partial { Label::Properties.call(id) }
+          # show_page { LabelView::Properties.call(id) }
+          show_partial { LabelView::Properties.call(id) }
           # Show form for name + dimensions & then to label
         end
 
         r.on 'preview' do
-          # repo = LabelRepo.new(DB.db)
-          # label = repo.labels.by_pk(id).one
-          # view(inline: "PREVIEW #{label.label_name}<p><img src='/label_designer/#{id}/png' /></p>")
           "<img src='/label_designer/#{id}/png' />"
         end
 
         r.on 'png' do
           response['Content-Type'] = 'image/png'
-          repo = LabelRepo.new(DB.db)
-          label = repo.labels.by_pk(id).one
+          repo = LabelRepo.new
+          label = repo.find(id)
           label.png_image
         end
 
         r.on 'download' do
-          repo  = LabelRepo.new(DB.db)
-          label = repo.labels.by_pk(id).one
+          repo  = LabelRepo.new
+          label = repo.find(id)
           fname, binary_data = make_label_zip(label)
           response.headers['content_type'] = 'application/x-zip-compressed'
           response.headers['Content-Disposition'] = "attachment; filename=\"#{fname}.zip\""
@@ -180,42 +183,42 @@ class LabelDesigner < Roda
         end
 
         r.on 'upload_file' do
-        begin
-          close_button       = '<p><button class="close-dialog">Close</button></p>'
-          repo               = LabelRepo.new(DB.db)
-          label              = repo.labels.by_pk(id).one
-          fname, binary_data = make_label_zip(label)
-          uri                = URI.parse(LABEL_SERVER_URI)
-          BOUNDARY           = "AaB03x"
+          begin
+            close_button       = '<p><button class="close-dialog">Close</button></p>'
+            repo               = LabelRepo.new
+            label              = repo.find(id)
+            fname, binary_data = make_label_zip(label)
+            uri                = URI.parse(LABEL_SERVER_URI)
+            BOUNDARY           = "AaB03x"
 
-          post_body = []
-          post_body << "--#{BOUNDARY}\r\n"
-          post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
-          post_body << "Content-Type: application/x-zip-compressed\r\n"
-          post_body << "\r\n"
-          post_body << binary_data #File.read(file)
-          post_body << "\r\n--#{BOUNDARY}--\r\n"
+            post_body = []
+            post_body << "--#{BOUNDARY}\r\n"
+            post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
+            post_body << "Content-Type: application/x-zip-compressed\r\n"
+            post_body << "\r\n"
+            post_body << binary_data #File.read(file)
+            post_body << "\r\n--#{BOUNDARY}--\r\n"
 
-          http = Net::HTTP.new(uri.host, uri.port)
-          request = Net::HTTP::Post.new(uri.request_uri)
-          request.body = post_body.join
-          request["Content-Type"] = "multipart/form-data, boundary=#{BOUNDARY}"
+            http = Net::HTTP.new(uri.host, uri.port)
+            request = Net::HTTP::Post.new(uri.request_uri)
+            request.body = post_body.join
+            request["Content-Type"] = "multipart/form-data, boundary=#{BOUNDARY}"
 
-          response = http.request(request)
-          if response.code == '200'
-            "<strong>The upload was successful</strong><p>#{response.body}</p>#{close_button}"
-          elsif response.code.start_with?('5')
-            "The destination server encountered an error. The response code is #{response.code}#{close_button}"
-          else
-            "The request was not successful. The response code is #{response.code}#{close_button}"
+            response = http.request(request)
+            if response.code == '200'
+              "<strong>The upload was successful</strong><p>#{response.body}</p>#{close_button}"
+            elsif response.code.start_with?('5')
+              "The destination server encountered an error. The response code is #{response.code}#{close_button}"
+            else
+              "The request was not successful. The response code is #{response.code}#{close_button}"
+            end
+          rescue Timeout::Error => e
+            "The call to the server timed out.#{close_button}"
+          rescue Errno::ECONNREFUSED => e
+            "The connection was refused. <p>Perhaps the server is not running.</p>#{close_button}"
+          rescue StandardError => e
+            "There was an error: <span style='display:none'>#{e.class.name}</span><p>#{e.message}</p>#{close_button}"
           end
-        rescue Timeout::Error => e
-          "The call to the server timed out.#{close_button}"
-        rescue Errno::ECONNREFUSED => e
-          "The connection was refused. <p>Perhaps the server is not running.</p>#{close_button}"
-        rescue StandardError => e
-          "There was an error: <span style='display:none'>#{e.class.name}</span><p>#{e.message}</p>#{close_button}"
-        end
         end
       end
     end
@@ -276,37 +279,27 @@ class LabelDesigner < Roda
     r.on 'save_label' do
       r.on :id do |id|
         r.post do
-          repo = LabelRepo.new(DB.db)
-          # changeset = repo.changeset(params[:functional_area]).map(:add_timestamps)
+          repo = LabelRepo.new
           # TODO: read params to get dim, id and name... and do update/create...
-          file_name = "testeditpng.png"
-
-          File.open(file_name, 'wb') do |file|
-            file.write(image_from_param(params[:imageString]))
-          end
-          puts "ID is #{id}..."
-          # NOTE: ROM changeset is compared to the existing data, so you need to supply ALL columns,
-          # not just the changed ones (incl. created_at)
-          changeset = repo.changeset(id, {label_json: params[:label],
-                                       variable_xml: params[:XMLString],
-                                       png_image: image_from_param(params[:imageString])}).map(:touch)
-          # changeset = repo.changeset(UpdateChangeset).by_pk(id).data({label_json: params[:label],
-          #                                                # label_name: 'a testa',
-          #                                                # label_dimension: '8464',
-          #                                                variable_xml: params[:XMLString],
-          #                                                png_image: image_from_param(params[:imageString])})
+          # file_name = "testeditpng.png"
+          #
+          # File.open(file_name, 'wb') do |file|
+          #   file.write(image_from_param(params[:imageString]))
+          # end
+          changeset = {label_json: params[:label],
+                       variable_xml: params[:XMLString],
+                       png_image: Sequel.blob(image_from_param(params[:imageString]))}
+          # puts ">>> IMG: #{image_from_param(params[:imageString])}"
           repo.update(id, changeset)
-          # repo.update(changeset)
+
           flash[:notice] = 'Updated'
-          # redirect_to_last_grid(r)
-          # - save to db
           response['Content-Type'] = 'application/json'
           {redirect: "#{session[:last_grid_url]}"}.to_json
         end
       end
 
       r.post do
-        repo = LabelRepo.new(DB.db)
+        repo = LabelRepo.new
         # changeset = repo.changeset(params[:functional_area]).map(:add_timestamps)
         # TODO: read params to get dim, id and name... and do update/create...
         file_name = "testpng.png"
@@ -314,18 +307,15 @@ class LabelDesigner < Roda
         File.open(file_name, 'wb') do |file|
           file.write(image_from_param(params[:imageString]))
         end
-        changeset = repo.changeset(NewChangeset).data({label_json: params[:label],
-                                                       label_name: params[:labelName],
-                                                       label_dimension: '8464',
-                                                       variable_xml: params[:XMLString],
-                                                       png_image: image_from_param(params[:imageString])})
+        changeset = {label_json: params[:label],
+                     label_name: params[:labelName],
+                     label_dimension: '8464',
+                     variable_xml: params[:XMLString],
+                     png_image: Sequel.blob(image_from_param(params[:imageString]))}
         repo.create(changeset)
         flash[:notice] = 'Created'
-        # redirect_to_last_grid(r)
-        # - save to db
         response['Content-Type'] = 'application/json'
         {redirect: "#{session[:last_grid_url]}"}.to_json
-        # params.to_json
       end
     end
   end
@@ -358,8 +348,8 @@ class LabelDesigner < Roda
 
   def label_config(opts)
     if opts[:id]
-      this_repo = LabelRepo.new(DB.db)
-      label     = this_repo.labels.by_pk(opts[:id]).one
+      repo  = LabelRepo.new
+      label = repo.find(opts[:id])
     end
     config = {labelState: opts[:id].nil? ? 'new' : 'edit',
               labelName:  opts[:cloned] || label.nil? ? opts[:label_name] : label.label_name,

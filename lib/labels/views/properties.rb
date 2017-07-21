@@ -1,8 +1,9 @@
-module Label
+# require './lib/labels/repositories/label_repo.rb'
+module LabelView
   class Properties
     def self.call(id, form_values = nil, form_errors = nil)
-      this_repo = LabelRepo.new(DB.db)
-      obj       = this_repo.labels.by_pk(id).one
+      this_repo = LabelRepo.new #(DB.db)
+      obj       = this_repo.find(id)
       rules = { fields: {
         label_name: { },
       } } #, name: 'label'.freeze }

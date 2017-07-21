@@ -33,6 +33,8 @@ GEM
       htmlentities (~> 4.3.1)
       nokogiri (>= 1.4.1)
       rubyzip (~> 1.0.0)
+    byebug (9.0.6)
+    clipboard (1.1.1)
     coderay (1.1.1)
     concurrent-ruby (1.0.5)
     dry-configurable (0.7.0)
@@ -43,7 +45,6 @@ GEM
     dry-core (0.3.1)
       concurrent-ruby (~> 1.0)
     dry-equalizer (0.2.0)
-    dry-initializer (1.4.1)
     dry-logic (0.4.1)
       dry-container (~> 0.2, >= 0.2.6)
       dry-core (~> 0.2)
@@ -90,7 +91,21 @@ GEM
       coderay (~> 1.1.0)
       method_source (~> 0.8.1)
       slop (~> 3.4)
+    pry-byebug (3.4.2)
+      byebug (~> 9.0)
+      pry (~> 0.10)
+    pry-clipboard (0.1.1)
+      clipboard
+      pry
+    pry-doc (0.10.0)
+      pry (~> 0.9)
+      yard (~> 0.9)
     rack (2.0.2)
+    rack-console (1.3.1)
+      rack (>= 1.1)
+      rack-test
+    rack-test (0.6.3)
+      rack (>= 1.0)
     rack_csrf (2.6.0)
       rack (>= 1.1.0)
     rb-fsevent (0.9.8)
@@ -101,35 +116,15 @@ GEM
     roda (2.25.0)
       rack
     roda-symbolized_params (0.0.2)
-    rom (3.2.3)
-      concurrent-ruby (~> 1.0)
-      dry-core (~> 0.3)
-      dry-equalizer (~> 0.2)
-      dry-initializer (~> 1.3)
-      dry-types (~> 0.9, >= 0.9.4)
-      rom-mapper (~> 0.5, >= 0.5.1)
-    rom-mapper (0.5.1)
-      dry-core (~> 0.2, >= 0.2.3)
-      dry-equalizer (~> 0.2)
-      transproc (~> 1.0)
-    rom-repository (1.3.3)
-      dry-core (~> 0.3, >= 0.3.1)
-      dry-struct (~> 0.1)
-      rom (~> 3.2, >= 3.2.3)
-      rom-mapper (~> 0.5)
-    rom-sql (1.3.3)
-      dry-core (~> 0.3)
-      dry-equalizer (~> 0.2)
-      dry-types (~> 0.10, >= 0.10.2)
-      rom (~> 3.2, >= 3.2.2)
-      sequel (~> 4.43)
     ruby_dep (1.5.0)
     rubyzip (1.0.0)
     sass (3.4.23)
     sequel (4.47.0)
+    sequel_postgresql_triggers (1.3.0)
+      sequel
     slop (3.6.0)
     tilt (2.0.7)
-    transproc (1.0.2)
+    yard (0.9.9)
 
 PLATFORMS
   ruby
@@ -138,18 +133,22 @@ DEPENDENCIES
   crossbeams-dataminer!
   crossbeams-label_designer!
   crossbeams-layout!
+  dry-struct
   dry-validation
   pg
   pry
+  pry-byebug
+  pry-clipboard
+  pry-doc
+  rack-console
   rack_csrf
   rerun
   roda (~> 2.25)
   roda-data_grid!
   roda-symbolized_params
-  rom (~> 3.2)
-  rom-repository (~> 1.3)
-  rom-sql (~> 1.2)
   sass
+  sequel
+  sequel_postgresql_triggers
   tilt
 
 BUNDLED WITH
