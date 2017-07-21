@@ -264,7 +264,7 @@ const crossbeamsGridFormatters = {
         prompt: item.prompt,
         method: item.method,
         title: item.title,
-        title_field: item.title_field ? params.data[item.title_field] : '',
+        title_field: item.title_field ? params.data[item.title_field] : item.title ? item.title : '',
         icon: item.icon,
         popup: item.popup,
       };
