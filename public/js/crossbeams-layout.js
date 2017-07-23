@@ -119,8 +119,9 @@
           if (data.redirect) {
             window.location = data.redirect;
           } else if (data.updateGridInPlace) {
+            const gridId = crossbeamsLocalStorage.getItem('popupOnGrid');
             // TODO: move to own function..
-            const gridOptions = crossbeamsGridStore.getGrid(data.updateGridInPlace.gridId);
+            const gridOptions = crossbeamsGridStore.getGrid(gridId);
             let rowNode = gridOptions.api.getRowNode(data.updateGridInPlace.id);
             for (const k in data.updateGridInPlace.changes) {
                 rowNode.setDataValue(k, data.updateGridInPlace.changes[k]);
