@@ -103,6 +103,51 @@
          crossbeamsUtils.closeJmtDialog();
       }
     });
+    /**
+     * Turn a form into a remote (AJAX) form on submit.
+     */
+    document.body.addEventListener('submit', function(event) {
+      if (event.target.dataset.remote === 'true') {
+        fetch(event.target.action, {
+          method: 'POST', // GET?
+          credentials: 'same-origin',
+          body: new FormData(event.target),
+        }).then(function(response) {
+          return response.json();
+        }).then(function(data) {
+          let closeDialog = true;
+          if (data.redirect) {
+            window.location = data.redirect;
+          } else if (data.updateGridInPlace) {
+            // TODO: move to own function..
+            const gridOptions = crossbeamsGridStore.getGrid(data.updateGridInPlace.gridId);
+            let rowNode = gridOptions.api.getRowNode(data.updateGridInPlace.id);
+            for (const k in data.updateGridInPlace.changes) {
+                rowNode.setDataValue(k, data.updateGridInPlace.changes[k]);
+            };
+          } else if (data.replaceDialog) {
+            closeDialog = false;
+            $('#dialog-modal').html(data.replaceDialog.content);
+          } else {
+            console.log('Not sure what to do with this:', data);
+          }
+          // Only if not redirect...
+          if (data.flash) {
+            if (data.flash.notice) {
+              Jackbox.success(data.flash.notice);
+            }
+            if (data.flash.error) {
+              Jackbox.error(data.flash.error);
+            }
+          }
+          if (closeDialog) {
+            crossbeamsUtils.closeJmtDialog();
+          }
+        });
+      event.stopPropagation();
+      event.preventDefault();
+      }
+    });
   });
 }());
 // CODE FROM HERE...

@@ -4,7 +4,7 @@ module LabelView
 
       # this_repo = LabelRepo.new(DB.db)
       rules = { fields: {
-        label_name: { }, # pattern="[a-z_]", placeholder="lowercase, underscore" OR pattern="[^\s]+" placeholder="no spaces"
+        label_name: { pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces' },
         label_dimension: { renderer: :select,
                            options: ['8464', 'A4', 'A5', 'Custom'] },
       }, name: 'label'.freeze }

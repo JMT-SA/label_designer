@@ -116,11 +116,17 @@ class LabelDesigner < Roda
           if errors.empty?
             repo = LabelRepo.new
             repo.update(id, res.to_h)
-            redirect_to_last_grid(r)
+            # redirect_to_last_grid(r)
+            response['Content-Type'] = 'application/json'
+            # TODO: How to know which grid id?.... (grid_labels, search_grid_labels or another...)
+            {updateGridInPlace: { gridId: 'grid_labels', id: id.to_i, changes: { label_name: res[:label_name] } },
+            flash: { notice: "Updated #{res[:label_name]}" } }.to_json
           else
-            flash.now[:error] = 'Unable to update label'
-            show_page { LabelView::Properties.call(id, params[:label], errors) }
+            # flash.now[:error] = 'Unable to update label'
+            # show_page { LabelView::Properties.call(id, params[:label], errors) }
             # show_partial { LabelView::Properties.call(id, params[:label], errors) }
+            content = show_partial { LabelView::Properties.call(id, params[:label], errors) }
+            {replaceDialog: { content: content }, flash: { error: 'Validation error' } }.to_json
           end
         end
 

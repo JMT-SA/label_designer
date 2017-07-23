@@ -800,6 +800,9 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
         gridOptions.enableStatusBar = false;
       }
 
+      // Index rows by the id column...
+      gridOptions.getRowNodeId = function(data) { return data.id; };
+
       // new agGrid.Grid(grid, gridOptions);
       new agGrid.Grid(grid, gridOptions);
       crossbeamsGridStore.addGrid(gridId, gridOptions);
