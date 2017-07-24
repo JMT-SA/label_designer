@@ -111,18 +111,21 @@ class LabelDesigner < Roda
         end
 
         r.post 'update' do
-          res = LabelSchema.(params[:label])
-          errors = res.messages
-          if errors.empty?
-            repo = LabelRepo.new
-            repo.update(id, res.to_h)
-            # redirect_to_last_grid(r)
+          begin
             response['Content-Type'] = 'application/json'
-            {updateGridInPlace: { id: id.to_i, changes: { label_name: res[:label_name] } },
-             flash: { notice: "Updated #{res[:label_name]}" } }.to_json
-          else
-            content = show_partial { LabelView::Properties.call(id, params[:label], errors) }
-            {replaceDialog: { content: content }, flash: { error: 'Validation error' } }.to_json
+            res = LabelSchema.(params[:label])
+            errors = res.messages
+            if errors.empty?
+              repo = LabelRepo.new
+              repo.update(id, res.to_h)
+              update_grid_row(id, changes: { label_name: res[:label_name] },
+                                  notice: "Updated #{res[:label_name]}")
+            else
+              content = show_partial { LabelView::Properties.call(id, params[:label], errors) }
+              update_dialog_content(content: content, error: 'Validation error')
+            end
+          rescue => e
+            handle_json_error(e)
           end
         end
 
@@ -408,5 +411,23 @@ class LabelDesigner < Roda
       zio.write label_properties
     end
     return [fname, stringio.string]
+  end
+
+  def update_grid_row(id, changes:, notice: nil)
+    res = {updateGridInPlace: { id: id.to_i, changes: changes } }
+    res[:flash] = { notice: notice } if notice
+    res.to_json
+  end
+
+  def update_dialog_content(content:, notice: nil, error: nil)
+    res = { replaceDialog: { content: content } }
+    res[:flash] = { notice: notice } if notice
+    res[:flash] = { error: error } if error
+    res.to_json
+  end
+
+  def handle_json_error(err)
+    response.status = 500
+    { exception: err.class.name, flash: { error: "An error occurred: #{err.message}" } }.to_json
   end
 end

@@ -42,10 +42,10 @@
    * Prevent multiple clicks of submit buttons.
    * @returns {void}
    */
-  function preventMultipleSubmits() {
-    disableButton(this, this.dataset.disableWith);
+  function preventMultipleSubmits(element) {
+    disableButton(element, element.dataset.disableWith);
     window.setTimeout(() => {
-      this.disabled = true;
+      element.disabled = true;
     }, 0); // Disable the button with a delay so the form still submits...
   }
 
@@ -66,12 +66,12 @@
    * Re-enables the button after a delay of one second.
    * @returns {void}
    */
-  function preventMultipleSubmitsBriefly() {
-    disableButton(this, this.dataset.brieflyDisableWith);
+  function preventMultipleSubmitsBriefly(element) {
+    disableButton(element, element.dataset.brieflyDisableWith);
     window.setTimeout(() => {
-      this.disabled = true;
+      element.disabled = true;
       window.setTimeout(() => {
-        revertDisabledButton(this);
+        revertDisabledButton(element);
       }, 1000); // Re-enable the button with a delay.
     }, 0); // Disable the button with a delay so the form still submits...
   }
@@ -92,17 +92,18 @@
    * Assign a click handler to buttons that need to be disabled.
    */
   document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('[data-disable-with]').forEach((element) => {
-      element.onclick = preventMultipleSubmits;
-    });
-    document.querySelectorAll('[data-briefly-disable-with]').forEach((element) => {
-      element.onclick = preventMultipleSubmitsBriefly;
-    });
-    document.body.addEventListener('click', function(event) {
+    document.body.addEventListener('click', (event) => {
+      if (event.target.dataset.disableWith) {
+        preventMultipleSubmits(event.target);
+      }
+      if (event.target.dataset.brieflyDisableWith) {
+        preventMultipleSubmitsBriefly(event.target);
+      }
       if (event.target.classList.contains('close-dialog')) {
          crossbeamsUtils.closeJmtDialog();
       }
     });
+
     /**
      * Turn a form into a remote (AJAX) form on submit.
      */
@@ -138,12 +139,18 @@
               Jackbox.success(data.flash.notice);
             }
             if (data.flash.error) {
-              Jackbox.error(data.flash.error);
+              if (data.exception) {
+                Jackbox.error(data.flash.error, { time: 20 });
+              } else {
+                Jackbox.error(data.flash.error);
+              }
             }
           }
-          if (closeDialog) {
+          if (closeDialog && !data.exception) {
             crossbeamsUtils.closeJmtDialog();
           }
+        }).catch(function(data) {
+            Jackbox.error(`An error occurred ${data}`, { time: 20 });
         });
       event.stopPropagation();
       event.preventDefault();

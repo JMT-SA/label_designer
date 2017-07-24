@@ -43,7 +43,7 @@ const crossbeamsUtils = {
   },
 
   closeJmtDialog: function closeJmtDialog() {
-    $("#dialog-modal").PopupWindow("destroy");
+    $("#dialog-modal").PopupWindow("close").html('');
   },
   /**
    * Toggle the visibility of en element in the DOM:
