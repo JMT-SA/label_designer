@@ -149,8 +149,16 @@ class LabelDesigner < Roda
           # Show form for name + dimensions & then to label
         end
 
-        r.on 'preview' do
+        r.on 'background' do
           "<img src='/label_designer/#{id}/png' />"
+        end
+
+        r.on 'preview' do
+          "Preview from Konva"
+        end
+
+        r.on 'server_preview_label' do
+          "Preview from Server"
         end
 
         r.on 'png' do

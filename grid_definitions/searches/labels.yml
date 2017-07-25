@@ -13,14 +13,30 @@
     :icon: fa-info
     :title: Properties
     :popup: true
+  - :url: /label_designer/$:id$/background
+    :text: background image
+    :icon: fa-image
+    :title_field: label_name
+    :popup: true
   - :url: /label_designer/$:id$/preview
-    :text: preview image
-    :icon: fa-eye
+    :text: local preview
+    :icon: fa-search
     :title_field: label_name
     :popup: true
   - :url: /label_designer/$:id$/download
     :text: download
     :icon: fa-download
+  - :separator: true
+  - :url: /label_designer/$:id$/upload
+    :text: upload
+    :icon: fa-upload
+    :title: Upload
+    :popup: true
+  - :url: /label_designer/$:id$/server_preview_label
+    :text: server preview
+    :icon: fa-eye
+    :title_field: label_name
+    :popup: true
   - :separator: true
   - :url: /label_designer/$:id$
     :text: delete label
