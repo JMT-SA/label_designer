@@ -24,11 +24,11 @@ end
 
 Dir['./lib/applets/*.rb'].each { |f| require f }
 
-#=================================================
-#### TEMPORARY QUICK CONFIG FOR JF SERVER URI ####
-#=================================================
-LABEL_SERVER_URI = 'http://localhost:9292/uploads'
-#=================================================
+#==========================================================
+######## TEMPORARY QUICK CONFIG FOR JF SERVER URI #########
+#==========================================================
+LABEL_SERVER_URI = 'http://192.168.50.11:8080/MesServlets/'
+#==========================================================
 
 Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration for label designer gem.
   # config.json_load_path = '/load_label'
@@ -159,6 +159,55 @@ class LabelDesigner < Roda
 
         r.on 'server_preview_label' do
           "Preview from Server"
+          <<-EOS
+          <div id="crossbeams-processing" class="content-target content-loading"></div>
+          <script>
+            var content_div = document.querySelector('#crossbeams-processing');
+
+            fetch('/label_designer/#{id}/preview_file')
+            .then(function(response) {
+              return response.text();
+            })
+            .then(function(responseText) {
+              content_div.classList.remove('content-loading');
+              content_div.innerHTML = responseText;
+            });
+          </script>
+          EOS
+        end
+
+        r.on 'preview_file' do
+          # This does not work yet, awaiting server
+          begin
+            close_button       = '<p><button class="close-dialog">Close</button></p>'
+            repo               = LabelRepo.new
+            label_name         = repo.find(id).label_name
+            uri                = URI.parse(LABEL_SERVER_URI+'FileDownloadServlet')
+
+            http = Net::HTTP.new(uri.host, uri.port)
+            request = Net::HTTP::Post.new(uri.request_uri)
+            # Net::HTTP::start
+            request.set_form_data({
+              CGI.escape("homefolder=default") => " ", CGI.escape("op-folder=printers, zebra") => " ",
+              "filetype=png" => " ", "action=install" => " ",
+              "printer_templates" => "FMT_File-01.jpg"
+            })
+            response = http.request(request)
+
+            if response.code == '200'
+              "<strong>The download was successful</strong><p>#{response.body}</p>#{close_button}"
+            elsif response.code.start_with?('5')
+              "The destination server encountered an error. The response code is #{response.code}#{close_button}"
+            else
+              "The request was not successful. The response code is #{response.code}#{close_button}"
+            end
+          rescue Timeout::Error => e
+            "The call to the server timed out.#{close_button}"
+          rescue Errno::ECONNREFUSED => e
+            "The connection was refused. <p>Perhaps the server is not running.</p>#{close_button}"
+          rescue StandardError => e
+            "There was an error: <span style='display:none'>#{e.class.name}</span><p>#{e.message}</p>#{close_button}"
+          end
         end
 
         r.on 'png' do
@@ -201,7 +250,7 @@ class LabelDesigner < Roda
             repo               = LabelRepo.new
             label              = repo.find(id)
             fname, binary_data = make_label_zip(label)
-            uri                = URI.parse(LABEL_SERVER_URI)
+            uri                = URI.parse(LABEL_SERVER_URI+'FileUploadServlet')
             BOUNDARY           = "AaB03x"
 
             post_body = []
