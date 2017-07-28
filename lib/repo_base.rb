@@ -33,7 +33,7 @@ class RepoBase
   end
 
   def create(attrs)
-    DB.base[main_table].insert(attrs.to_h)
+    DB.base[main_table_name].insert(attrs.to_h)
   end
 
   def update(id, attrs)

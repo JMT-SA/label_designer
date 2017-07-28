@@ -738,6 +738,7 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
       // lookup of grid ids? populate here and clear when grid unloaded...
       if (grid.dataset.nestedGrid) {
         gridOptions = {
+          context: { domGridId: gridId },
           columnDefs: null,
           rowDefs: null,
           enableColResize: true,
@@ -817,11 +818,12 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
 
 $(() => {
 
-  buildSubMenuItems = (subs) => {
+  buildSubMenuItems = (subs, gridId) => {
     let itemSet = {};
     if(subs) {
       subs.forEach((sub) => {
         itemSet[sub.key] = sub;
+        itemSet[sub.key]['domGridId'] = gridId;
       });
     }
     return itemSet;
@@ -869,7 +871,7 @@ $(() => {
             domGridId: gridId,
           };
           if (item.is_submenu) {
-            items[item.key].items = buildSubMenuItems(item.items);
+            items[item.key].items = buildSubMenuItems(item.items, gridId);
           }
         }
       });
