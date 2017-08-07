@@ -175,5 +175,26 @@ const crossbeamsUtils = {
     return index;
   },
 
+  /**
+   * Make a list sortable.
+   * @param {string} prefix - the prefix part of the id of the ol or ul tag.
+   * @returns {void}
+   */
+  makeListSortable: function makeListSortable(prefix) {
+    const el = document.getElementById(`${prefix}-sortable-items`);
+    const sorted_ids = document.getElementById(`${prefix}-sorted_ids`);
+    const sortable = Sortable.create(el, {
+      animation: 150,
+      handle: ".crossbeams-drag-handle",
+      ghostClass: "crossbeams-sortable-ghost",  // Class name for the drop placeholder
+      dragClass: "crossbeams-sortable-drag",  // Class name for the dragging item
+      onEnd: function (/**Event*/evt) {
+        let id_list = [];
+        for(child of el.children) { id_list.push(child.id.replace('si_', '')); } // strip si_ part...
+        sorted_ids.value = id_list.join(',');
+      },
+    });
+  },
+
 };
 
