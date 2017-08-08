@@ -12,6 +12,7 @@ require 'net/http'
 require 'uri'
 require './lib/db_connections'
 require './lib/repo_base'
+require 'pry'
 
 module Types
   include Dry::Types.module
@@ -27,7 +28,7 @@ Dir['./lib/applets/*.rb'].each { |f| require f }
 #==========================================================
 ######## TEMPORARY QUICK CONFIG FOR JF SERVER URI #########
 #==========================================================
-LABEL_SERVER_URI = 'http://192.168.50.11:8080/MesServlets/'
+LABEL_SERVER_URI = 'http://192.168.50.11:2080/'
 #==========================================================
 
 Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration for label designer gem.
@@ -158,7 +159,6 @@ class LabelDesigner < Roda
         end
 
         r.on 'server_preview_label' do
-          "Preview from Server"
           <<-EOS
           <div id="crossbeams-processing" class="content-target content-loading"></div>
           <script>
@@ -166,32 +166,35 @@ class LabelDesigner < Roda
 
             fetch('/label_designer/#{id}/preview_file')
             .then(function(response) {
-              return response.text();
+              return response.blob();
             })
-            .then(function(responseText) {
+            .then(function(responseBlob) {
+              const image = document.createElement('img');
               content_div.classList.remove('content-loading');
-              content_div.innerHTML = responseText;
+              content_div.innerHTML = '<p>Preview from Server</p>';
+              image.src = URL.createObjectURL(responseBlob);
+              content_div.appendChild(image);
             });
+
           </script>
           EOS
         end
 
         r.on 'preview_file' do
-          # This does not work yet, awaiting server
           begin
             close_button       = '<p><button class="close-dialog">Close</button></p>'
             repo               = LabelRepo.new
             label_name         = repo.find(id).label_name
-            uri                = URI.parse(LABEL_SERVER_URI+'FileDownloadServlet')
+            uri                = URI.parse(LABEL_SERVER_URI + '?Type=TransmitFile&PID=56&HomeFolder=&SubFolder=web/clients/nosoft/printers/nzebra&File='+ '20160825_090313.jpg')
 
             http = Net::HTTP.new(uri.host, uri.port)
             request = Net::HTTP::Post.new(uri.request_uri)
             # Net::HTTP::start
-            request.set_form_data({
-              CGI.escape("homefolder=default") => " ", CGI.escape("op-folder=printers, zebra") => " ",
-              "filetype=png" => " ", "action=install" => " ",
-              "printer_templates" => "FMT_File-01.jpg"
-            })
+            # request.set_form_data({
+            #   CGI.escape("homefolder=default") => " ", CGI.escape("op-folder=printers, zebra") => " ",
+            #   "filetype=png" => " ", "action=install" => " ",
+            #   "printer_templates" => "FMT_File-01.jpg"
+            # })
             response = http.request(request)
 
             if response.code == '200'
@@ -250,7 +253,7 @@ class LabelDesigner < Roda
             repo               = LabelRepo.new
             label              = repo.find(id)
             fname, binary_data = make_label_zip(label)
-            uri                = URI.parse(LABEL_SERVER_URI+'FileUploadServlet')
+            uri                = URI.parse(LABEL_SERVER_URI)
             BOUNDARY           = "AaB03x"
 
             post_body = []
@@ -364,11 +367,11 @@ class LabelDesigner < Roda
         repo = LabelRepo.new
         # changeset = repo.changeset(params[:functional_area]).map(:add_timestamps)
         # TODO: read params to get dim, id and name... and do update/create...
-        file_name = "testpng.png"
+        # file_name = "testpng.png"
 
-        File.open(file_name, 'wb') do |file|
-          file.write(image_from_param(params[:imageString]))
-        end
+        # File.open(file_name, 'wb') do |file|
+        #   file.write(image_from_param(params[:imageString]))
+        # end
         changeset = {label_json: params[:label],
                      label_name: params[:labelName],
                      label_dimension: '8464',
