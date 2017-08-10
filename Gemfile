@@ -1,4 +1,5 @@
 source 'https://rubygems.org'
+gem 'dotenv'
 gem 'dry-validation'
 gem 'dry-struct'
 gem 'rack_csrf'

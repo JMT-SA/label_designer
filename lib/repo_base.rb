@@ -16,31 +16,31 @@ class RepoBase
 
   def all
     raise Crossbeams::FrameworkError, "#{self.class.name}: Cannot call 'all' on a repo that was not initialized with a wrapper. Use a wrapper or 'all_hash'." if wrapper.nil?
-    DB.base[main_table_name].map { |r| wrapper.new(r) }
+    DB[main_table_name].map { |r| wrapper.new(r) }
   end
 
   def all_hash
-    DB.base[main_table_name].all
+    DB[main_table_name].all
   end
 
   def find(id)
     raise Crossbeams::FrameworkError, "#{self.class.name}: Cannot call 'find' on a repo that was not initialized with a wrapper. Use a wrapper or 'find_hash'." if wrapper.nil?
-    wrapper.new(DB.base[main_table_name].where(id: id).first)
+    wrapper.new(DB[main_table_name].where(id: id).first)
   end
 
   def find_hash(id)
-    DB.base[main_table_name].where(id: id).first
+    DB[main_table_name].where(id: id).first
   end
 
   def create(attrs)
-    DB.base[main_table_name].insert(attrs.to_h)
+    DB[main_table_name].insert(attrs.to_h)
   end
 
   def update(id, attrs)
-    DB.base[main_table_name].where(id: id).update(attrs.to_h)
+    DB[main_table_name].where(id: id).update(attrs.to_h)
   end
 
   def delete(id)
-    DB.base[main_table_name].where(id: id).delete
+    DB[main_table_name].where(id: id).delete
   end
 end

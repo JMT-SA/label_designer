@@ -7,7 +7,6 @@ require 'base64'
 require 'zip'
 require 'dry-validation'
 require 'dry-struct'
-require 'sequel'
 require 'net/http'
 require 'uri'
 require './lib/db_connections'
@@ -25,18 +24,13 @@ end
 
 Dir['./lib/applets/*.rb'].each { |f| require f }
 
-#==========================================================
-######## TEMPORARY QUICK CONFIG FOR JF SERVER URI #########
-#==========================================================
-LABEL_SERVER_URI = 'http://192.168.50.11:2080/'
-#==========================================================
+LABEL_SERVER_URI = ENV.fetch('LABEL_SERVER_URI')
 
 Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration for label designer gem.
   # config.json_load_path = '/load_label'
   # config.json_save_path = '/save_label'
   # config.json_save_path = '/save_label'
 end
-DB = DBConnections.new
 
 class LabelDesigner < Roda
   use Rack::Session::Cookie, secret: "some_nice_long_random_string_DSKJH4378EYR7EGKUFH", key: "_lbld_session"
@@ -183,8 +177,8 @@ class LabelDesigner < Roda
         r.on 'preview_file' do
           begin
             close_button       = '<p><button class="close-dialog">Close</button></p>'
-            repo               = LabelRepo.new
-            label_name         = repo.find(id).label_name
+            # repo               = LabelRepo.new
+            # label_name         = repo.find(id).label_name
             uri                = URI.parse(LABEL_SERVER_URI + '?Type=TransmitFile&PID=56&HomeFolder=&SubFolder=web/clients/nosoft/printers/nzebra&File='+ '20160825_090313.jpg')
 
             http = Net::HTTP.new(uri.host, uri.port)
