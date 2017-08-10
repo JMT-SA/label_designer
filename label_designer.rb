@@ -237,11 +237,14 @@ class LabelDesigner < Roda
 
             fetch('/label_designer/#{id}/upload_file')
             .then(function(response) {
-              return response.text();
+              return response.blob();
             })
-            .then(function(responseText) {
+            .then(function(responseBlob) {
+              const image = document.createElement('img');
               content_div.classList.remove('content-loading');
-              content_div.innerHTML = responseText;
+              content_div.innerHTML = '<p>Preview from Server</p>';
+              image.src = URL.createObjectURL(responseBlob);
+              content_div.appendChild(image);
             });
           </script>
           EOS
@@ -253,7 +256,7 @@ class LabelDesigner < Roda
             repo               = LabelRepo.new
             label              = repo.find(id)
             fname, binary_data = make_label_zip(label)
-            uri                = URI.parse(LABEL_SERVER_URI)
+            uri                = URI.parse(LABEL_SERVER_URI+'LabelFileUpload')
             BOUNDARY           = "AaB03x"
 
             post_body = []
@@ -271,7 +274,8 @@ class LabelDesigner < Roda
 
             response = http.request(request)
             if response.code == '200'
-              "<strong>The upload was successful</strong><p>#{response.body}</p>#{close_button}"
+              response.body
+              # "<strong>The upload was successful</strong><p>#{response.body}</p>#{close_button}"
             elsif response.code.start_with?('5')
               "The destination server encountered an error. The response code is #{response.code}#{close_button}"
             else
@@ -461,7 +465,7 @@ class LabelDesigner < Roda
 
   def make_label_zip(label)
     fname = label.label_name.strip.gsub(/[\/:*?"\\<>\|\r\n]/i, '-')
-    label_properties = %Q{Client: Name="NoSoft"}
+    label_properties = %Q{Client: Name="NoSoft"\nF1=Variable Test Value} #For testing only
     stringio = Zip::OutputStream.write_buffer do |zio|
       zio.put_next_entry("#{fname}.png")
       zio.write label.png_image
