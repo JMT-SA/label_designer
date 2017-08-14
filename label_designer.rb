@@ -33,6 +33,8 @@ Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration f
 end
 
 class LabelDesigner < Roda
+  BOUNDARY = "AaB03x"
+
   use Rack::Session::Cookie, secret: "some_nice_long_random_string_DSKJH4378EYR7EGKUFH", key: "_lbld_session"
   use Rack::MethodOverride # USe with all_verbs plugin to allow "r.delete" etc.
 
@@ -223,6 +225,52 @@ class LabelDesigner < Roda
           response.write(binary_data)
         end
 
+        r.on 'upload_with_vars' do
+          show_partial { LabelView::UploadWithVars.call(id) }
+        end
+
+        r.on 'send_var_upload' do
+          response['Content-Type'] = 'application/json'
+          begin
+            vars  = params[:label]
+            repo  = LabelRepo.new
+            label = repo.find(id)
+
+            fname, binary_data = make_label_zip(label, vars)
+            File.open('zz.zip', 'w') { |f| f.puts binary_data }
+            uri                = URI.parse(LABEL_SERVER_URI+'LabelFileUpload')
+
+            post_body = []
+            post_body << "--#{BOUNDARY}\r\n"
+            post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
+            post_body << "Content-Type: application/x-zip-compressed\r\n"
+            post_body << "\r\n"
+            post_body << binary_data #File.read(file)
+            post_body << "\r\n--#{BOUNDARY}--\r\n"
+
+            http = Net::HTTP.new(uri.host, uri.port)
+            request = Net::HTTP::Post.new(uri.request_uri)
+            request.body = post_body.join
+            request["Content-Type"] = "multipart/form-data, boundary=#{BOUNDARY}"
+
+            response = http.request(request) # CRASH &&& got to handle...
+            if response.code == '200'
+              File.open(File.join('public', 'tempfiles', "#{fname}.png"), 'w') { |f| f.write(response.body) }
+              { replaceDialog: {content: "<img src='/tempfiles/#{fname}.png'>"} }.to_json
+            elsif response.code.start_with?('5')
+              { flash: { error: "The destination server encountered an error. The response code is #{response.code}" } }.to_json
+            else
+              { flash: { error: "The request was not successful. The response code is #{response.code}" } }.to_json
+            end
+          rescue Timeout::Error => e
+            { flash: { error: "The call to the server timed out." } }.to_json
+          rescue Errno::ECONNREFUSED => e
+            { flash: { error: "The connection was refused. Perhaps the server is not running." } }.to_json
+          rescue StandardError => e
+            { flash: { error: "There was an error: #{e.class.name} - #{e.message}" } }.to_json
+          end
+        end
+
         r.on 'upload' do
           <<-EOS
           <div id="crossbeams-processing" class="content-target content-loading"></div>
@@ -251,7 +299,6 @@ class LabelDesigner < Roda
             label              = repo.find(id)
             fname, binary_data = make_label_zip(label)
             uri                = URI.parse(LABEL_SERVER_URI+'LabelFileUpload')
-            BOUNDARY           = "AaB03x"
 
             post_body = []
             post_body << "--#{BOUNDARY}\r\n"
@@ -457,9 +504,10 @@ class LabelDesigner < Roda
     sizes
   end
 
-  def make_label_zip(label)
+  def make_label_zip(label, vars = nil)
+    property_vars = vars ? vars.map { |k, v| "\n#{k}=\"#{v}\"" }.join : "\nF1=Variable Test Value"
     fname = label.label_name.strip.gsub(/[\/:*?"\\<>\|\r\n]/i, '-')
-    label_properties = %Q{Client: Name="NoSoft"\nF1=Variable Test Value} #For testing only
+    label_properties = %Q{Client: Name="NoSoft"#{property_vars}} #For testing only
     stringio = Zip::OutputStream.write_buffer do |zio|
       zio.put_next_entry("#{fname}.png")
       zio.write label.png_image

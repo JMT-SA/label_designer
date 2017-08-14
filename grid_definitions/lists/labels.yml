@@ -32,6 +32,11 @@
     :icon: fa-upload
     :title: Upload
     :popup: true
+  - :url: /label_designer/$:id$/upload_with_vars
+    :text: upload with vars
+    :icon: fa-rocket
+    :title: Upload with variables
+    :popup: true
   - :url: /label_designer/$:id$/server_preview_label
     :text: server preview
     :icon: fa-eye

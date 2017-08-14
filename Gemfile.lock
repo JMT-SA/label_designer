@@ -137,6 +137,7 @@ DEPENDENCIES
   dotenv
   dry-struct
   dry-validation
+  nokogiri
   pg
   pry
   pry-byebug
