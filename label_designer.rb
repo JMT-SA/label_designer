@@ -255,10 +255,13 @@ class LabelDesigner < Roda
 
             response = http.request(request) # CRASH &&& got to handle...
             if response.code == '200'
-              File.open(File.join('public', 'tempfiles', "#{fname}.png"), 'w') { |f| f.write(response.body) }
-              { replaceDialog: {content: "<img src='/tempfiles/#{fname}.png'>"} }.to_json
+              filepath = Tempfile.open(["#{fname}", ".png"], 'public/tempfiles') do |f|
+                f.write(response.body)
+                f.path
+              end
+              { replaceDialog: {content: "<img src='#{filepath}'>"} }.to_json
             elsif response.code.start_with?('5')
-              { flash: { error: "The destination server encountered an error. The response code is #{response.code}" } }.to_json
+              { flash: { error: "The destination server encountered an error. The response code is #{response.code}, response body: #{response.body}" } }.to_json
             else
               { flash: { error: "The request was not successful. The response code is #{response.code}" } }.to_json
             end
@@ -505,9 +508,9 @@ class LabelDesigner < Roda
   end
 
   def make_label_zip(label, vars = nil)
-    property_vars = vars ? vars.map { |k, v| "\n#{k}=\"#{v}\"" }.join : "\nF1=Variable Test Value"
+    property_vars = vars ? vars.map { |k, v| "\n#{k}=#{v}" }.join : "\nF1=Variable Test Value"
     fname = label.label_name.strip.gsub(/[\/:*?"\\<>\|\r\n]/i, '-')
-    label_properties = %Q{Client: Name="NoSoft"#{property_vars}} #For testing only
+    label_properties = %Q{Client: Name="NoSoft"\nF0=#{fname}#{property_vars}} #For testing only
     stringio = Zip::OutputStream.write_buffer do |zio|
       zio.put_next_entry("#{fname}.png")
       zio.write label.png_image
