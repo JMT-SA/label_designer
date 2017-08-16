@@ -5,7 +5,7 @@ module LabelView
       this_repo = LabelRepo.new
       obj       = this_repo.find(id)
       doc       = Nokogiri::XML(obj.variable_xml)
-      xml_vars  = doc.css('variable_count').map { |v| v.text }
+      xml_vars  = doc.css('variable_field_count').map { |v| v.text }
       rules = { fields: {}, name: 'label'.freeze }
       xml_vars.each { |v| rules[v.to_sym] = {} }
       var_obj = OpenStruct.new
