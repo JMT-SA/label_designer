@@ -2,12 +2,12 @@ module LabelView
   class Clone
     def self.call(id)
 
-      this_repo = LabelRepo.new(DB.db)
-      obj       = this_repo.labels.by_pk(id).one
+      this_repo = LabelRepo.new
+      obj       = this_repo.find(id)
       rules = { fields: {
         label_name: { },
         id: { renderer: :hidden },
-      }, name: 'label'.freeze }
+      } }
 
       layout = Crossbeams::Layout::Page.build(rules) do |page|
         page.form_object obj

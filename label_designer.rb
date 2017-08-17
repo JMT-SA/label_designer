@@ -253,13 +253,13 @@ class LabelDesigner < Roda
             request.body = post_body.join
             request["Content-Type"] = "multipart/form-data, boundary=#{BOUNDARY}"
 
-            response = http.request(request) # CRASH &&& got to handle...
+            response = http.request(request)
             if response.code == '200'
               filepath = Tempfile.open(["#{fname}", ".png"], 'public/tempfiles') do |f|
                 f.write(response.body)
                 f.path
               end
-              { replaceDialog: {content: "<img src='#{filepath}'>"} }.to_json
+              { replaceDialog: { content: "<img src='/#{File.join('tempfiles', File.basename(filepath))}'>" } }.to_json
             elsif response.code.start_with?('5')
               { flash: { error: "The destination server encountered an error. The response code is #{response.code}, response body: #{response.body}" } }.to_json
             else

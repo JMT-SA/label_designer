@@ -2,7 +2,6 @@ module LabelView
   class New
     def self.call(form_values = nil, form_errors = nil)
 
-      # this_repo = LabelRepo.new(DB.db)
       rules = { fields: {
         label_name: { pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces' },
         label_dimension: { renderer: :select,
