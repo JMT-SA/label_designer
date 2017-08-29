@@ -92,6 +92,13 @@
    * Assign a click handler to buttons that need to be disabled.
    */
   document.addEventListener('DOMContentLoaded', () => {
+    const logout_link = document.querySelector('#logout');
+    if (logout_link) {
+      logout_link.addEventListener('click', (event) => {
+        crossbeamsLocalStorage.removeItem('selectedFuncMenu');
+      });
+    }
+
     document.body.addEventListener('click', (event) => {
       if (event.target.dataset.disableWith) {
         preventMultipleSubmits(event.target);
@@ -113,9 +120,8 @@
           method: 'POST', // GET?
           credentials: 'same-origin',
           body: new FormData(event.target),
-        }).then(function(response) {
-          return response.json();
-        }).then(function(data) {
+        }).then((response) => response.json())
+          .then(function(data) {
           let closeDialog = true;
           if (data.redirect) {
             window.location = data.redirect;

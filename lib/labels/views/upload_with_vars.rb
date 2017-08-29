@@ -5,8 +5,11 @@ module LabelView
       obj       = this_repo.find(id)
       doc       = Nokogiri::XML(obj.variable_xml)
       xml_vars  = doc.css('variable_field_count').map { |v| v.text }
+      vartypes  = doc.css('variable_type').map { |v| v.text }
+      combos    = Hash[xml_vars.zip(vartypes)]
+
       rules     = { fields: {}, name: 'label'.freeze }
-      xml_vars.each { |v| rules[v.to_sym] = {} }
+      xml_vars.each { |v| rules[:fields][v.to_sym] = { caption: "#{v} (#{combos[v]})" } }
       var_obj   = OpenStruct.new
 
       layout = Crossbeams::Layout::Page.build(rules) do |page|
