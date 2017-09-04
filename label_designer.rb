@@ -499,10 +499,10 @@ class LabelDesigner < Roda
 
   def label_sizes
     sizes = {
-      'a4': {'width': '71', 'height': '54'},
-      'a5': {'width': '35', 'height': '21'},
+      'A4': {'width': '71', 'height': '54'},
+      'A5': {'width': '35', 'height': '21'},
       '8464': {'width': '84', 'height': '64'},
-      'custom': {'width': '84', 'height': '64'}
+      'Custom': {'width': '84', 'height': '64'}
     }
     sizes
   end
