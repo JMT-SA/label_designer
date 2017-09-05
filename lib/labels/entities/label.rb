@@ -1,8 +1,9 @@
 class Label < Dry::Struct
   attribute :id, Types::Int
-  attribute :label_name, Types::String  
+  attribute :label_name, Types::String
   attribute :label_json, Types::String
   attribute :label_dimension, Types::String.optional
+  attribute :px_per_mm, Types::String.optional
   attribute :variable_xml, Types::String
   attribute :png_image, Types::Any # bytea,
   # attribute :sample_data, Types::Json::Hash

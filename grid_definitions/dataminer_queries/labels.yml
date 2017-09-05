@@ -1,8 +1,8 @@
 ---
 :caption: Labels
-:sql: "SELECT id, label_name, label_dimension, created_at, updated_at\r\n  FROM labels\r\n ORDER BY label_name, id;\r\n"
-:limit: 
-:offset: 
+:sql: "SELECT id, label_name, label_dimension, px_per_mm, created_at, updated_at\r\n  FROM labels\r\n ORDER BY label_name, id;\r\n"
+:limit:
+:offset:
 :columns:
   id:
     :name: id
@@ -10,11 +10,11 @@
     :caption: Id
     :namespaced_name: id
     :data_type: :integer
-    :width: 
-    :format: 
+    :width:
+    :format:
     :hide: false
     :groupable: true
-    :group_by_seq: 
+    :group_by_seq:
     :group_sum: false
     :group_avg: false
     :group_min: false
@@ -25,11 +25,11 @@
     :caption: Label name
     :namespaced_name: label_name
     :data_type: :string
-    :width: 
-    :format: 
+    :width:
+    :format:
     :hide: false
     :groupable: true
-    :group_by_seq: 
+    :group_by_seq:
     :group_sum: false
     :group_avg: false
     :group_min: false
@@ -40,41 +40,56 @@
     :caption: Label dimension
     :namespaced_name: label_dimension
     :data_type: :string
-    :width: 
-    :format: 
+    :width:
+    :format:
     :hide: false
     :groupable: true
-    :group_by_seq: 
+    :group_by_seq:
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  px_per_mm:
+    :name: px_per_mm
+    :sequence_no: 4
+    :caption: Printer Setting
+    :namespaced_name: px_per_mm
+    :data_type: :string
+    :width:
+    :format:
+    :hide: false
+    :groupable: true
+    :group_by_seq:
     :group_sum: false
     :group_avg: false
     :group_min: false
     :group_max: false
   created_at:
     :name: created_at
-    :sequence_no: 4
+    :sequence_no: 5
     :caption: Created at
     :namespaced_name: created_at
     :data_type: :datetime
-    :width: 
-    :format: 
+    :width:
+    :format:
     :hide: false
     :groupable: true
-    :group_by_seq: 
+    :group_by_seq:
     :group_sum: false
     :group_avg: false
     :group_min: false
     :group_max: false
   updated_at:
     :name: updated_at
-    :sequence_no: 4
+    :sequence_no: 6
     :caption: Updated at
     :namespaced_name: updated_at
     :data_type: :datetime
-    :width: 
-    :format: 
+    :width:
+    :format:
     :hide: false
     :groupable: true
-    :group_by_seq: 
+    :group_by_seq:
     :group_sum: false
     :group_avg: false
     :group_min: false
@@ -84,7 +99,7 @@
   :caption: Label name
   :data_type: :string
   :control_type: :list
-  :default_value: 
+  :default_value:
   :ordered_list: true
   :ui_priority: 1
   :list_def: SELECT DISTINCT label_name FROM labels ORDER BY label_name

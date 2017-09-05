@@ -4,13 +4,16 @@ gem 'dry-validation'
 gem 'dry-struct'
 gem 'nokogiri'
 gem 'rack_csrf'
+gem 'rake'
 gem 'roda', '~> 2.25'
 gem 'roda-symbolized_params'
+gem 'rubocop'
 gem 'pg'
 gem 'sequel'
 gem 'sequel_postgresql_triggers'
 gem 'sass'
 gem 'tilt'
+gem 'yard'
 
 gem 'crossbeams-layout',         path: File.expand_path('../../crossbeams-layout', __FILE__)
 gem 'crossbeams-label_designer', path: File.expand_path('../../crossbeams-label_designer', __FILE__)

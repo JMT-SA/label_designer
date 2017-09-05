@@ -77,7 +77,8 @@ class LabelDesigner < Roda
     r.on 'label_designer' do
       r.is do
         view(inline: label_designer_page(label_name: params[:label_name],
-                                         label_dimension: params[:label_dimension]))
+                                         label_dimension: params[:label_dimension],
+                                         px_per_mm: params[:px_per_mm]))
       end
 
       r.on 'new' do
@@ -422,7 +423,8 @@ class LabelDesigner < Roda
         # end
         changeset = {label_json: params[:label],
                      label_name: params[:labelName],
-                     label_dimension: '8464',
+                     label_dimension: params[:labelDimension],
+                     px_per_mm: params[:pixelPerMillimeter],
                      variable_xml: params[:XMLString],
                      png_image: Sequel.blob(image_from_param(params[:imageString]))}
         repo.create(changeset)
@@ -466,10 +468,11 @@ class LabelDesigner < Roda
     end
     config = {labelState: opts[:id].nil? ? 'new' : 'edit',
               labelName:  opts[:cloned] || label.nil? ? opts[:label_name] : label.label_name,
-              labelJSON:  label.nil? ? {} : label.label_json,
               savePath: opts[:cloned] || opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}",
               labelDimension: label.nil? ? opts[:label_dimension] : label.label_dimension,
-              id: opts[:cloned] || opts[:id].nil? ? nil : opts[:id] }
+              id: opts[:cloned] || opts[:id].nil? ? nil : opts[:id],
+              pixelPerMillimeter: label.nil? ? opts[:px_per_mm] : label.px_per_mm,
+              labelJSON:  label.nil? ? {} : label.label_json }
     config
   end
 
