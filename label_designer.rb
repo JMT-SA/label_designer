@@ -82,7 +82,8 @@ class LabelDesigner < Roda
       end
 
       r.on 'new' do
-        show_page { LabelView::New.call }
+        # show_page { LabelView::New.call }
+        show_partial { LabelView::New.call }
       end
 
       r.on 'create' do
