@@ -52,3 +52,4 @@
     :url: /label_designer/new
     :text: New label
     :style: :button
+    :behaviour: :popup
