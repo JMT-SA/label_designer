@@ -82,7 +82,7 @@ class LabelDesigner < Roda
       end
 
       r.on 'new' do
-        if request.xhr?
+        if request.xhr? # THIS DOES NOT WORK FOR fetch - ONLY FOR XMLHTTP...
           show_partial { LabelView::New.call }
         else
           show_page { LabelView::New.call }
