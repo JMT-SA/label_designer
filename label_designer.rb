@@ -522,7 +522,7 @@ class LabelDesigner < Roda
       zio.put_next_entry("#{fname}.png")
       zio.write label.png_image
       zio.put_next_entry("#{fname}.xml")
-      zio.write label.variable_xml
+      zio.write label.variable_xml.chomp << "\n" # Ensure newline at end of file.
       zio.put_next_entry("#{fname}.properties")
       zio.write label_properties
     end
