@@ -6,6 +6,7 @@ require 'rubocop/rake_task'
 Rake::TestTask.new(:test) do |t|
   t.libs << 'test'
   t.libs << 'lib'
+  t.warning = false
   t.test_files = FileList['test/**/*_test.rb']
 end
 
@@ -21,28 +22,30 @@ end
 task default: :test
 
 namespace :db do
-  desc "Prints current schema version"
-  task :version  => :dotenv do
+  desc 'Prints current schema version'
+  task version: :dotenv do
     require 'sequel'
     Sequel.extension :migration
-    db = Sequel.connect(ENV.fetch('LD_DATABASE_URL'))
+    db_name = "#{ENV.fetch('FM_DATABASE_URL')}#{'_test' if ENV.fetch('RACK_ENV') == 'test'}"
+    db = Sequel.connect(db_name)
     version = if db.tables.include?(:schema_migrations)
-      db[:schema_migrations].reverse(:filename).first[:filename]
-    end || 0
+                db[:schema_migrations].reverse(:filename).first[:filename]
+              end || 0
 
     puts "Schema Version: #{version}"
   end
 
-  desc "Prints previous 10 schema versions"
-  task :recent_migrations  => :dotenv do
+  desc 'Prints previous 10 schema versions'
+  task recent_migrations: :dotenv do
     require 'sequel'
     Sequel.extension :migration
-    db = Sequel.connect(ENV.fetch('LD_DATABASE_URL'))
-    if db.tables.include?(:schema_migrations)
-      migrations = db[:schema_migrations].reverse(:filename).first(10).map { |r| r[:filename] }
-    else
-      migrations = ['No migrations have been run']
-    end
+    db_name = "#{ENV.fetch('FM_DATABASE_URL')}#{'_test' if ENV.fetch('RACK_ENV') == 'test'}"
+    db = Sequel.connect(db_name)
+    migrations = if db.tables.include?(:schema_migrations)
+                   db[:schema_migrations].reverse(:filename).first(10).map { |r| r[:filename] }
+                 else
+                   ['No migrations have been run']
+                 end
 
     puts "Recent migrations:\n#{migrations.join("\n")}"
   end
@@ -51,7 +54,8 @@ namespace :db do
   task :migrate, [:version] => :dotenv do |_, args|
     require 'sequel'
     Sequel.extension :migration
-    db = Sequel.connect(ENV.fetch('LD_DATABASE_URL'))
+    db_name = "#{ENV.fetch('FM_DATABASE_URL')}#{'_test' if ENV.fetch('RACK_ENV') == 'test'}"
+    db = Sequel.connect(db_name)
     if args[:version]
       puts "Migrating to version #{args[:version]}"
       Sequel::Migrator.run(db, 'db/migrations', target: args[:version].to_i)
@@ -68,7 +72,7 @@ namespace :db do
 
     fn = Time.now.strftime("%Y%m%d%H%M_#{nm}.rb")
     File.open(File.join('db/migrations', fn), 'w') do |file|
-      file.puts <<~EOS
+      file.puts <<~RUBY
         # require 'sequel_postgresql_triggers' # Uncomment this line for created_at and updated_at triggers.
         Sequel.migration do
           change do
@@ -109,7 +113,7 @@ namespace :db do
           #   drop_function(:table_name_set_updated_at)
           # end
         end
-      EOS
+      RUBY
     end
     puts "Created migration #{fn}"
   end
@@ -121,7 +125,7 @@ namespace :db do
 
     fn = Time.now.strftime("%Y%m%d%H%M_create_#{nm}.rb")
     File.open(File.join('db/migrations', fn), 'w') do |file|
-      file.puts <<~EOS
+      file.puts <<~RUBY
         require 'sequel_postgresql_triggers'
         Sequel.migration do
           up do
@@ -155,7 +159,7 @@ namespace :db do
             drop_table(:#{nm})
           end
         end
-      EOS
+      RUBY
     end
     puts "Created migration #{fn}"
   end

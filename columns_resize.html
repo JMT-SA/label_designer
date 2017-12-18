@@ -1,0 +1,449 @@
+<!--
+   columns_resize.html
+   
+   Copyright 2017 James Silberbauer <james@jcs>
+   
+   This program is free software; you can redistribute it and/or modify
+   it under the terms of the GNU General Public License as published by
+   the Free Software Foundation; either version 2 of the License, or
+   (at your option) any later version.
+   
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+   GNU General Public License for more details.
+   
+   You should have received a copy of the GNU General Public License
+   along with this program; if not, write to the Free Software
+   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+   MA 02110-1301, USA.
+   
+   
+-->
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+	"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+
+<head>
+	<title>untitled</title>
+	<meta http-equiv="content-type" content="text/html;charset=utf-8" />
+	<meta name="generator" content="Geany 1.27" />
+  <style>
+.designer-container{
+  overflow: scroll;
+  display: flex;
+  /*height: 100%;*/
+  border: thin solid yellow;
+}
+.toolbar{
+  padding:1em;
+  width: 300px;
+  background-color: lightgrey;
+  /* height: 99999px; */
+  border: thin solid red;
+}
+.variable-popup {
+  margin-bottom: 5em;
+}
+.paper-wrapper{
+  border: 1px solid black;
+  padding-top: 1px;
+  padding-left: 1px;
+  background-color: darkgrey;
+  border: thin solid green;
+}
+div.image-container{
+  background-color: white;
+  box-shadow:0 2px 4px rgba(0, 0, 0, 0.5);
+  position: relative;
+}
+
+/*Styling for Canvas resizing*/
+.ui-resizable-e:after, .ui-resizable-s:after, #paper:after{
+  content: '';
+  display: block;
+  width: 10px;
+  height: 10px;
+  background: lightgrey;
+  z-index: 999;
+  position: absolute;
+}
+.ui-resizable-e:after{
+  top: 50%;
+  -webkit-transform: translateY(-50%);
+  -moz-transform: translateY(-50%);
+  -ms-transform: translateY(-50%);
+  transform: translateY(-50%);
+}
+.ui-resizable-s:after{
+  left: 50%;
+  -webkit-transform: translateX(-50%);
+  -moz-transform: translateX(-50%);
+  -ms-transform: translateX(-50%);
+  transform: translateX(-50%);
+}
+#paper:after{
+  left: 100%;
+  top: calc(100% + 9px);
+  -webkit-transform: translateX(-100%);
+  -moz-transform: translateX(-100%);
+  -ms-transform: translateX(-100%);
+  transform: translateX(-100%);
+
+  -webkit-transform: translateY(-100%);
+  -moz-transform: translateY(-100%);
+  -ms-transform: translateY(-100%);
+  transform: translateY(-100%);
+}
+#paper .ui-icon{
+  background-image: none;
+}
+
+
+
+
+/*.resize-drag{
+  position: relative;
+  fill: none;
+  pointer-events: all;
+  cursor: move !important;
+  z-index: 5;
+  box-sizing: border-box;
+}
+.selected{
+  stroke: #ff1a1a;
+  stroke-width: 5;
+  stroke-linejoin: round;
+  stroke-opacity: 0.70;
+}
+.resize-drag:hover{
+  fill: grey;
+}
+.resize-handle-sw {
+  position: absolute;
+  display: block;
+  width: 10px;
+  height: 10px;
+  background: lightgrey;
+  z-index: 999;
+  bottom: -5px;
+  left: -5px;
+  cursor: sw-resize !important;
+}*/
+/*.unselectable {
+   -moz-user-select: -moz-none;
+   -khtml-user-select: none;
+   -webkit-user-select: none;
+
+
+     Introduced in IE 10.
+     See http://ie.microsoft.com/testdrive/HTML5/msUserSelect/
+
+   -ms-user-select: none;
+   user-select: none;
+}
+*/
+
+
+/*Standard styles*/
+/*.pull-left{
+  float: left !important;
+}*/
+.pull-right{
+  float: right !important;
+}
+.hidden{
+  display: none;
+}
+.css-height {
+  margin-bottom: -999999px;
+  padding-bottom: 999999px;
+}
+.css-width {
+  margin-right: -999999px;
+  padding-right: 999999px;
+}
+.full-width{
+  width: 100%;
+}
+
+/*Application layout*/
+.wrap{
+
+}
+
+div.toolbar button.selected{
+  background-color: dimgray;
+}
+
+.editing{
+  border-style: dashed;
+}
+
+
+#canvas_width, #canvas_height {
+  width: 4em;
+}
+
+div.toolbar button {
+  min-height: 2em;
+  min-width: 2em;
+}
+div.toolbar {
+  font-size: 0.85em;
+}
+    
+  </style>
+</head>
+
+<body>
+	<div class="designer-container">
+  <div class="toolbar pull-left css-height">
+    <h2>Label Design</h2>
+    <label for="canvas_width">Set Canvas size:</label>
+    <br>
+    w:
+    <input type="number" id="canvas_width" title="Set canvas width" placeholder="700">
+    h:
+    <input type="number" id="canvas_height" title="Set canvas height" placeholder="500">
+    <hr>
+
+    <button type="button" name="pointer" title="pointer" class='btn btn-default btn-md pointer'><i class="fa fa-mouse-pointer" aria-hidden="true"></i></button>
+    <button type="button" name="text-box" title="Add a text box" class='btn btn-default btn-md text-box'><b style="font-family:'Times New Roman';">A</b></button>
+    <button type="button" name="variable-box" title="Add a variable box" class='btn btn-default btn-md variable-box'><b style="font-family:'Computer Modern';"><i>x</i></b></button>
+    <button type="button" name="line" title="line" class='btn btn-default btn-md line'><i class="fa fa-minus" aria-hidden="true"></i></button>
+    <button type="button" name="rectangle" title="rectangle" class='btn btn-default btn-md rectangle'><i class="fa fa-square-o" aria-hidden="true"></i></button>
+    <button type="button" name="ellipse" title="ellipse" class='btn btn-default btn-md ellipse'><i class="fa fa-circle-o" aria-hidden="true"></i></button>
+    <hr>
+    <button disabled=disabled type="button" name="move" title="move" class='btn btn-default btn-md move'><i class="fa fa-arrows" aria-hidden="true"></i></button>
+    <button disabled=disabled type="button" name="resize" title="resize" class='btn btn-default btn-md resize'><i class="fa fa-external-link fa-flip-vertical"></i></button>
+    <button disabled=disabled type="button" name="remove" title="remove" class='btn btn-default btn-md remove'><i class="fa fa-trash-o" aria-hidden="true"></i></button>
+    <button disabled=disabled type="button" name="image" title="image" class='btn btn-default btn-md image'><i class="fa fa-picture-o" aria-hidden="true"></i></button>
+    <!-- <button disabled=disabled type="button" name="text-box" title="text-box" class='btn btn-default btn-md text-box'><b>Aa</b></button> -->
+    <button disabled=disabled type="button" name="line-width" title="line-width" class='btn btn-default btn-md line-width'><i class="fa fa-pencil" aria-hidden="true"></i></button>
+    <hr>
+
+    <div class="text-popup -hidden">
+      <input type="text" name="textbox" title="Insert text here" placeholder="Insert text">
+      <br>
+      <button type="button" name="bold" title="bold" class='btn btn-default btn-md bold'><i class="fa fa-bold" aria-hidden="true"></i></button>
+      <button type="button" name="underline" title="underline" class='btn btn-default btn-md underline'><i class="fa fa-underline" aria-hidden="true"></i></button>
+      <button type="button" name="italic" title="italic" class='btn btn-default btn-md italic'><i class="fa fa-italic" aria-hidden="true"></i></button>
+      <button type="button" name="rotate" title="rotate" class='btn btn-default btn-md rotate'><i class="fa fa-rotate-right" aria-hidden="true"></i></button>
+      <br>
+      <select class="selectpicker" id="font-family" name="font-family">
+        <!-- https://www.w3schools.com/cssref/css_websafe_fonts.asp -->
+        <option value="'Times New Roman', Times, serif">Times New Roman</option>
+        <option value="'Georgia', serif">Georgia</option>
+        <option value="'Palatino Linotype', 'Book Antiqua', Palatino, serif">Palatino Linotype</option>
+        <option value="'Arial', Helvetica, sans-serif">Arial</option>
+        <option value="'Arial Black', Gadget, sans-serif">Arial Black</option>
+        <option value="'Comic Sans MS', cursive, sans-serif">Comic Sans MS</option>
+        <option value="'Impact', Charcoal, sans-serif">Impact</option>
+        <option value="'Lucida Sans Unicode', 'Lucida Grande', sans-serif">Lucida Sans Unicode</option>
+        <option value="'Tahoma', Geneva, sans-serif">Tahoma</option>
+        <option value="'Trebuchet MS', Helvetica, sans-serif">Trebuchet MS</option>
+        <option value="'Verdana', Geneva, sans-serif">Verdana</option>
+        <option value="'Courier New', Courier, monospace">Courier New</option>
+        <option value="'Lucida Console', Monaco, monospace">Lucida Console</option>
+      </select>
+      <br>
+      <select class="selectpicker" id="font-size" name="font-size">
+        <option value="8">6</option>
+        <option value="9">7</option>
+        <option value="11">8</option>
+        <option value="12">9</option>
+        <option value="13">10</option>
+        <option value="15">11</option>
+        <option value="16">12</option>
+        <option value="17">13</option>
+        <option value="19">14</option>
+        <option selected="selected" value="21">15</option>
+        <option value="22">16</option>
+        <option value="23">17</option>
+        <option value="24">18</option>
+        <option value="25">19</option>
+        <option value="26">20</option>
+        <option value="28">21</option>
+        <option value="29">22</option>
+        <option value="31">23</option>
+        <option value="32">24</option>
+        <option value="33">25</option>
+        <option value="35">26</option>
+        <option value="36">27</option>
+        <option value="37">28</option>
+        <option value="39">29</option>
+        <option value="40">30</option>
+        <option value="47">35</option>
+        <option value="53">40</option>
+        <option value="60">45</option>
+        <option value="67">50</option>
+      </select>
+      <!-- draw text box
+        type text
+        select font
+        select font size
+        bold/underline/italic -->
+    </div>
+
+
+    <hr>
+
+
+    <div class="variable-popup -hidden">
+      <!-- <br>
+      <button type="button" name="bold" title="bold" class='btn btn-default btn-md bold'><i class="fa fa-bold" aria-hidden="true"></i></button>
+      <button type="button" name="underline" title="underline" class='btn btn-default btn-md underline'><i class="fa fa-underline" aria-hidden="true"></i></button>
+      <button type="button" name="italic" title="italic" class='btn btn-default btn-md italic'><i class="fa fa-italic" aria-hidden="true"></i></button>
+      <button type="button" name="rotate" title="rotate" class='btn btn-default btn-md rotate'><i class="fa fa-rotate-right" aria-hidden="true"></i></button> -->
+    <form>
+      <table>
+        <tbody>
+          <tr>
+            <td width="35%">
+              <label for="textdemo">Example text:</label>
+            </td>
+            <td>
+              <input type="text" name="textdemo" title="Insert text here for demo purposes only. This will not be saved or displayed in the final label design." placeholder="Demo text">
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="vars">Variable type:</label>
+            </td>
+            <td>
+              <select class="form-control selectpicker" id="vars" data-live-search="true" data-style="btn-primary" data-max-options="1">
+                <option value="0" data-hidden="true">Please select</option>
+                <option>Commodity</option>
+                <option>Variety</option>
+                <option>PUC</option>
+                <option>Class</option>
+                <option>Size</option>
+                <option>PHC</option>
+                <option>Date Code</option>
+                <option>Orchard</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="orientation">Orientation:</label>
+            </td>
+            <td>
+              <select class="form-control" id="orientation" name="orientation">
+                <option value="horizontal" selected="selected">horizontal</option>
+                <option value="vertical">vertical</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="barcode_bool">Is this a barcode?</label>
+            </td>
+            <td>
+              <select class="form-control" id="barcode_bool" name="orientation">
+                <option value="false" selected="selected">No</option>
+                <option value="true">Yes</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="barcode_margin">Margin size:</label>
+            </td>
+            <td>
+              <select class="selectpicker" id="barcode_margin" name="barcode_margin">
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+                <option value="16">16</option>
+                <option value="17">17</option>
+                <option value="18">18</option>
+                <option value="19">19</option>
+                <option value="20">20</option>
+                <option value="21">21</option>
+                <option value="22">22</option>
+                <option value="23">23</option>
+                <option value="24">24</option>
+                <option value="25">25</option>
+                <option value="26">26</option>
+                <option value="27">27</option>
+                <option value="28">28</option>
+                <option value="29">29</option>
+                <option value="30">30</option>
+                <option value="35">35</option>
+                <option value="40">40</option>
+                <option value="45">45</option>
+                <option value="50">50</option>
+              </select>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <label for="barcode_symbology">Barcode Symbology:</label>
+            </td>
+            <td>
+              <select class="form-control" id="barcode_symbology" name="barcode_symbology">
+                <option value="barcode-fonts/code-39/"> Code 39</option>
+                <option value="barcode-fonts/code-128/"> GS1-128</option>
+                <option value="barcode-fonts/upc-ean/"> UPCa</option>
+                <option value="barcode-fonts/upc-ean/"> UPCe</option>
+                <option value="barcode-fonts/upc-ean/"> EAN13</option>
+                <option value="barcode-fonts/upc-ean/"> EAN8</option>
+                <option value="barcode-fonts/interleaved-2of5/"> Interleaved 2 of 5</option>
+                <option value="barcode-fonts/codabar/"> Codabar</option>
+                <option value="barcode-fonts/code-25/"> Industrial 2 of 5</option>
+                <option value="barcode-fonts/code-11/"> Code 11</option>
+                <option value="barcode-fonts/code-93/"> Code 93</option>
+                <option value="barcode-faq/gs1-databar/#GS1_DataBar"> GS1 DataBar</option>
+                <option value="barcode-faq/gs1-databar/#GS1_DataBar_Expanded"> DataBar Expanded</option>
+                <option value="barcode-faq/gs1-databar/#GS1_DataBar_Expanded_Stacked"> DataBar Expanded Stacked</option>
+                <option value="barcode-faq/gs1-databar/#GS1_DataBar_Stacked_Omni-Directional"> DataBar Omni-Directional Stacked</option>
+                <option value="barcode-faq/gs1-databar/#GS1_DataBar_Truncated"> DataBar Truncated</option>
+                <option value="barcode-faq/gs1-databar/#GS1_DataBar_Limited"> GS1 DataBar Limited</option>
+                <option value="barcode-faq/gs1-databar-coupon/"> GS1 DataBar Coupon Code</option>
+                <option value="barcode-fonts/msi/"> MSI Plessey</option>
+                <option value="barcode-fonts/usps-intelligent-mail/"> POSTNET</option>
+                <option value="barcode-fonts/usps-intelligent-mail/"> PLANET</option>
+                <option value="barcode-faq/usps-postal/#USPS-4CB-OneCode"> USPS IMb</option>
+                <option value="micr-fonts/e13b/"> MICR E13B</option>
+                <option value="micr-fonts/cmc7/"> MICR CMC7</option>
+                <option value="ocr-a-and-ocr-b-fonts/">OCRa</option>
+                <option value="ocr-a-and-ocr-b-fonts/">OCRb</option>
+                <option value="barcode-fonts/2d/pdf417/"> PDF417</option>
+                <option value="barcode-fonts/2d/maxicode/"> Maxi Code</option>
+                <option value="barcode-fonts/2d/aztec/"> Aztec</option>
+                <option value="barcode-fonts/2d/datamatrix/"> Data Matrix ECC200</option>
+                <option value="barcode-fonts/2d/qr-code/"> QR-Code</option>
+              </select>
+            </td>
+          </tr>
+        </table>
+        <br>
+        <hr>
+        <button type="button" class='btn btn-default btn-md btn-download-image'><i class="fa fa-download" aria-hidden="true"></i> Download IMG</button>
+        <a class='hidden' href="#" id="btn-download-image" target='_blank' download='png_example.png'></a>
+        <button type="button" class='btn btn-default btn-md btn-save-label'><i class="fa fa-save" aria-hidden="true"></i> Save Label</button>
+      </form>
+    </div>
+  </div>
+  <div class='pull-left'>
+    <div id="paper-wrapper" class="paper-wrapper css-height css-width">
+      <div id='paper' class="image-container resizable">
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+
+</html>

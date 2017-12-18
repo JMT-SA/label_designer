@@ -1,5 +1,6 @@
 AllCops:
   Exclude:
+    - db/**/*
     - test/**/*
     - tmp/**/*
 
@@ -15,7 +16,7 @@ FrozenStringLiteralComment:
 MethodLength:
   Enabled: false
 
-Style/ExtraSpacing:
+Layout/ExtraSpacing:
   Enabled: false
 
 Metrics/BlockLength:
@@ -27,3 +28,6 @@ Metrics/BlockLength:
 
 Layout/SpaceAroundOperators:
   AllowForAlignment: true
+
+Performance/UnfreezeString:
+  Enabled: false

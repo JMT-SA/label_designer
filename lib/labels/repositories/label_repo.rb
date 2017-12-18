@@ -1,6 +1,3 @@
 class LabelRepo < RepoBase
-  def initialize
-    main_table :labels
-    table_wrapper Label
-  end
+  crud_calls_for :labels, wrapper: Label
 end

@@ -8,12 +8,12 @@ class Label < Dry::Struct
   attribute :png_image, Types::Any # bytea,
   # attribute :sample_data, Types::Json::Hash
 
-#  label_name character varying(255) NOT NULL,
-#   label_json text,
-#   label_dimension character varying(255),
-#   variable_xml text,
-#   image_path character varying(255),
-#   created_at timestamp without time zone NOT NULL,
-#   updated_at timestamp without time zone NOT NULL,
-#   png_image bytea,
+  #  label_name character varying(255) NOT NULL,
+  #   label_json text,
+  #   label_dimension character varying(255),
+  #   variable_xml text,
+  #   image_path character varying(255),
+  #   created_at timestamp without time zone NOT NULL,
+  #   updated_at timestamp without time zone NOT NULL,
+  #   png_image bytea,
 end

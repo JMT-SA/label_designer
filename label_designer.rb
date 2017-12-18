@@ -1,3 +1,8 @@
+# frozen_string_literal: true
+
+# rubocop:disable Metrics/ClassLength
+# rubocop:disable Metrics/BlockLength
+
 require 'roda'
 require 'crossbeams/dataminer'
 require 'crossbeams/layout'
@@ -5,12 +10,11 @@ require 'crossbeams/label_designer'
 require 'yaml'
 require 'base64'
 require 'zip'
-require 'dry-validation'
 require 'dry-struct'
+require 'dry-validation'
 require 'net/http'
 require 'uri'
-require './lib/db_connections'
-require './lib/repo_base'
+# require './lib/db_connections'
 require 'pry'
 
 module Types
@@ -22,8 +26,15 @@ module Crossbeams
   end
 end
 
+require './lib/repo_base'
+require './lib/base_interactor'
+require './lib/base_service'
+require './lib/ui_rules'
+require './lib/library_versions'
+Dir['./helpers/**/*.rb'].each { |f| require f }
 Dir['./lib/applets/*.rb'].each { |f| require f }
 
+ENV['ROOT'] = File.dirname(__FILE__)
 LABEL_SERVER_URI = ENV.fetch('LABEL_SERVER_URI')
 
 Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration for label designer gem.
@@ -33,9 +44,9 @@ Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration f
 end
 
 class LabelDesigner < Roda
-  BOUNDARY = "AaB03x"
+  BOUNDARY = 'AaB03x'
 
-  use Rack::Session::Cookie, secret: "some_nice_long_random_string_DSKJH4378EYR7EGKUFH", key: "_lbld_session"
+  use Rack::Session::Cookie, secret: 'some_nice_long_random_string_DSKJH4378EYR7EGKUFH', key: '_lbld_session'
   use Rack::MethodOverride # USe with all_verbs plugin to allow "r.delete" etc.
 
   plugin :all_verbs
@@ -49,6 +60,8 @@ class LabelDesigner < Roda
   plugin :json_parser
   plugin :data_grid, path: File.dirname(__FILE__),
                      list_url: '/list/%s/grid',
+                     list_nested_url: '/list/%s/nested_grid',
+                     list_multi_url: '/list/%s/grid_multi',
                      search_url: '/search/%s/grid',
                      filter_url: '/search/%s',
                      run_search_url: '/search/%s/run',
@@ -56,7 +69,6 @@ class LabelDesigner < Roda
 
   route do |r|
     r.assets unless ENV['RACK_ENV'] == 'production'
-
     r.public
 
     r.root do
@@ -65,13 +77,12 @@ class LabelDesigner < Roda
     end
 
     r.is 'versions' do
-      s = '<h2>Gem Versions</h2><ul><li>'
-      s << [Crossbeams::Dataminer,
-            Crossbeams::Layout,
-            Crossbeams::LabelDesigner,
-            Roda::DataGrid].map { |k| "#{k}: #{k.const_get('VERSION')}" }.join('</li><li>')
-      s << '</li></ul>'
-      view(inline: s)
+      view(inline: LibraryVersions.new(:layout,
+                                       :dataminer,
+                                       :label_designer,
+                                       :datagrid,
+                                       :ag_grid,
+                                       :selectr).to_html)
     end
 
     r.on 'label_designer' do
@@ -94,9 +105,9 @@ class LabelDesigner < Roda
         #   required(:label_name).filled(:str?)
         # end
         # errors = schema.call(params[:label]).messages
-        errors = LabelSchema.(params[:label]).messages
+        errors = LabelSchema.call(params[:label]).messages
         if errors.empty?
-          qs = params[:label].map{|k,v| [CGI.escape(k.to_s), "=", CGI.escape(v.to_s)]}.map(&:join).join("&")
+          qs = params[:label].map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')
           r.redirect "/label_designer?#{qs}"
         else
           flash.now[:error] = 'Unable to create label'
@@ -107,7 +118,7 @@ class LabelDesigner < Roda
       r.on :id do |id|
         r.delete do
           repo = LabelRepo.new
-          repo.delete(id)
+          repo.delete_labels(id)
           flash[:notice] = 'Deleted'
           redirect_to_last_grid(r)
         end
@@ -115,18 +126,18 @@ class LabelDesigner < Roda
         r.post 'update' do
           begin
             response['Content-Type'] = 'application/json'
-            res = LabelSchema.(params[:label])
+            res = LabelSchema.call(params[:label])
             errors = res.messages
             if errors.empty?
               repo = LabelRepo.new
-              repo.update(id, res.to_h)
+              repo.update_labels(id, res.to_h)
               update_grid_row(id, changes: { label_name: res[:label_name] },
                                   notice: "Updated #{res[:label_name]}")
             else
               content = show_partial { LabelView::Properties.call(id, params[:label], errors) }
               update_dialog_content(content: content, error: 'Validation error')
             end
-          rescue => e
+          rescue StandardError => e
             handle_json_error(e)
           end
         end
@@ -156,11 +167,11 @@ class LabelDesigner < Roda
         end
 
         r.on 'preview' do
-          "Preview from Konva"
+          'Preview from Konva'
         end
 
         r.on 'server_preview_label' do
-          <<-EOS
+          <<-HTML
           <div id="crossbeams-processing" class="content-target content-loading"></div>
           <script>
             var content_div = document.querySelector('#crossbeams-processing');
@@ -178,7 +189,7 @@ class LabelDesigner < Roda
             });
 
           </script>
-          EOS
+          HTML
         end
 
         r.on 'preview_file' do
@@ -186,7 +197,7 @@ class LabelDesigner < Roda
             close_button       = '<p><button class="close-dialog">Close</button></p>'
             # repo               = LabelRepo.new
             # label_name         = repo.find(id).label_name
-            uri                = URI.parse(LABEL_SERVER_URI + '?Type=TransmitFile&PID=56&HomeFolder=&SubFolder=web/clients/nosoft/printers/nzebra&File='+ '20160825_090313.jpg')
+            uri                = URI.parse(LABEL_SERVER_URI + '?Type=TransmitFile&PID=56&HomeFolder=&SubFolder=web/clients/nosoft/printers/nzebra&File=' + '20160825_090313.jpg')
 
             http = Net::HTTP.new(uri.host, uri.port)
             request = Net::HTTP::Post.new(uri.request_uri)
@@ -205,9 +216,9 @@ class LabelDesigner < Roda
             else
               "The request was not successful. The response code is #{response.code}#{close_button}"
             end
-          rescue Timeout::Error => e
+          rescue Timeout::Error
             "The call to the server timed out.#{close_button}"
-          rescue Errno::ECONNREFUSED => e
+          rescue Errno::ECONNREFUSED
             "The connection was refused. <p>Perhaps the server is not running.</p>#{close_button}"
           rescue StandardError => e
             "There was an error: <span style='display:none'>#{e.class.name}</span><p>#{e.message}</p>#{close_button}"
@@ -217,13 +228,13 @@ class LabelDesigner < Roda
         r.on 'png' do
           response['Content-Type'] = 'image/png'
           repo = LabelRepo.new
-          label = repo.find(id)
+          label = repo.find_labels(id)
           label.png_image
         end
 
         r.on 'download' do
           repo  = LabelRepo.new
-          label = repo.find(id)
+          label = repo.find_labels(id)
           fname, binary_data = make_label_zip(label)
           response.headers['content_type'] = 'application/x-zip-compressed'
           response.headers['Content-Disposition'] = "attachment; filename=\"#{fname}.zip\""
@@ -239,28 +250,28 @@ class LabelDesigner < Roda
           begin
             vars  = params[:label]
             repo  = LabelRepo.new
-            label = repo.find(id)
+            label = repo.find_labels(id)
 
             fname, binary_data = make_label_zip(label, vars)
             File.open('zz.zip', 'w') { |f| f.puts binary_data }
-            uri                = URI.parse(LABEL_SERVER_URI+'LabelFileUpload')
+            uri = URI.parse(LABEL_SERVER_URI + 'LabelFileUpload')
 
             post_body = []
             post_body << "--#{BOUNDARY}\r\n"
             post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
             post_body << "Content-Type: application/x-zip-compressed\r\n"
             post_body << "\r\n"
-            post_body << binary_data #File.read(file)
+            post_body << binary_data
             post_body << "\r\n--#{BOUNDARY}--\r\n"
 
             http = Net::HTTP.new(uri.host, uri.port)
             request = Net::HTTP::Post.new(uri.request_uri)
             request.body = post_body.join
-            request["Content-Type"] = "multipart/form-data, boundary=#{BOUNDARY}"
+            request['Content-Type'] = "multipart/form-data, boundary=#{BOUNDARY}"
 
             response = http.request(request)
             if response.code == '200'
-              filepath = Tempfile.open(["#{fname}", ".png"], 'public/tempfiles') do |f|
+              filepath = Tempfile.open([fname, '.png'], 'public/tempfiles') do |f|
                 f.write(response.body)
                 f.path
               end
@@ -270,17 +281,17 @@ class LabelDesigner < Roda
             else
               { flash: { error: "The request was not successful. The response code is #{response.code}" } }.to_json
             end
-          rescue Timeout::Error => e
-            { flash: { error: "The call to the server timed out." } }.to_json
-          rescue Errno::ECONNREFUSED => e
-            { flash: { error: "The connection was refused. Perhaps the server is not running." } }.to_json
+          rescue Timeout::Error
+            { flash: { error: 'The call to the server timed out.' } }.to_json
+          rescue Errno::ECONNREFUSED
+            { flash: { error: 'The connection was refused. Perhaps the server is not running.' } }.to_json
           rescue StandardError => e
             { flash: { error: "There was an error: #{e.class.name} - #{e.message}" } }.to_json
           end
         end
 
         r.on 'upload' do
-          <<-EOS
+          <<-HTML
           <div id="crossbeams-processing" class="content-target content-loading"></div>
           <script>
             var content_div = document.querySelector('#crossbeams-processing');
@@ -297,29 +308,29 @@ class LabelDesigner < Roda
               content_div.appendChild(image);
             });
           </script>
-          EOS
+          HTML
         end
 
         r.on 'upload_file' do
           begin
             close_button       = '<p><button class="close-dialog">Close</button></p>'
             repo               = LabelRepo.new
-            label              = repo.find(id)
+            label              = repo.find_labels(id)
             fname, binary_data = make_label_zip(label)
-            uri                = URI.parse(LABEL_SERVER_URI+'LabelFileUpload')
+            uri                = URI.parse(LABEL_SERVER_URI + 'LabelFileUpload')
 
             post_body = []
             post_body << "--#{BOUNDARY}\r\n"
             post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
             post_body << "Content-Type: application/x-zip-compressed\r\n"
             post_body << "\r\n"
-            post_body << binary_data #File.read(file)
+            post_body << binary_data
             post_body << "\r\n--#{BOUNDARY}--\r\n"
 
             http = Net::HTTP.new(uri.host, uri.port)
             request = Net::HTTP::Post.new(uri.request_uri)
             request.body = post_body.join
-            request["Content-Type"] = "multipart/form-data, boundary=#{BOUNDARY}"
+            request['Content-Type'] = "multipart/form-data, boundary=#{BOUNDARY}"
 
             response = http.request(request)
             if response.code == '200'
@@ -330,9 +341,9 @@ class LabelDesigner < Roda
             else
               "The request was not successful. The response code is #{response.code}#{close_button}"
             end
-          rescue Timeout::Error => e
+          rescue Timeout::Error
             "The call to the server timed out.#{close_button}"
-          rescue Errno::ECONNREFUSED => e
+          rescue Errno::ECONNREFUSED
             "The connection was refused. <p>Perhaps the server is not running.</p>#{close_button}"
           rescue StandardError => e
             "There was an error: <span style='display:none'>#{e.class.name}</span><p>#{e.message}</p>#{close_button}"
@@ -375,12 +386,11 @@ class LabelDesigner < Roda
         r.on 'xls' do
           begin
             caption, xls = render_excel_rows(id, params)
-            response.headers['content_type'] = "application/vnd.ms-excel"
-            response.headers['Content-Disposition'] = "attachment; filename=\"#{caption.strip.gsub(/[\/:*?"\\<>\|\r\n]/i, '-') + '.xls'}\""
+            response.headers['content_type'] = 'application/vnd.ms-excel'
+            response.headers['Content-Disposition'] = "attachment; filename=\"#{caption.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-') + '.xls'}\""
             response.write(xls) # NOTE: could this use streaming to start downloading quicker?
-
           rescue Sequel::DatabaseError => e
-            view(inline: <<-EOS)
+            view(inline: <<-HTML)
             <p style='color:red;'>There is a problem with the SQL definition of this report:</p>
             <p>Report: <em>#{caption}</em></p>The error message is:
             <pre>#{e.message}</pre>
@@ -388,7 +398,7 @@ class LabelDesigner < Roda
               <i class="fa fa-info"></i> Toggle SQL
             </button>
             <pre id="sql_code" style="display:none;"><%= sql_to_highlight(@rpt.runnable_sql) %></pre>
-            EOS
+            HTML
           end
         end
       end
@@ -404,15 +414,15 @@ class LabelDesigner < Roda
           # File.open(file_name, 'wb') do |file|
           #   file.write(image_from_param(params[:imageString]))
           # end
-          changeset = {label_json: params[:label],
-                       variable_xml: params[:XMLString],
-                       png_image: Sequel.blob(image_from_param(params[:imageString]))}
+          changeset = { label_json: params[:label],
+                        variable_xml: params[:XMLString],
+                        png_image: Sequel.blob(image_from_param(params[:imageString])) }
           # puts ">>> IMG: #{image_from_param(params[:imageString])}"
-          repo.update(id, changeset)
+          repo.update_labels(id, changeset)
 
           flash[:notice] = 'Updated'
           response['Content-Type'] = 'application/json'
-          {redirect: "#{session[:last_grid_url]}"}.to_json
+          { redirect: session[:last_grid_url] }.to_json
         end
       end
 
@@ -425,16 +435,16 @@ class LabelDesigner < Roda
         # File.open(file_name, 'wb') do |file|
         #   file.write(image_from_param(params[:imageString]))
         # end
-        changeset = {label_json: params[:label],
-                     label_name: params[:labelName],
-                     label_dimension: params[:labelDimension],
-                     px_per_mm: params[:pixelPerMM],
-                     variable_xml: params[:XMLString],
-                     png_image: Sequel.blob(image_from_param(params[:imageString]))}
-        repo.create(changeset)
+        changeset = { label_json: params[:label],
+                      label_name: params[:labelName],
+                      label_dimension: params[:labelDimension],
+                      px_per_mm: params[:pixelPerMM],
+                      variable_xml: params[:XMLString],
+                      png_image: Sequel.blob(image_from_param(params[:imageString])) }
+        repo.create_labels(changeset)
         flash[:notice] = 'Created'
         response['Content-Type'] = 'application/json'
-        {redirect: "#{session[:last_grid_url]}"}.to_json
+        { redirect: session[:last_grid_url] }.to_json
       end
     end
   end
@@ -454,7 +464,7 @@ class LabelDesigner < Roda
 
     # TODO: include csrf headers in the page....
 
-    <<-EOC
+    <<-HTML
     #{html}
     <% content_for :late_style do %>
       #{css}
@@ -462,21 +472,21 @@ class LabelDesigner < Roda
     <% content_for :late_javascript do %>
       #{js}
     <% end %>
-    EOC
+    HTML
   end
 
   def label_config(opts)
     if opts[:id]
       repo  = LabelRepo.new
-      label = repo.find(opts[:id])
+      label = repo.find_labels(opts[:id])
     end
-    config = {labelState: opts[:id].nil? ? 'new' : 'edit',
-              labelName:  opts[:cloned] || label.nil? ? opts[:label_name] : label.label_name,
-              savePath: opts[:cloned] || opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}",
-              labelDimension: label.nil? ? opts[:label_dimension] : label.label_dimension,
-              id: opts[:cloned] || opts[:id].nil? ? nil : opts[:id],
-              pixelPerMM: label.nil? ? opts[:px_per_mm] : label.px_per_mm,
-              labelJSON:  label.nil? ? {} : label.label_json }
+    config = { labelState: opts[:id].nil? ? 'new' : 'edit',
+               labelName:  opts[:cloned] || label.nil? ? opts[:label_name] : label.label_name,
+               savePath: opts[:cloned] || opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}",
+               labelDimension: label.nil? ? opts[:label_dimension] : label.label_dimension,
+               id: opts[:cloned] || opts[:id].nil? ? nil : opts[:id],
+               pixelPerMM: label.nil? ? opts[:px_per_mm] : label.px_per_mm,
+               labelJSON:  label.nil? ? {} : label.label_json }
     config
   end
 
@@ -496,7 +506,7 @@ class LabelDesigner < Roda
     @layout.render
   end
 
-  PNG_REGEXP = /\Adata:([-\w]+\/[-\w\+\.]+)?;base64,(.*)/m
+  PNG_REGEXP = %r{\Adata:([-\w]+/[-\w\+\.]+)?;base64,(.*)}m
   def image_from_param(param)
     data_uri_parts = param.match(PNG_REGEXP) || []
     # extension = MIME::Types[data_uri_parts[1]].first.preferred_extension
@@ -506,18 +516,18 @@ class LabelDesigner < Roda
 
   def label_sizes
     sizes = {
-      'A4': {'width': '71', 'height': '54'},
-      'A5': {'width': '35', 'height': '21'},
-      '8464': {'width': '84', 'height': '64'},
-      'Custom': {'width': '84', 'height': '64'}
+      'A4': { 'width': '71', 'height': '54' },
+      'A5': { 'width': '35', 'height': '21' },
+      '8464': { 'width': '84', 'height': '64' },
+      'Custom': { 'width': '84', 'height': '64' }
     }
     sizes
   end
 
   def make_label_zip(label, vars = nil)
     property_vars = vars ? vars.map { |k, v| "\n#{k}=#{v}" }.join : "\nF1=Variable Test Value"
-    fname = label.label_name.strip.gsub(/[\/:*?"\\<>\|\r\n]/i, '-')
-    label_properties = %Q{Client: Name="NoSoft"\nF0=#{fname}#{property_vars}} #For testing only
+    fname = label.label_name.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-')
+    label_properties = %(Client: Name="NoSoft"\nF0=#{fname}#{property_vars}) # For testing only
     stringio = Zip::OutputStream.write_buffer do |zio|
       zio.put_next_entry("#{fname}.png")
       zio.write label.png_image
@@ -526,11 +536,11 @@ class LabelDesigner < Roda
       zio.put_next_entry("#{fname}.properties")
       zio.write label_properties
     end
-    return [fname, stringio.string]
+    [fname, stringio.string]
   end
 
   def update_grid_row(id, changes:, notice: nil)
-    res = {updateGridInPlace: { id: id.to_i, changes: changes } }
+    res = { updateGridInPlace: { id: id.to_i, changes: changes } }
     res[:flash] = { notice: notice } if notice
     res.to_json
   end

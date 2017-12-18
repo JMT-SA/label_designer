@@ -1,87 +1,167 @@
 class RepoBase
   attr_reader :main_table_name, :wrapper, :select_options
 
-  def initialize
-    @main_table_name = nil
-    @wrapper = nil
-    @select_options = {}
+  def all(table_name, wrapper)
+    all_hash(table_name).map { |r| wrapper.new(r) }
   end
 
-  def main_table(value)
-    @main_table_name = value
+  def all_hash(table_name)
+    DB[table_name].all
   end
 
-  def table_wrapper(value)
-    @wrapper = value
-  end
-
-  def for_select_options(value = {})
-    @select_options = value
-  end
-
-  def all
-    raise Crossbeams::FrameworkError, "#{self.class.name}: Cannot call 'all' on a repo that was not initialized with a wrapper. Use a wrapper or 'all_hash'." if wrapper.nil?
-    DB[main_table_name].map { |r| wrapper.new(r) }
-  end
-
-  def all_hash
-    DB[main_table_name].all
-  end
-
-  def find!(id)
-    raise Crossbeams::FrameworkError, "#{self.class.name}: Cannot call 'find!' on a repo that was not initialized with a wrapper. Use a wrapper or 'find_hash'." if wrapper.nil?
-    hash = find_hash(id)
-    raise Crossbeams::FrameworkError, "#{self.class.name}: id #{id} not found." if hash.nil?
+  def find!(table_name, wrapper, id)
+    hash = find_hash(table_name, id)
+    raise Crossbeams::FrameworkError, "#{table_name}: id #{id} not found." if hash.nil?
     wrapper.new(hash)
   end
 
-  def find(id)
-    raise Crossbeams::FrameworkError, "#{self.class.name}: Cannot call 'find' on a repo that was not initialized with a wrapper. Use a wrapper or 'find_hash'." if wrapper.nil?
-    hash = find_hash(id)
+  def find(table_name, wrapper, id)
+    hash = find_hash(table_name, id)
     return nil if hash.nil?
-    # wrapper.new(DB[main_table_name].where(id: id).first)
     wrapper.new(hash)
   end
 
-  def find_hash(id)
-    DB[main_table_name].where(id: id).first
+  def find_hash(table_name, id)
+    where_hash(table_name, id: id)
   end
 
-  def create(attrs)
-    DB[main_table_name].insert(attrs.to_h)
+  def where(table_name, wrapper, args)
+    hash = where_hash(table_name, args)
+    return nil if hash.nil?
+    wrapper.new(hash)
   end
 
-  def update(id, attrs)
-    DB[main_table_name].where(id: id).update(attrs.to_h)
+  def where_hash(table_name, args)
+    DB[table_name].where(args).first
   end
 
-  def delete(id)
-    DB[main_table_name].where(id: id).delete
+  def exists?(table_name, args)
+    DB.select(1).where(DB[table_name].where(args).exists).one?
+  end
+
+  def create(table_name, attrs)
+    DB[table_name].insert(attrs.to_h)
+  end
+
+  def update(table_name, id, attrs)
+    DB[table_name].where(id: id).update(attrs.to_h)
+  end
+
+  def delete(table_name, id)
+    DB[table_name].where(id: id).delete
   end
 
   def select_values(query)
     DB[query].select_map
   end
 
-  # List of rows for use in a select dropdown.
-  # Uses for_select_options to configure.
-  # @return Array - list of label/value pairs or just of values.
-  def for_select
-    label = select_options[:label] || select_options[:value]
-    value = select_options[:value]
+  def make_order(dataset, sel_options)
+    if sel_options[:desc]
+      dataset.order_by(Sequel.desc(sel_options[:order_by]))
+    else
+      dataset.order_by(sel_options[:order_by])
+    end
+  end
 
-    dataset = DB[main_table_name]
-    if select_options[:order_by]
-      if select_options[:desc]
-        dataset = dataset.order_by(Sequel.desc(select_options[:order_by]))
-      else
-        dataset = dataset.order_by(select_options[:order_by])
+  def select_single(dataset, value_name)
+    dataset.select(value_name).map { |rec| rec[value_name] }
+  end
+
+  def select_two(dataset, label_name, value_name)
+    dataset.select(label_name, value_name).map { |rec| [rec[label_name], rec[value_name]] }
+  end
+
+  def self.inherited(klass)
+    klass.extend(MethodBuilder)
+  end
+end
+
+module MethodBuilder
+  # Define a +for_select_table_name+ method in a repo.
+  # The method returns an array of values for use in e.g. a select dropdown.
+  # Options:
+  # alias: String
+  # - If present, will be named +for_select_alias+ instead of +for_select_table_name+.
+  # label: String
+  # - The display column. Defaults to the value column.
+  # value: String
+  # - The value column. Required.
+  # order_by: String
+  # - The column to order by.
+  # desc: Boolean
+  # - Use descending order if this option is present and truthy.
+  # no_activity_check: Boolean
+  # - Set to true if this table does not have an +active+ column,
+  #   or to return inactive records as well as active ones.
+  def build_for_select(table_name, options = {})
+    define_method(:"for_select_#{options[:alias] || table_name}") do |opts = {}|
+      dataset = DB[table_name]
+      dataset = make_order(dataset, options) if options[:order_by]
+      dataset = dataset.where(:active) unless options[:no_active_check]
+      dataset = dataset.where(opts[:where]) if opts[:where]
+      lbl = options[:label] || options[:value]
+      val = options[:value]
+      lbl == val ? select_single(dataset, val) : select_two(dataset, lbl, val)
+    end
+  end
+
+  # Define a +for_select_inactive_table_name+ method in a repo.
+  # The method returns an array of values from inactive rows for use in e.g. a select dropdown's +disabled_options+.
+  # Options:
+  # alias: String
+  # - If present, will be named +for_select_alias+ instead of +for_select_table_name+.
+  # label: String
+  # - The display column. Defaults to the value column.
+  # value: String
+  # - The value column. Required.
+  def build_inactive_select(table_name, options = {})
+    define_method(:"for_select_inactive_#{options[:alias] || table_name}") do
+      dataset = DB[table_name].exclude(:active)
+      lbl = options[:label] || options[:value]
+      val = options[:value]
+      lbl == val ? select_single(dataset, val) : select_two(dataset, lbl, val)
+    end
+  end
+
+  # Define CRUD methods for a table in a repo.
+  # Call like this: +crud_calls_for+ :table_name.
+  # This creates find_name, create_name, update_name and delete_name methods for the repo.
+  # There are 2 optional params.
+  #
+  #     crud_calls_for :table_name, name: :table, wrapper: Table
+  #
+  # This produces the following methods:
+  #
+  #     find_table(id)
+  #     create_table(attrs)
+  #     update_table(id, attrs)
+  #     delete_table(id)
+  #
+  # Options:
+  # name: String
+  # - Change the name portion of the method. default: table_name.
+  # wrapper: Class
+  # - The wrapper class. If not provided, there will be no +find_+ method.
+  def crud_calls_for(table_name, options = {})
+    name    = options[:name] || table_name
+    wrapper = options[:wrapper]
+
+    unless wrapper.nil?
+      define_method(:"find_#{name}") do |id|
+        find(table_name, wrapper, id)
       end
     end
-    if label == value
-      dataset.map { |rec| rec[value] }
-    else
-      dataset.map { |rec| [rec[label], rec[value]] }
+
+    define_method(:"create_#{name}") do |attrs|
+      create(table_name, attrs)
+    end
+
+    define_method(:"update_#{name}") do |id, attrs|
+      update(table_name, id, attrs)
+    end
+
+    define_method(:"delete_#{name}") do |id|
+      delete(table_name, id)
     end
   end
 end

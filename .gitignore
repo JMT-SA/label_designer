@@ -1,4 +1,14 @@
 /.sass-cache/
 public/js/ag-enterprise-activation.js
 public/tempfiles/*
+
+# Used by dotenv library to load environment variables.
 .env.local
+
+## Rubymine
+.idea/
+.rake_tasks~
+
+## Vim
+tags
+.srclist
