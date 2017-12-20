@@ -51,7 +51,7 @@ class LabelDesigner < Roda
 
   plugin :all_verbs
   plugin :render
-  plugin :assets, css: 'style.scss'
+  plugin :assets, css: 'style.scss', precompiled: 'prestyle.css'
   plugin :public # serve assets from public folder.
   plugin :content_for, append: true
   plugin :symbolized_params    # - automatically converts all keys of params to symbols.
