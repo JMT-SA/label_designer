@@ -1,5 +1,5 @@
 module LabelView
-  class UploadWithVars
+  class PrintPreview
     def self.call(id, form_values = nil, form_errors = nil)
       this_repo = LabelRepo.new
       obj       = this_repo.find_labels(id)
@@ -17,7 +17,6 @@ module LabelView
         page.form_values form_values
         page.form_errors form_errors
         page.form do |form|
-          # form.action "/label_designer/#{id}/send_var_upload/preview"
           form.action "/label_designer/#{id}/send_var_upload/print"
           form.remote!
           xml_vars.each do |v|

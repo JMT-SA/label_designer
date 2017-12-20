@@ -1,6 +1,6 @@
 module LabelView
   class New
-    def self.call(form_values = nil, form_errors = nil)
+    def self.call(form_values: nil, form_errors: nil, remote: true)
       rules = { fields: {
         label_name: { pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces' },
         label_dimension: { renderer: :select,
@@ -18,6 +18,7 @@ module LabelView
         page.form_errors form_errors
         page.form do |form|
           form.action '/label_designer/create'
+          form.remote! if remote
           form.add_field :label_name
           form.add_field :label_dimension
           form.add_field :px_per_mm

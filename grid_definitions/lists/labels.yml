@@ -2,49 +2,36 @@
 :dataminer_definition: labels
 :actions:
   - :url: /label_designer/$:id$/edit
-    :text: edit label
+    :text: Edit label
     :icon: fa-edit
   - :url: /label_designer/$:id$/clone
-    :text: clone label
+    :text: Clone label
     :icon: fa-clone
+    :popup: true
   - :separator: true
   - :url: /label_designer/$:id$/properties
-    :text: change label properties
+    :text: Change label properties
     :icon: fa-info
     :title: Properties
     :popup: true
   - :url: /label_designer/$:id$/background
-    :text: background image
+    :text: Background image
     :icon: fa-image
     :title_field: label_name
     :popup: true
-  - :url: /label_designer/$:id$/preview
-    :text: local preview
-    :icon: fa-search
-    :title_field: label_name
-    :popup: true
-  - :url: /label_designer/$:id$/download
-    :text: download
-    :icon: fa-download
-  - :separator: true
-  - :url: /label_designer/$:id$/upload
-    :text: upload
-    :icon: fa-upload
-    :title: Upload
-    :popup: true
   - :url: /label_designer/$:id$/upload_with_vars
-    :text: upload with vars
+    :text: Preview
     :icon: fa-rocket
-    :title: Upload with variables
+    :title: Preview - fill in variables
     :popup: true
-  - :url: /label_designer/$:id$/server_preview_label
-    :text: server preview
-    :icon: fa-eye
-    :title_field: label_name
+  - :url: /label_designer/$:id$/print_preview
+    :text: Print Preview
+    :icon: fa-print
+    :title: Print preview - fill in variables
     :popup: true
   - :separator: true
   - :url: /label_designer/$:id$
-    :text: delete label
+    :text: Delete label
     :icon: fa-remove
     :is_delete: true
 :page_controls:
@@ -52,3 +39,4 @@
     :url: /label_designer/new
     :text: New label
     :style: :button
+    :behaviour: :popup

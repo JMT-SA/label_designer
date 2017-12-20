@@ -31,7 +31,6 @@ require './lib/base_interactor'
 require './lib/base_service'
 require './lib/ui_rules'
 require './lib/library_versions'
-Dir['./helpers/**/*.rb'].each { |f| require f }
 Dir['./lib/applets/*.rb'].each { |f| require f }
 
 ENV['ROOT'] = File.dirname(__FILE__)
@@ -93,11 +92,7 @@ class LabelDesigner < Roda
       end
 
       r.on 'new' do
-        if request.xhr? # THIS DOES NOT WORK FOR fetch - ONLY FOR XMLHTTP...
-          show_partial { LabelView::New.call }
-        else
-          show_page { LabelView::New.call }
-        end
+        show_partial_or_page(fetch?(r)) { LabelView::New.call(remote: fetch?(r)) }
       end
 
       r.on 'create' do
@@ -108,10 +103,29 @@ class LabelDesigner < Roda
         errors = LabelSchema.call(params[:label]).messages
         if errors.empty?
           qs = params[:label].map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')
-          r.redirect "/label_designer?#{qs}"
+          if fetch?(r)
+            redirect_via_json("/label_designer?#{qs}")
+          else
+            r.redirect "/label_designer?#{qs}"
+          end
+        # else
+        #   flash.now[:error] = 'Unable to create label'
+        #   show_page { LabelView::New.call(form_values: params[:label], form_errors: errors) }
+        # end
+        elsif fetch?(r)
+          content = show_partial do
+            Security::FunctionalAreas::FunctionalArea::New.call(form_values: params[:label],
+                                                                form_errors: errors,
+                                                                remote: true)
+          end
+          update_dialog_content(content: content, error: 'Unable to create label')
         else
-          flash.now[:error] = 'Unable to create label'
-          show_page { LabelView::New.call(params[:label], errors) }
+          flash[:error] = 'Unable to create label'
+          show_page do
+            Security::FunctionalAreas::FunctionalArea::New.call(form_values: params[:label],
+                                                                form_errors: errors,
+                                                                remote: false)
+          end
         end
       end
 
@@ -147,7 +161,7 @@ class LabelDesigner < Roda
         end
 
         r.on 'clone' do
-          show_page { LabelView::Clone.call(id) }
+          show_partial { LabelView::Clone.call(id) }
         end
 
         r.on 'clone_label' do
@@ -245,7 +259,12 @@ class LabelDesigner < Roda
           show_partial { LabelView::UploadWithVars.call(id) }
         end
 
-        r.on 'send_var_upload' do
+        r.on 'print_preview' do
+          show_partial { LabelView::PrintPreview.call(id) }
+        end
+
+        r.on 'send_var_upload', String do |preview_or_print|
+          # print_field = preview_or_print == 'print' ? '; Type="PrintLabelProof"' : ''
           response['Content-Type'] = 'application/json'
           begin
             vars  = params[:label]
@@ -254,7 +273,12 @@ class LabelDesigner < Roda
 
             fname, binary_data = make_label_zip(label, vars)
             File.open('zz.zip', 'w') { |f| f.puts binary_data }
-            uri = URI.parse(LABEL_SERVER_URI + 'LabelFileUpload')
+            uri = if preview_or_print == 'print'
+                    URI.parse(LABEL_SERVER_URI + 'LabelFilePrint')
+                    response.headers['Type'] = 'PrintLabelProof'
+                  else
+                    URI.parse(LABEL_SERVER_URI + 'LabelFileUpload')
+                  end
 
             post_body = []
             post_body << "--#{BOUNDARY}\r\n"
@@ -494,6 +518,10 @@ class LabelDesigner < Roda
     r.redirect session[:last_grid_url]
   end
 
+  def redirect_via_json(url)
+    { redirect: url }.to_json
+  end
+
   def show_page(&block)
     @layout = block.yield
     @layout.add_csrf_tag(csrf_tag)
@@ -504,6 +532,21 @@ class LabelDesigner < Roda
     @layout = block.yield
     @layout.add_csrf_tag(csrf_tag)
     @layout.render
+  end
+
+  def show_partial_or_page(partial, &block)
+    @layout = block.yield
+    @layout.add_csrf_tag(csrf_tag)
+    if partial
+      @layout.render
+    else
+      view('crossbeams_layout_page')
+    end
+  end
+
+  # Is this a fetch request?
+  def fetch?(r)
+    r.has_header?('HTTP_X_CUSTOM_REQUEST_TYPE')
   end
 
   PNG_REGEXP = %r{\Adata:([-\w]+/[-\w\+\.]+)?;base64,(.*)}m

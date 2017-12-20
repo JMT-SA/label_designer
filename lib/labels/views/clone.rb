@@ -4,7 +4,7 @@ module LabelView
       this_repo = LabelRepo.new
       obj       = this_repo.find_labels(id)
       rules = { fields: {
-        label_name: {},
+        label_name: { pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces' },
         id: { renderer: :hidden }
       } }
 
