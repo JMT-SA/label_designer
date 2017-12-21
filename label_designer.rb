@@ -31,6 +31,7 @@ require './lib/base_interactor'
 require './lib/base_service'
 require './lib/ui_rules'
 require './lib/library_versions'
+Dir['./helpers/**/*.rb'].each { |f| require f }
 Dir['./lib/applets/*.rb'].each { |f| require f }
 
 ENV['ROOT'] = File.dirname(__FILE__)
@@ -43,6 +44,8 @@ Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration f
 end
 
 class LabelDesigner < Roda
+  include CommonHelpers
+
   BOUNDARY = 'AaB03x'
 
   use Rack::Session::Cookie, secret: 'some_nice_long_random_string_DSKJH4378EYR7EGKUFH', key: '_lbld_session'
@@ -52,6 +55,7 @@ class LabelDesigner < Roda
   plugin :render
   plugin :assets, css: 'style.scss', precompiled: 'prestyle.css'
   plugin :public # serve assets from public folder.
+  plugin :multi_route
   plugin :content_for, append: true
   plugin :symbolized_params    # - automatically converts all keys of params to symbols.
   plugin :flash
@@ -66,6 +70,8 @@ class LabelDesigner < Roda
                      run_search_url: '/search/%s/run',
                      run_to_excel_url: '/search/%s/xls'
 
+  Dir['./routes/*.rb'].each { |f| require f }
+
   route do |r|
     r.assets unless ENV['RACK_ENV'] == 'production'
     r.public
@@ -74,6 +80,8 @@ class LabelDesigner < Roda
       view('home')
       r.redirect('/list/labels')
     end
+
+    r.multi_route
 
     r.is 'versions' do
       view(inline: LibraryVersions.new(:layout,
@@ -525,41 +533,6 @@ class LabelDesigner < Roda
     config
   end
 
-  def redirect_to_last_grid(r)
-    r.redirect session[:last_grid_url]
-  end
-
-  def redirect_via_json(url)
-    { redirect: url }.to_json
-  end
-
-  def show_page(&block)
-    @layout = block.yield
-    @layout.add_csrf_tag(csrf_tag)
-    view('crossbeams_layout_page')
-  end
-
-  def show_partial(&block)
-    @layout = block.yield
-    @layout.add_csrf_tag(csrf_tag)
-    @layout.render
-  end
-
-  def show_partial_or_page(partial, &block)
-    @layout = block.yield
-    @layout.add_csrf_tag(csrf_tag)
-    if partial
-      @layout.render
-    else
-      view('crossbeams_layout_page')
-    end
-  end
-
-  # Is this a fetch request?
-  def fetch?(r)
-    r.has_header?('HTTP_X_CUSTOM_REQUEST_TYPE')
-  end
-
   PNG_REGEXP = %r{\Adata:([-\w]+/[-\w\+\.]+)?;base64,(.*)}m
   def image_from_param(param)
     data_uri_parts = param.match(PNG_REGEXP) || []
@@ -591,23 +564,5 @@ class LabelDesigner < Roda
       zio.write label_properties
     end
     [fname, stringio.string]
-  end
-
-  def update_grid_row(id, changes:, notice: nil)
-    res = { updateGridInPlace: { id: id.to_i, changes: changes } }
-    res[:flash] = { notice: notice } if notice
-    res.to_json
-  end
-
-  def update_dialog_content(content:, notice: nil, error: nil)
-    res = { replaceDialog: { content: content } }
-    res[:flash] = { notice: notice } if notice
-    res[:flash] = { error: error } if error
-    res.to_json
-  end
-
-  def handle_json_error(err)
-    response.status = 500
-    { exception: err.class.name, flash: { error: "An error occurred: #{err.message}" } }.to_json
   end
 end
