@@ -17,7 +17,7 @@ module LabelView
         page.form_values form_values
         page.form_errors form_errors
         page.form do |form|
-          form.action "/label_designer/#{id}/send_var_upload/print"
+          form.action "/label_designer/#{id}/send_preview/print"
           form.remote!
           xml_vars.each do |v|
             form.add_field v.to_sym

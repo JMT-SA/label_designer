@@ -180,7 +180,7 @@ class LabelDesigner < Roda
           "<img src='/label_designer/#{id}/png' />"
         end
 
-        r.on 'preview' do
+        r.on 'local_preview' do
           'Preview from Konva'
         end
 
@@ -255,63 +255,23 @@ class LabelDesigner < Roda
           response.write(binary_data)
         end
 
-        r.on 'upload_with_vars' do
-          show_partial { LabelView::UploadWithVars.call(id) }
+        r.on 'preview' do
+          show_partial { LabelView::ScreenPreview.call(id) }
         end
 
         r.on 'print_preview' do
           show_partial { LabelView::PrintPreview.call(id) }
         end
 
-        r.on 'send_var_upload', String do |preview_or_print|
-          # print_field = preview_or_print == 'print' ? '; Type="PrintLabelProof"' : ''
-          response['Content-Type'] = 'application/json'
-          begin
-            vars  = params[:label]
-            repo  = LabelRepo.new
-            label = repo.find_labels(id)
-
-            fname, binary_data = make_label_zip(label, vars)
-            File.open('zz.zip', 'w') { |f| f.puts binary_data }
-            uri = if preview_or_print == 'print'
-                    URI.parse(LABEL_SERVER_URI + 'LabelFilePrint')
-                    response.headers['Type'] = 'PrintLabelProof'
-                  else
-                    URI.parse(LABEL_SERVER_URI + 'LabelFileUpload')
-                  end
-
-            post_body = []
-            post_body << "--#{BOUNDARY}\r\n"
-            post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
-            post_body << "Content-Type: application/x-zip-compressed\r\n"
-            post_body << "\r\n"
-            post_body << binary_data
-            post_body << "\r\n--#{BOUNDARY}--\r\n"
-
-            http = Net::HTTP.new(uri.host, uri.port)
-            request = Net::HTTP::Post.new(uri.request_uri)
-            request.body = post_body.join
-            request['Content-Type'] = "multipart/form-data, boundary=#{BOUNDARY}"
-
-            response = http.request(request)
-            if response.code == '200'
-              filepath = Tempfile.open([fname, '.png'], 'public/tempfiles') do |f|
-                f.write(response.body)
-                f.path
-              end
-              { replaceDialog: { content: "<img src='/#{File.join('tempfiles', File.basename(filepath))}'>" } }.to_json
-            elsif response.code.start_with?('5')
-              { flash: { error: "The destination server encountered an error. The response code is #{response.code}, response body: #{response.body}" } }.to_json
-            else
-              { flash: { error: "The request was not successful. The response code is #{response.code}" } }.to_json
-            end
-          rescue Timeout::Error
-            { flash: { error: 'The call to the server timed out.' } }.to_json
-          rescue Errno::ECONNREFUSED
-            { flash: { error: 'The connection was refused. Perhaps the server is not running.' } }.to_json
-          rescue StandardError => e
-            { flash: { error: "There was an error: #{e.class.name} - #{e.message}" } }.to_json
+        r.on 'send_preview' do
+          # r.on String do |screen_or_print|
+          r.on 'screen' do
+            do_preview(id, 'screen')
           end
+          r.on 'print' do
+            do_preview(id, 'print')
+          end
+          # end
         end
 
         r.on 'upload' do
@@ -497,6 +457,57 @@ class LabelDesigner < Roda
       #{js}
     <% end %>
     HTML
+  end
+
+  def do_preview(id, screen_or_print)
+    response['Content-Type'] = 'application/json'
+    begin
+      vars  = params[:label]
+      repo  = LabelRepo.new
+      label = repo.find_labels(id)
+
+      fname, binary_data = make_label_zip(label, vars)
+      File.open('zz.zip', 'w') { |f| f.puts binary_data }
+      uri = URI.parse(LABEL_SERVER_URI + 'LabelFileUpload')
+
+      post_body = []
+      if screen_or_print == 'print'
+        post_body << "--#{BOUNDARY}\r\n"
+        post_body << "Content-Disposition: form-data; name=\"action\"\r\n"
+        post_body << "\r\nprintlabel"
+        post_body << "\r\n--#{BOUNDARY}--\r\n"
+      end
+      post_body << "--#{BOUNDARY}\r\n"
+      post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
+      post_body << "Content-Type: application/x-zip-compressed\r\n"
+      post_body << "\r\n"
+      post_body << binary_data
+      post_body << "\r\n--#{BOUNDARY}--\r\n"
+
+      http = Net::HTTP.new(uri.host, uri.port)
+      request = Net::HTTP::Post.new(uri.request_uri)
+      request.body = post_body.join
+      request['Content-Type'] = "multipart/form-data, boundary=#{BOUNDARY}"
+
+      response = http.request(request)
+      if response.code == '200'
+        filepath = Tempfile.open([fname, '.png'], 'public/tempfiles') do |f|
+          f.write(response.body)
+          f.path
+        end
+        { replaceDialog: { content: "<img src='/#{File.join('tempfiles', File.basename(filepath))}'>" } }.to_json
+      elsif response.code.start_with?('5')
+        { flash: { error: "The destination server encountered an error. The response code is #{response.code}, response body: #{response.body}" } }.to_json
+      else
+        { flash: { error: "The request was not successful. The response code is #{response.code}" } }.to_json
+      end
+    rescue Timeout::Error
+      { flash: { error: 'The call to the server timed out.' } }.to_json
+    rescue Errno::ECONNREFUSED
+      { flash: { error: 'The connection was refused. Perhaps the server is not running.' } }.to_json
+    rescue StandardError => e
+      { flash: { error: "There was an error: #{e.class.name} - #{e.message}" } }.to_json
+    end
   end
 
   def label_config(opts)

@@ -19,7 +19,7 @@
     :icon: fa-image
     :title_field: label_name
     :popup: true
-  - :url: /label_designer/$:id$/upload_with_vars
+  - :url: /label_designer/$:id$/preview
     :text: Preview
     :icon: fa-rocket
     :title: Preview - fill in variables

@@ -19,7 +19,7 @@
     :icon: fa-image
     :title_field: label_name
     :popup: true
-  - :url: /label_designer/$:id$/upload_with_vars
+  - :url: /label_designer/$:id$/preview
     :text: Preview
     :icon: fa-rocket
     :title: Preview - fill in variables
@@ -34,9 +34,11 @@
     :text: Delete label
     :icon: fa-remove
     :is_delete: true
+  # - :url: /label_designer/$:id$/download
+  #   :text: download
+  #   :icon: fa-download
 :page_controls:
   - :control_type: :link
     :url: /label_designer/new
     :text: New label
     :style: :button
-    :behaviour: :popup
