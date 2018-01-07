@@ -26,6 +26,7 @@ module Crossbeams
   end
 end
 
+require './lib/crossbeams_responses'
 require './lib/repo_base'
 require './lib/base_interactor'
 require './lib/base_service'
@@ -122,17 +123,17 @@ class LabelDesigner < Roda
         # end
         elsif fetch?(r)
           content = show_partial do
-            Security::FunctionalAreas::FunctionalArea::New.call(form_values: params[:label],
-                                                                form_errors: errors,
-                                                                remote: true)
+            LabelView::New.call(form_values: params[:label],
+                                form_errors: errors,
+                                remote: true)
           end
           update_dialog_content(content: content, error: 'Unable to create label')
         else
           flash[:error] = 'Unable to create label'
           show_page do
-            Security::FunctionalAreas::FunctionalArea::New.call(form_values: params[:label],
-                                                                form_errors: errors,
-                                                                remote: false)
+            LabelView::New.call(form_values: params[:label],
+                                form_errors: errors,
+                                remote: false)
           end
         end
       end
