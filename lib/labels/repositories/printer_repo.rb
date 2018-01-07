@@ -2,10 +2,10 @@
 
 class PrinterRepo < RepoBase
   build_for_select :printers,
-                   label: :name,
+                   label: %i[printer_name printer_type],
                    value: :id,
                    no_active_check: true,
-                   order_by: :name
+                   order_by: :printer_name
 
   crud_calls_for :printers, name: :printer, wrapper: Printer
 
@@ -14,7 +14,7 @@ class PrinterRepo < RepoBase
       DB[:printers].delete
       printer_list.each do |printer|
         rec = {
-          printer_code: find_printer_code(printer),
+          printer_code: find_printer_code(printer), # Change to printer['Code'] once MesServer response changes.
           printer_name: printer['Alias'],
           printer_type: printer['Type'],
           pixels_per_mm: printer['PixelMM'].to_i,
