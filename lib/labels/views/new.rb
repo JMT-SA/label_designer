@@ -3,7 +3,7 @@ module LabelView
     def self.call(form_values: nil, form_errors: nil, remote: true)
       repo = PrinterRepo.new
       rules = { fields: {
-        label_name: { pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces' },
+        label_name: { maxlength: 16, pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces' },
         label_dimension: { renderer: :select,
                            options: %w[8464 A4 A5 Custom] },
         px_per_mm: { renderer: :select,

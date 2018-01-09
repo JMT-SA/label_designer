@@ -5,7 +5,7 @@ module LabelView
       this_repo = LabelRepo.new
       obj       = this_repo.find_labels(id)
       rules = { fields: {
-        label_name: { pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces' }
+        label_name: { maxlength: 16, pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces' }
       } }
 
       layout = Crossbeams::Layout::Page.build(rules) do |page|
