@@ -1,13 +1,14 @@
 module LabelView
   class New
     def self.call(form_values: nil, form_errors: nil, remote: true)
+      repo = PrinterRepo.new
       rules = { fields: {
         label_name: { pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces' },
         label_dimension: { renderer: :select,
                            options: %w[8464 A4 A5 Custom] },
         px_per_mm: { renderer: :select,
-                     options: [['Low Def', '8'],
-                               ['High Def', '12']] }
+                     options: repo.distinct_px_mm,
+                     caption: 'Resolution (px/mm)' }
       }, name: 'label'.freeze }
 
       layout = Crossbeams::Layout::Page.build(rules) do |page|

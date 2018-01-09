@@ -24,4 +24,8 @@ class PrinterRepo < RepoBase
       end
     end
   end
+
+  def distinct_px_mm
+    DB[:printers].distinct.select_map(:pixels_per_mm).sort
+  end
 end
