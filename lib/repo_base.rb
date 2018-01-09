@@ -1,6 +1,4 @@
 class RepoBase
-  attr_reader :main_table_name, :wrapper, :select_options
-
   def all(table_name, wrapper)
     all_hash(table_name).map { |r| wrapper.new(r) }
   end

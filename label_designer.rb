@@ -352,9 +352,22 @@ class LabelDesigner < Roda
           show_page { render_data_grid_page(id) }
         end
 
+        r.on 'with_params' do
+          if fetch?(r)
+            show_partial { render_data_grid_page(id, query_string: request.query_string) }
+          else
+            session[:last_grid_url] = "/list/#{id}/with_params?#{request.query_string}"
+            show_page { render_data_grid_page(id, query_string: request.query_string) }
+          end
+        end
+
         r.on 'grid' do
           response['Content-Type'] = 'application/json'
-          render_data_grid_rows(id)
+          if params && !params.empty?
+            render_data_grid_rows(id, nil, params)
+          else
+            render_data_grid_rows(id)
+          end
         end
       end
     end

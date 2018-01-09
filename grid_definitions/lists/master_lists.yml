@@ -1,0 +1,24 @@
+---
+:dataminer_definition: master_lists
+:actions:
+- :url: "/labels/masterfiles/master_lists/$:id$"
+  :text: view
+  :icon: fa-eye
+  :title: View
+  :popup: true
+- :url: "/labels/masterfiles/master_lists/$:id$/edit"
+  :text: edit
+  :icon: fa-edit
+  :title: Edit
+  :popup: true
+- :url: "/labels/masterfiles/master_lists/$:id$"
+  :text: delete
+  :icon: fa-remove
+  :is_delete: true
+  :popup: true
+:page_controls:
+- :control_type: :link
+  :url: "/labels/masterfiles/master_lists/new"
+  :text: New Master List
+  :style: :button
+  :behaviour: :popup

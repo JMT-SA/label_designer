@@ -72,7 +72,7 @@
     :caption: Pixels per mm
     :namespaced_name: printers.pixels_per_mm
     :data_type: :integer
-    :width: 
+    :width: 130
     :format: 
     :hide: false
     :groupable: true

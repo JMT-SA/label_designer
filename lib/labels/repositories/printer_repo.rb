@@ -14,7 +14,7 @@ class PrinterRepo < RepoBase
       DB[:printers].delete
       printer_list.each do |printer|
         rec = {
-          printer_code: find_printer_code(printer), # Change to printer['Code'] once MesServer response changes.
+          printer_code: printer['Code'],
           printer_name: printer['Alias'],
           printer_type: printer['Type'],
           pixels_per_mm: printer['PixelMM'].to_i,
@@ -23,9 +23,5 @@ class PrinterRepo < RepoBase
         create_printer(rec)
       end
     end
-  end
-
-  def find_printer_code(printer)
-    printer.keys.find { |key| key.start_with?('PRN') }
   end
 end

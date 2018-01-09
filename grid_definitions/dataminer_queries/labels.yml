@@ -52,7 +52,7 @@
   px_per_mm:
     :name: px_per_mm
     :sequence_no: 4
-    :caption: Printer Setting
+    :caption: Printer Resolution
     :namespaced_name: px_per_mm
     :data_type: :string
     :width:
