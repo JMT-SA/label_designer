@@ -498,6 +498,10 @@ class LabelDesigner < Roda
         post_body << "Content-Disposition: form-data; name=\"action\"\r\n"
         post_body << "\r\nprintlabel"
         post_body << "\r\n--#{BOUNDARY}--\r\n"
+        post_body << "--#{BOUNDARY}\r\n"
+        post_body << "Content-Disposition: form-data; name=\"printer\"\r\n"
+        post_body << "\r\n#{vars[:printer]}"
+        post_body << "\r\n--#{BOUNDARY}--\r\n"
       end
       post_body << "--#{BOUNDARY}\r\n"
       post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"

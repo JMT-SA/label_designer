@@ -28,4 +28,8 @@ class PrinterRepo < RepoBase
   def distinct_px_mm
     DB[:printers].distinct.select_map(:pixels_per_mm).sort
   end
+
+  def printers_for(px_per_mm)
+    DB[:printers].where(pixels_per_mm: px_per_mm).map { |p| [p[:printer_name], p[:printer_code]] }
+  end
 end
