@@ -2,8 +2,8 @@
 
 class MasterListRepo < RepoBase
   build_for_select :master_lists,
-                   label: :description,
-                   value: :id,
+                   # label: :description,
+                   value: :description,
                    no_active_check: true,
                    order_by: :description
 

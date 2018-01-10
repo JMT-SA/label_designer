@@ -98,6 +98,7 @@ class LabelDesigner < Roda
         view(inline: label_designer_page(label_name: params[:label_name],
                                          label_dimension: params[:label_dimension],
                                          px_per_mm: params[:px_per_mm]))
+        # TODO: other params (categories).....
       end
 
       r.on 'new' do
@@ -111,6 +112,14 @@ class LabelDesigner < Roda
         # errors = schema.call(params[:label]).messages
         errors = LabelSchema.call(params[:label]).messages
         if errors.empty?
+          session[:new_label_attributes] = {
+            container_type: params[:label][:container_type],
+            commodity: params[:label][:commodity],
+            market: params[:label][:market],
+            language: params[:label][:language],
+            category: params[:label][:category],
+            sub_category: params[:label][:sub_category]
+          }
           qs = params[:label].map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')
           if fetch?(r)
             redirect_via_json("/label_designer?#{qs}")
@@ -147,21 +156,27 @@ class LabelDesigner < Roda
         end
 
         r.post 'update' do
-          begin
-            response['Content-Type'] = 'application/json'
-            res = LabelSchema.call(params[:label])
-            errors = res.messages
-            if errors.empty?
-              repo = LabelRepo.new
-              repo.update_labels(id, res.to_h)
-              update_grid_row(id, changes: { label_name: res[:label_name] },
-                                  notice: "Updated #{res[:label_name]}")
-            else
-              content = show_partial { LabelView::Properties.call(id, params[:label], errors) }
-              update_dialog_content(content: content, error: 'Validation error')
-            end
-          rescue StandardError => e
-            handle_json_error(e)
+          response['Content-Type'] = 'application/json'
+          res = LabelSchema.call(params[:label])
+          errors = res.messages
+          if errors.empty?
+            repo = LabelRepo.new
+            repo.update_labels(id, res.to_h)
+            grid_cols = res.to_h
+            update_grid_row(id, changes:
+            {
+              label_name: grid_cols[:label_name],
+              container_type: grid_cols[:container_type],
+              commodity: grid_cols[:commodity],
+              market: grid_cols[:market],
+              language: grid_cols[:language],
+              category: grid_cols[:category],
+              sub_category:  grid_cols[:sub_category]
+            },
+                                notice: "Updated #{res[:label_name]}")
+          else
+            content = show_partial { LabelView::Properties.call(id, params[:label], errors) }
+            update_dialog_content(content: content, error: 'Validation error')
           end
         end
 
@@ -174,6 +189,16 @@ class LabelDesigner < Roda
         end
 
         r.on 'clone_label' do
+          repo = LabelRepo.new
+          label = repo.find_labels(params[:label][:id])
+          session[:new_label_attributes] = {
+            container_type: label.container_type,
+            commodity: label.commodity,
+            market: label.market,
+            language: label.language,
+            category: label.category,
+            sub_category: label.sub_category
+          }
           view(inline: label_designer_page(label_name: params[:label][:label_name],
                                            id: params[:label][:id],
                                            cloned: true))
@@ -441,13 +466,21 @@ class LabelDesigner < Roda
         # File.open(file_name, 'wb') do |file|
         #   file.write(image_from_param(params[:imageString]))
         # end
+        extra_attributes = session[:new_label_attributes]
         changeset = { label_json: params[:label],
                       label_name: params[:labelName],
                       label_dimension: params[:labelDimension],
                       px_per_mm: params[:pixelPerMM],
+                      container_type: extra_attributes[:container_type],
+                      commodity: extra_attributes[:commodity],
+                      market: extra_attributes[:market],
+                      language: extra_attributes[:language],
+                      category: extra_attributes[:category],
+                      sub_category: extra_attributes[:sub_category],
                       variable_xml: params[:XMLString],
                       png_image: Sequel.blob(image_from_param(params[:imageString])) }
         repo.create_labels(changeset)
+        session[:new_label_attributes] = nil
         flash[:notice] = 'Created'
         response['Content-Type'] = 'application/json'
         { redirect: session[:last_grid_url] }.to_json

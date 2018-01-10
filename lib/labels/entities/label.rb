@@ -6,6 +6,12 @@ class Label < Dry::Struct
   attribute :px_per_mm, Types::String.optional
   attribute :variable_xml, Types::String
   attribute :png_image, Types::Any # bytea,
+  attribute :container_type, Types::String
+  attribute :commodity, Types::String
+  attribute :market, Types::String
+  attribute :language, Types::String
+  attribute :category, Types::String.optional
+  attribute :sub_category, Types::String.optional
   # attribute :sample_data, Types::Json::Hash
 
   #  label_name character varying(255) NOT NULL,
