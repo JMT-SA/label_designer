@@ -9,7 +9,6 @@ class LabelDesigner < Roda
 
       # Check for notfound:
       r.on !interactor.exists?(:printers, id) do
-        p 'NF', id
         handle_not_found(r)
       end
 

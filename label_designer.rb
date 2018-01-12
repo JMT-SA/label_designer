@@ -229,18 +229,28 @@ class LabelDesigner < Roda
     HTML
   end
 
-  def label_config(opts)
+  def label_instance_for_config(opts)
     if opts[:id]
-      repo  = LabelRepo.new
-      label = repo.find_label(opts[:id])
+      repo = LabelRepo.new
+      repo.find_label(opts[:id])
+    else
+      OpenStruct.new(opts)
     end
-    config = { labelState: opts[:id].nil? ? 'new' : 'edit',
-               labelName:  opts[:cloned] || label.nil? ? opts[:label_name] : label.label_name,
-               savePath: opts[:cloned] || opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}",
-               labelDimension: label.nil? ? opts[:label_dimension] : label.label_dimension,
-               id: opts[:cloned] || opts[:id].nil? ? nil : opts[:id],
-               pixelPerMM: label.nil? ? opts[:px_per_mm] : label.px_per_mm,
-               labelJSON:  label.nil? ? {} : label.label_json }
+  end
+
+  def label_config(opts)
+    label = label_instance_for_config(opts)
+    id = opts[:cloned] ? nil : opts[:id]
+
+    config = {
+      labelState: id.nil? ? 'new' : 'edit',
+      labelName:  label.label_name,
+      savePath: id.nil? ? '/save_label' : "/save_label/#{id}",
+      labelDimension: label.label_dimension,
+      id: id,
+      pixelPerMM: label.px_per_mm,
+      labelJSON: id.nil? ? {} : label.label_json
+    }
     config
   end
 
@@ -260,20 +270,5 @@ class LabelDesigner < Roda
       'Custom': { 'width': '84', 'height': '64' }
     }
     sizes
-  end
-
-  def make_label_zip(label, vars = nil)
-    property_vars = vars ? vars.map { |k, v| "\n#{k}=#{v}" }.join : "\nF1=Variable Test Value"
-    fname = label.label_name.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-')
-    label_properties = %(Client: Name="NoSoft"\nF0=#{fname}#{property_vars}) # For testing only
-    stringio = Zip::OutputStream.write_buffer do |zio|
-      zio.put_next_entry("#{fname}.png")
-      zio.write label.png_image
-      zio.put_next_entry("#{fname}.xml")
-      zio.write label.variable_xml.chomp << "\n" # Ensure newline at end of file.
-      zio.put_next_entry("#{fname}.properties")
-      zio.write label_properties
-    end
-    [fname, stringio.string]
   end
 end
