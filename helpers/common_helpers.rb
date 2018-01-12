@@ -48,31 +48,31 @@ module CommonHelpers
     r.has_header?('HTTP_X_CUSTOM_REQUEST_TYPE')
   end
 
-  # def current_user
-  #   return nil unless session[:user_id]
-  #   @current_user ||= UserRepo.new.find(:users, User, session[:user_id])
-  # end
-  #
-  # def authorised?(programs, sought_permission)
-  #   return false unless current_user
-  #   prog_repo = ProgramRepo.new
-  #   prog_repo.authorise?(current_user, Array(programs), sought_permission)
-  # end
-  #
-  # def auth_blocked?(programs, sought_permission)
-  #   !authorised?(programs, sought_permission)
-  # end
-  #
-  # def show_unauthorised
-  #   view(inline: "<div class='crossbeams-warning-note'><strong>Warning</strong><br>You do not have permission for this task</div>")
-  # end
-  #
-  # def can_do_dataminer_admin?
-  #   # TODO: what decides that user can do admin? security role on dm program?
-  #   # program + user -> program_users -> security_group -> security_permissions
-  #   current_user && authorised?(:data_miner, :admin)
-  #   # current_user # && current_user[:department_name] == 'IT'
-  # end
+  def current_user
+    return nil unless session[:user_id]
+    @current_user ||= UserRepo.new.find(:users, User, session[:user_id])
+  end
+
+  def authorised?(programs, sought_permission)
+    return false unless current_user
+    prog_repo = ProgramRepo.new
+    prog_repo.authorise?(current_user, Array(programs), sought_permission)
+  end
+
+  def auth_blocked?(programs, sought_permission)
+    !authorised?(programs, sought_permission)
+  end
+
+  def show_unauthorised
+    view(inline: "<div class='crossbeams-warning-note'><strong>Warning</strong><br>You do not have permission for this task</div>")
+  end
+
+  def can_do_dataminer_admin?
+    # TODO: what decides that user can do admin? security role on dm program?
+    # program + user -> program_users -> security_group -> security_permissions
+    current_user && authorised?(:data_miner, :admin)
+    # current_user # && current_user[:department_name] == 'IT'
+  end
 
   def redirect_to_last_grid(r)
     r.redirect session[:last_grid_url]
