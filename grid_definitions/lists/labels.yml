@@ -1,44 +1,46 @@
 ---
 :dataminer_definition: labels
 :actions:
-  - :url: /label_designer/$:id$/edit
+  - :url: /labels/labels/labels/$:id$/edit
     :text: Edit label
     :icon: fa-edit
-  - :url: /label_designer/$:id$/clone
+  - :url: /labels/labels/labels/$:id$/clone
     :text: Clone label
     :icon: fa-clone
     :popup: true
   - :separator: true
-  - :url: /label_designer/$:id$/properties
+  - :url: /labels/labels/labels/$:id$/properties
     :text: Change label properties
     :icon: fa-info
     :title: Properties
     :popup: true
-  - :url: /label_designer/$:id$/background
+  - :url: /labels/labels/labels/$:id$/background
     :text: Background image
     :icon: fa-image
     :title_field: label_name
     :popup: true
-  - :url: /label_designer/$:id$/preview
+  - :url: /labels/labels/labels/$:id$/preview
     :text: Preview
     :icon: fa-rocket
     :title: Preview - fill in variables
     :popup: true
-  - :url: /label_designer/$:id$/print_preview
+  - :url: /labels/labels/labels/$:id$/print_preview
     :text: Print Preview
     :icon: fa-print
     :title: Print preview - fill in variables
     :popup: true
   - :separator: true
-  - :url: /label_designer/$:id$
+  - :url: /labels/labels/labels/$:id$
     :text: Delete label
     :icon: fa-remove
     :is_delete: true
-  # - :url: /label_designer/$:id$/download
+    :popup: true
+  # - :url: /labels/labels/labels/$:id$/download
   #   :text: download
   #   :icon: fa-download
 :page_controls:
   - :control_type: :link
-    :url: /label_designer/new
+    :url: /labels/labels/labels/new
     :text: New label
     :style: :button
+    :behaviour: :popup

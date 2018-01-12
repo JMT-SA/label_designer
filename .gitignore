@@ -1,6 +1,7 @@
 /.sass-cache/
 public/js/ag-enterprise-activation.js
 public/tempfiles/*
+.dm_report_list.yml
 
 # Used by dotenv library to load environment variables.
 .env.local

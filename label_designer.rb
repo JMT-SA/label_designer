@@ -47,8 +47,6 @@ end
 class LabelDesigner < Roda
   include CommonHelpers
 
-  BOUNDARY = 'AaB03x'
-
   use Rack::Session::Cookie, secret: 'some_nice_long_random_string_DSKJH4378EYR7EGKUFH', key: '_lbld_session'
   use Rack::MethodOverride # USe with all_verbs plugin to allow "r.delete" etc.
 
@@ -98,275 +96,6 @@ class LabelDesigner < Roda
         view(inline: label_designer_page(label_name: params[:label_name],
                                          label_dimension: params[:label_dimension],
                                          px_per_mm: params[:px_per_mm]))
-        # TODO: other params (categories).....
-      end
-
-      r.on 'new' do
-        show_partial_or_page(fetch?(r)) { LabelView::New.call(remote: fetch?(r)) }
-      end
-
-      r.on 'create' do
-        # schema = Dry::Validation.Schema do
-        #   required(:label_name).filled(:str?)
-        # end
-        # errors = schema.call(params[:label]).messages
-        errors = LabelSchema.call(params[:label]).messages
-        if errors.empty?
-          session[:new_label_attributes] = {
-            container_type: params[:label][:container_type],
-            commodity: params[:label][:commodity],
-            market: params[:label][:market],
-            language: params[:label][:language],
-            category: params[:label][:category],
-            sub_category: params[:label][:sub_category]
-          }
-          qs = params[:label].map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')
-          if fetch?(r)
-            redirect_via_json("/label_designer?#{qs}")
-          else
-            r.redirect "/label_designer?#{qs}"
-          end
-        # else
-        #   flash.now[:error] = 'Unable to create label'
-        #   show_page { LabelView::New.call(form_values: params[:label], form_errors: errors) }
-        # end
-        elsif fetch?(r)
-          content = show_partial do
-            LabelView::New.call(form_values: params[:label],
-                                form_errors: errors,
-                                remote: true)
-          end
-          update_dialog_content(content: content, error: 'Unable to create label')
-        else
-          flash[:error] = 'Unable to create label'
-          show_page do
-            LabelView::New.call(form_values: params[:label],
-                                form_errors: errors,
-                                remote: false)
-          end
-        end
-      end
-
-      r.on :id do |id|
-        r.delete do
-          repo = LabelRepo.new
-          repo.delete_labels(id)
-          flash[:notice] = 'Deleted'
-          redirect_to_last_grid(r)
-        end
-
-        r.post 'update' do
-          response['Content-Type'] = 'application/json'
-          res = LabelSchema.call(params[:label])
-          errors = res.messages
-          if errors.empty?
-            repo = LabelRepo.new
-            repo.update_labels(id, res.to_h)
-            grid_cols = res.to_h
-            update_grid_row(id, changes:
-            {
-              label_name: grid_cols[:label_name],
-              container_type: grid_cols[:container_type],
-              commodity: grid_cols[:commodity],
-              market: grid_cols[:market],
-              language: grid_cols[:language],
-              category: grid_cols[:category],
-              sub_category:  grid_cols[:sub_category]
-            },
-                                notice: "Updated #{res[:label_name]}")
-          else
-            content = show_partial { LabelView::Properties.call(id, params[:label], errors) }
-            update_dialog_content(content: content, error: 'Validation error')
-          end
-        end
-
-        r.on 'edit' do
-          view(inline: label_designer_page(id: id))
-        end
-
-        r.on 'clone' do
-          show_partial { LabelView::Clone.call(id) }
-        end
-
-        r.on 'clone_label' do
-          repo = LabelRepo.new
-          label = repo.find_labels(params[:label][:id])
-          session[:new_label_attributes] = {
-            container_type: label.container_type,
-            commodity: label.commodity,
-            market: label.market,
-            language: label.language,
-            category: label.category,
-            sub_category: label.sub_category
-          }
-          view(inline: label_designer_page(label_name: params[:label][:label_name],
-                                           id: params[:label][:id],
-                                           cloned: true))
-        end
-
-        r.on 'properties' do
-          # show_page { LabelView::Properties.call(id) }
-          show_partial { LabelView::Properties.call(id) }
-          # Show form for name + dimensions & then to label
-        end
-
-        r.on 'background' do
-          "<img src='/label_designer/#{id}/png' />"
-        end
-
-        r.on 'local_preview' do
-          'Preview from Konva'
-        end
-
-        r.on 'server_preview_label' do
-          <<-HTML
-          <div id="crossbeams-processing" class="content-target content-loading"></div>
-          <script>
-            var content_div = document.querySelector('#crossbeams-processing');
-
-            fetch('/label_designer/#{id}/preview_file')
-            .then(function(response) {
-              return response.blob();
-            })
-            .then(function(responseBlob) {
-              const image = document.createElement('img');
-              content_div.classList.remove('content-loading');
-              content_div.innerHTML = '<p>Preview from Server</p>';
-              image.src = URL.createObjectURL(responseBlob);
-              content_div.appendChild(image);
-            });
-
-          </script>
-          HTML
-        end
-
-        r.on 'preview_file' do
-          begin
-            close_button       = '<p><button class="close-dialog">Close</button></p>'
-            # repo               = LabelRepo.new
-            # label_name         = repo.find(id).label_name
-            uri                = URI.parse(LABEL_SERVER_URI + '?Type=TransmitFile&PID=56&HomeFolder=&SubFolder=web/clients/nosoft/printers/nzebra&File=' + '20160825_090313.jpg')
-
-            http = Net::HTTP.new(uri.host, uri.port)
-            request = Net::HTTP::Post.new(uri.request_uri)
-            # Net::HTTP::start
-            # request.set_form_data({
-            #   CGI.escape("homefolder=default") => " ", CGI.escape("op-folder=printers, zebra") => " ",
-            #   "filetype=png" => " ", "action=install" => " ",
-            #   "printer_templates" => "FMT_File-01.jpg"
-            # })
-            response = http.request(request)
-
-            if response.code == '200'
-              "<strong>The download was successful</strong><p>#{response.body}</p>#{close_button}"
-            elsif response.code.start_with?('5')
-              "The destination server encountered an error. The response code is #{response.code}#{close_button}"
-            else
-              "The request was not successful. The response code is #{response.code}#{close_button}"
-            end
-          rescue Timeout::Error
-            "The call to the server timed out.#{close_button}"
-          rescue Errno::ECONNREFUSED
-            "The connection was refused. <p>Perhaps the server is not running.</p>#{close_button}"
-          rescue StandardError => e
-            "There was an error: <span style='display:none'>#{e.class.name}</span><p>#{e.message}</p>#{close_button}"
-          end
-        end
-
-        r.on 'png' do
-          response['Content-Type'] = 'image/png'
-          repo = LabelRepo.new
-          label = repo.find_labels(id)
-          label.png_image
-        end
-
-        r.on 'download' do
-          repo  = LabelRepo.new
-          label = repo.find_labels(id)
-          fname, binary_data = make_label_zip(label)
-          response.headers['content_type'] = 'application/x-zip-compressed'
-          response.headers['Content-Disposition'] = "attachment; filename=\"#{fname}.zip\""
-          response.write(binary_data)
-        end
-
-        r.on 'preview' do
-          show_partial { LabelView::ScreenPreview.call(id) }
-        end
-
-        r.on 'print_preview' do
-          show_partial { LabelView::PrintPreview.call(id) }
-        end
-
-        r.on 'send_preview' do
-          # r.on String do |screen_or_print|
-          r.on 'screen' do
-            do_preview(id, 'screen')
-          end
-          r.on 'print' do
-            do_preview(id, 'print')
-          end
-          # end
-        end
-
-        r.on 'upload' do
-          <<-HTML
-          <div id="crossbeams-processing" class="content-target content-loading"></div>
-          <script>
-            var content_div = document.querySelector('#crossbeams-processing');
-
-            fetch('/label_designer/#{id}/upload_file')
-            .then(function(response) {
-              return response.blob();
-            })
-            .then(function(responseBlob) {
-              const image = document.createElement('img');
-              content_div.classList.remove('content-loading');
-              content_div.innerHTML = '<p>Preview from Server</p>';
-              image.src = URL.createObjectURL(responseBlob);
-              content_div.appendChild(image);
-            });
-          </script>
-          HTML
-        end
-
-        r.on 'upload_file' do
-          begin
-            close_button       = '<p><button class="close-dialog">Close</button></p>'
-            repo               = LabelRepo.new
-            label              = repo.find_labels(id)
-            fname, binary_data = make_label_zip(label)
-            uri                = URI.parse(LABEL_SERVER_URI + 'LabelFileUpload')
-
-            post_body = []
-            post_body << "--#{BOUNDARY}\r\n"
-            post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
-            post_body << "Content-Type: application/x-zip-compressed\r\n"
-            post_body << "\r\n"
-            post_body << binary_data
-            post_body << "\r\n--#{BOUNDARY}--\r\n"
-
-            http = Net::HTTP.new(uri.host, uri.port)
-            request = Net::HTTP::Post.new(uri.request_uri)
-            request.body = post_body.join
-            request['Content-Type'] = "multipart/form-data, boundary=#{BOUNDARY}"
-
-            response = http.request(request)
-            if response.code == '200'
-              response.body
-              # "<strong>The upload was successful</strong><p>#{response.body}</p>#{close_button}"
-            elsif response.code.start_with?('5')
-              "The destination server encountered an error. The response code is #{response.code}#{close_button}"
-            else
-              "The request was not successful. The response code is #{response.code}#{close_button}"
-            end
-          rescue Timeout::Error
-            "The call to the server timed out.#{close_button}"
-          rescue Errno::ECONNREFUSED
-            "The connection was refused. <p>Perhaps the server is not running.</p>#{close_button}"
-          rescue StandardError => e
-            "There was an error: <span style='display:none'>#{e.class.name}</span><p>#{e.message}</p>#{close_button}"
-          end
-        end
       end
     end
 
@@ -439,17 +168,10 @@ class LabelDesigner < Roda
       r.on :id do |id|
         r.post do
           repo = LabelRepo.new
-          # TODO: read params to get dim, id and name... and do update/create...
-          # file_name = "testeditpng.png"
-          #
-          # File.open(file_name, 'wb') do |file|
-          #   file.write(image_from_param(params[:imageString]))
-          # end
           changeset = { label_json: params[:label],
                         variable_xml: params[:XMLString],
                         png_image: Sequel.blob(image_from_param(params[:imageString])) }
-          # puts ">>> IMG: #{image_from_param(params[:imageString])}"
-          repo.update_labels(id, changeset)
+          repo.update_label(id, changeset)
 
           flash[:notice] = 'Updated'
           response['Content-Type'] = 'application/json'
@@ -459,13 +181,6 @@ class LabelDesigner < Roda
 
       r.post do
         repo = LabelRepo.new
-        # changeset = repo.changeset(params[:functional_area]).map(:add_timestamps)
-        # TODO: read params to get dim, id and name... and do update/create...
-        # file_name = "testpng.png"
-
-        # File.open(file_name, 'wb') do |file|
-        #   file.write(image_from_param(params[:imageString]))
-        # end
         extra_attributes = session[:new_label_attributes]
         changeset = { label_json: params[:label],
                       label_name: params[:labelName],
@@ -479,7 +194,7 @@ class LabelDesigner < Roda
                       sub_category: extra_attributes[:sub_category],
                       variable_xml: params[:XMLString],
                       png_image: Sequel.blob(image_from_param(params[:imageString])) }
-        repo.create_labels(changeset)
+        repo.create_label(changeset)
         session[:new_label_attributes] = nil
         flash[:notice] = 'Created'
         response['Content-Type'] = 'application/json'
@@ -514,65 +229,10 @@ class LabelDesigner < Roda
     HTML
   end
 
-  def do_preview(id, screen_or_print)
-    response['Content-Type'] = 'application/json'
-    begin
-      vars  = params[:label]
-      repo  = LabelRepo.new
-      label = repo.find_labels(id)
-
-      fname, binary_data = make_label_zip(label, vars)
-      File.open('zz.zip', 'w') { |f| f.puts binary_data }
-      uri = URI.parse(LABEL_SERVER_URI + 'LabelFileUpload')
-
-      post_body = []
-      if screen_or_print == 'print'
-        post_body << "--#{BOUNDARY}\r\n"
-        post_body << "Content-Disposition: form-data; name=\"action\"\r\n"
-        post_body << "\r\nprintlabel"
-        post_body << "\r\n--#{BOUNDARY}--\r\n"
-        post_body << "--#{BOUNDARY}\r\n"
-        post_body << "Content-Disposition: form-data; name=\"printer\"\r\n"
-        post_body << "\r\n#{vars[:printer]}"
-        post_body << "\r\n--#{BOUNDARY}--\r\n"
-      end
-      post_body << "--#{BOUNDARY}\r\n"
-      post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
-      post_body << "Content-Type: application/x-zip-compressed\r\n"
-      post_body << "\r\n"
-      post_body << binary_data
-      post_body << "\r\n--#{BOUNDARY}--\r\n"
-
-      http = Net::HTTP.new(uri.host, uri.port)
-      request = Net::HTTP::Post.new(uri.request_uri)
-      request.body = post_body.join
-      request['Content-Type'] = "multipart/form-data, boundary=#{BOUNDARY}"
-
-      response = http.request(request)
-      if response.code == '200'
-        filepath = Tempfile.open([fname, '.png'], 'public/tempfiles') do |f|
-          f.write(response.body)
-          f.path
-        end
-        { replaceDialog: { content: "<img src='/#{File.join('tempfiles', File.basename(filepath))}'>" } }.to_json
-      elsif response.code.start_with?('5')
-        { flash: { error: "The destination server encountered an error. The response code is #{response.code}, response body: #{response.body}" } }.to_json
-      else
-        { flash: { error: "The request was not successful. The response code is #{response.code}" } }.to_json
-      end
-    rescue Timeout::Error
-      { flash: { error: 'The call to the server timed out.' } }.to_json
-    rescue Errno::ECONNREFUSED
-      { flash: { error: 'The connection was refused. Perhaps the server is not running.' } }.to_json
-    rescue StandardError => e
-      { flash: { error: "There was an error: #{e.class.name} - #{e.message}" } }.to_json
-    end
-  end
-
   def label_config(opts)
     if opts[:id]
       repo  = LabelRepo.new
-      label = repo.find_labels(opts[:id])
+      label = repo.find_label(opts[:id])
     end
     config = { labelState: opts[:id].nil? ? 'new' : 'edit',
                labelName:  opts[:cloned] || label.nil? ? opts[:label_name] : label.label_name,
