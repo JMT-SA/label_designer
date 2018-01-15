@@ -389,6 +389,7 @@ tr.roweven {
   -webkit-transform: translate(-50%, -50%);
   -ms-transform: translate(-50%, -50%);
   transform: translate(-50%, -50%);
+  min-height: 250px;
   max-height: 600px; /* depend on viewport? */
   resize: both;
   overflow-y: auto;

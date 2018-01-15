@@ -28,7 +28,7 @@ class MesServerRepo
     post_body << "\r\nprintlabel"
     post_body << "\r\n--#{BOUNDARY}--\r\n"
     post_body << "--#{BOUNDARY}\r\n"
-    post_body << "Content-Disposition: form-data; name=\"printer\"\r\n"
+    post_body << "Content-Disposition: form-data; name=\"printername\"\r\n"
     post_body << "\r\n#{vars[:printer]}"
     post_body << "\r\n--#{BOUNDARY}--\r\n"
     post_body
