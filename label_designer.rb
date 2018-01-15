@@ -311,6 +311,7 @@ class LabelDesigner < Roda
       'A4': { 'width': '71', 'height': '54' },
       'A5': { 'width': '35', 'height': '21' },
       '8464': { 'width': '84', 'height': '64' },
+      '10070': { 'width': '100', 'height': '70' },
       'Custom': { 'width': '84', 'height': '64' }
     }
     sizes

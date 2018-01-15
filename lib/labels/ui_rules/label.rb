@@ -32,7 +32,7 @@ module UiRules
       {
         label_name: { maxlength: 16, pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces' },
         label_dimension: { renderer: :select,
-                           options: %w[8464 A4 A5 Custom] },
+                           options: %w[8464 A4 A5 Custom 10070] },
         px_per_mm: { renderer: :select,
                      options: @print_repo.distinct_px_mm,
                      caption: 'Resolution (px/mm)' },
