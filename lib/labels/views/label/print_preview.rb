@@ -12,7 +12,7 @@ module Labels
             page.form_values form_values
             page.form_errors form_errors
             page.form do |form|
-              form.action "/labels/labels/labels/#{id}/send_preview/screen"
+              form.action "/labels/labels/labels/#{id}/send_preview/print"
               form.remote! if remote
               form.add_field :printer
               xml_vars.each do |v|

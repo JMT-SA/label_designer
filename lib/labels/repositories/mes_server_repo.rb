@@ -37,6 +37,10 @@ class MesServerRepo
   def shared_part_of_body(fname, binary_data)
     post_body = []
     post_body << "--#{BOUNDARY}\r\n"
+    post_body << "Content-Disposition: form-data; name=\"unitfolder\"\r\n"
+    post_body << "\r\nldesign"
+    post_body << "\r\n--#{BOUNDARY}--\r\n"
+    post_body << "--#{BOUNDARY}\r\n"
     post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
     post_body << "Content-Type: application/x-zip-compressed\r\n"
     post_body << "\r\n"
