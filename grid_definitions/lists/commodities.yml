@@ -31,3 +31,19 @@
     - :col: master_lists.list_type
       :op: =
       :val: container_type
+  :market:
+    - :col: master_lists.list_type
+      :op: =
+      :val: market
+  :language:
+    - :col: master_lists.list_type
+      :op: =
+      :val: language
+  :category:
+    - :col: master_lists.list_type
+      :op: =
+      :val: category
+  :sub_category:
+    - :col: master_lists.list_type
+      :op: =
+      :val: sub_category

@@ -4,6 +4,7 @@
 # rubocop:disable Metrics/BlockLength
 
 require 'roda'
+require 'rodauth'
 require 'crossbeams/dataminer'
 require 'crossbeams/layout'
 require 'crossbeams/label_designer'
@@ -46,20 +47,11 @@ end
 
 class LabelDesigner < Roda
   include CommonHelpers
+  include MenuHelpers
 
   use Rack::Session::Cookie, secret: 'some_nice_long_random_string_DSKJH4378EYR7EGKUFH', key: '_lbld_session'
   use Rack::MethodOverride # USe with all_verbs plugin to allow "r.delete" etc.
 
-  plugin :all_verbs
-  plugin :render
-  plugin :assets, css: 'style.scss', precompiled: 'prestyle.css'
-  plugin :public # serve assets from public folder.
-  plugin :multi_route
-  plugin :content_for, append: true
-  plugin :symbolized_params    # - automatically converts all keys of params to symbols.
-  plugin :flash
-  plugin :csrf, raise: true # , :skip => ['POST:/report_error'] # FIXME: Remove the +raise+ param when going live!
-  plugin :json_parser
   plugin :data_grid, path: File.dirname(__FILE__),
                      list_url: '/list/%s/grid',
                      list_nested_url: '/list/%s/nested_grid',
@@ -68,12 +60,46 @@ class LabelDesigner < Roda
                      filter_url: '/search/%s',
                      run_search_url: '/search/%s/run',
                      run_to_excel_url: '/search/%s/xls'
-
+  plugin :all_verbs
+  plugin :render
+  plugin :partials
+  plugin :assets, css: 'style.scss', precompiled: 'prestyle.css'
+  plugin :public # serve assets from public folder.
+  plugin :multi_route
+  plugin :content_for, append: true
+  plugin :symbolized_params    # - automatically converts all keys of params to symbols.
+  plugin :flash
+  plugin :csrf, raise: true # , :skip => ['POST:/report_error'] # FIXME: Remove the +raise+ param when going live!
+  plugin :json_parser
+  plugin :rodauth do
+    db DB # .connection
+    enable :login, :logout # , :change_password
+    logout_route 'a_dummy_route' # Override 'logout' route so that we have control over it.
+    # logout_notice_flash 'Logged out'
+    session_key :user_id
+    login_param 'login_name' # 'user_name'
+    login_label 'Login name'
+    login_column :login_name # :user_name
+    accounts_table :users
+    account_password_hash_column :password_hash # :hashed_password (This is old base64 version)
+    # require_bcrypt? false
+    # password_match? do |password| # Use legacy password hashing. Maybe change this to modern bcrypt using extra new pwd field?
+    #   account[:hashed_password] == Base64.encode64(password)
+    # end
+    # title_instance_variable :@title
+    # if DEMO_MODE
+    #   before_change_password{r.halt(404)}
+    # end
+  end
   Dir['./routes/*.rb'].each { |f| require f }
 
   route do |r|
     r.assets unless ENV['RACK_ENV'] == 'production'
     r.public
+
+    r.rodauth
+    rodauth.require_authentication
+    r.redirect('/login') if current_user.nil? # Session might have the incorrect user_id
 
     r.root do
       view('home')
@@ -82,6 +108,11 @@ class LabelDesigner < Roda
 
     r.multi_route
 
+    r.is 'logout' do
+      rodauth.logout
+      flash[:notice] = 'Logged out'
+      r.redirect('/login')
+    end
     r.is 'versions' do
       view(inline: LibraryVersions.new(:layout,
                                        :dataminer,
@@ -115,6 +146,14 @@ class LabelDesigner < Roda
           end
         end
 
+        r.on 'multi' do
+          if fetch?(r)
+            show_partial { render_data_grid_page_multiselect(id, params) }
+          else
+            show_page { render_data_grid_page_multiselect(id, params) }
+          end
+        end
+
         r.on 'grid' do
           response['Content-Type'] = 'application/json'
           if params && !params.empty?
@@ -122,6 +161,11 @@ class LabelDesigner < Roda
           else
             render_data_grid_rows(id)
           end
+        end
+
+        r.on 'grid_multi', String do |key|
+          response['Content-Type'] = 'application/json'
+          render_data_grid_multiselect_rows(id, ->(program, permission) { auth_blocked?(program, permission) }, key, params)
         end
       end
     end

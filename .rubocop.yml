@@ -21,7 +21,6 @@ Layout/ExtraSpacing:
 
 Metrics/BlockLength:
   Exclude:
-    - '*.gemspec'
     - 'Rakefile'
     - '**/*.rake'
     - 'spec/**/*.rb'
