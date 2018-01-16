@@ -293,7 +293,7 @@ class LabelDesigner < Roda
       labelDimension: label.label_dimension,
       id: id,
       pixelPerMM: label.px_per_mm,
-      labelJSON: id.nil? ? {} : label.label_json
+      labelJSON: label.label_json
     }
     config
   end

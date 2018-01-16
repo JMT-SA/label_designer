@@ -59,17 +59,18 @@ class LabelInteractor < BaseInteractor
     LabelCloneSchema.call(params)
   end
 
-  def prepare_clone_label(params)
+  def prepare_clone_label(id, params)
     res = validate_clone_label_params(params)
     return validation_failed_response(res) unless res.messages.empty?
+    @id = id
     attrs = {
       label_name: params[:label_name],
-      container_type: params[:container_type],
-      commodity: params[:commodity],
-      market: params[:market],
-      language: params[:language],
-      category: params[:category],
-      sub_category: params[:sub_category]
+      container_type: label.container_type,
+      commodity: label.commodity,
+      market: label.market,
+      language: label.language,
+      category: label.category,
+      sub_category: label.sub_category
     }
     success_response('Ok', attrs)
   end

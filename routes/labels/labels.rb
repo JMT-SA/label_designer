@@ -31,7 +31,7 @@ class LabelDesigner < Roda
       end
 
       r.on 'clone_label' do
-        res = interactor.prepare_clone_label(params[:label])
+        res = interactor.prepare_clone_label(id, params[:label])
         if res.success
           session[:new_label_attributes] = res.instance
           redirect_via_json("/labels/labels/labels/#{id}/show_clone")
