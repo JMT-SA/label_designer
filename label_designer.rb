@@ -287,7 +287,7 @@ class LabelDesigner < Roda
     id = opts[:cloned] ? nil : opts[:id]
 
     config = {
-      labelState: id.nil? ? 'new' : 'edit',
+      labelState: opts[:id].nil? ? 'new' : 'edit',
       labelName:  label.label_name,
       savePath: id.nil? ? '/save_label' : "/save_label/#{id}",
       labelDimension: label.label_dimension,
