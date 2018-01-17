@@ -170,6 +170,13 @@ class LabelDesigner < Roda
       end
     end
 
+    r.on 'print_grid' do
+      @layout = Crossbeams::Layout::Page.build(grid_url: params[:grid_url]) do |page, _|
+        page.add_grid('crossbeamsPrintGrid', params[:grid_url], caption: 'Print', for_print: true)
+      end
+      view('crossbeams_layout_page', layout: 'print_layout')
+    end
+
     # Generic code for grid searches.
     r.on 'search' do
       r.on :id do |id|
@@ -250,7 +257,7 @@ class LabelDesigner < Roda
   def label_designer_page(opts = {})
     Crossbeams::LabelDesigner::Config.configure do |config|
       config.label_config = label_config(opts).to_json
-      config.label_sizes = label_sizes.to_json
+      config.label_sizes = LABEL_SIZES.to_json
     end
 
     page = Crossbeams::LabelDesigner::Page.new(opts[:id])
@@ -306,14 +313,13 @@ class LabelDesigner < Roda
     Base64.decode64(data_uri_parts[2])
   end
 
-  def label_sizes
-    sizes = {
-      'A4': { 'width': '71', 'height': '54' },
-      'A5': { 'width': '35', 'height': '21' },
-      '8464': { 'width': '84', 'height': '64' },
-      '10070': { 'width': '100', 'height': '70' },
-      'Custom': { 'width': '84', 'height': '64' }
-    }
-    sizes
-  end
+  LABEL_SIZES = {
+    '84x64': { 'width': '84', 'height': '64' },
+    '84x100': { 'width': '84', 'height': '100' },
+    '100x70': { 'width': '100', 'height': '70' },
+    '100x84': { 'width': '100', 'height': '84' },
+    '100x100': { 'width': '100', 'height': '100' },
+    '105x250': { 'width': '105', 'height': '250' },
+    '145x50': { 'width': '145', 'height': '50' }
+  }.freeze
 end
