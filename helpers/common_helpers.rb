@@ -86,6 +86,10 @@ module CommonHelpers
     { redirect: url }.to_json
   end
 
+  def load_via_json(url)
+    { loadNewUrl: url }.to_json
+  end
+
   def show_json_notice(message)
     { flash: { notice: message } }.to_json
   end
@@ -125,6 +129,10 @@ module CommonHelpers
     else
       r.redirect '/not_found'
     end
+  end
+
+  def dialog_warning(message)
+    "<div class='crossbeams-warning-note'><strong>Warning</strong><br>#{message}</div>"
   end
 
   def dialog_permission_error

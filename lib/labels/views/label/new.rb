@@ -24,6 +24,7 @@ module Labels
               form.add_field :language
               form.add_field :category
               form.add_field :sub_category
+              form.add_field :multi_label
             end
           end
 

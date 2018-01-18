@@ -72,7 +72,12 @@ class LabelDesigner < Roda
       end
 
       r.on 'preview' do
-        show_partial { Labels::Labels::Label::ScreenPreview.call(id) }
+        res = interactor.can_preview?(id)
+        if res.success
+          show_partial { Labels::Labels::Label::ScreenPreview.call(id) }
+        else
+          dialog_warning(res.message)
+        end
       end
 
       r.on 'print_preview' do
@@ -90,6 +95,21 @@ class LabelDesigner < Roda
           { replaceDialog: { content: "<img src='/#{File.join('tempfiles', File.basename(filepath))}'>" } }.to_json
         else
           { flash: { error: res.message } }.to_json
+        end
+      end
+
+      r.on 'link_sub_labels' do
+        r.post do
+          content = show_partial { Labels::Labels::Label::SortSubLabels.call(id, multiselect_grid_choices(params)) }
+          update_dialog_content(content: content, notice: 'Re-order the sub-labels')
+        end
+      end
+
+      r.on 'apply_sub_labels' do
+        r.post do
+          res = interactor.link_multi_label(id, params[:sublbl_sorted_ids])
+          flash[:notice] = res.message # 'Linked sub-labels for a multi-label'
+          redirect_via_json('/list/labels')
         end
       end
       # r.on 'send_preview' do
@@ -153,15 +173,24 @@ class LabelDesigner < Roda
         end
       end
       r.post do        # CREATE
-        # res = interactor.create_label(params[:label])
-        res = interactor.pre_create_label(params[:label])
+        res = nil
+        res = if params[:label][:multi_label]
+                interactor.create_label(params[:label])
+              else
+                interactor.pre_create_label(params[:label])
+              end
+
         if res.success
-          session[:new_label_attributes] = res.instance
-          qs = params[:label].map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')
-          if fetch?(r)
-            redirect_via_json("/label_designer?#{qs}")
+          if params[:label][:multi_label]
+            load_via_json("/list/sub_labels/multi?key=sub_labels&id=#{res.instance.id}&label_dimension=#{res.instance.label_dimension}")
           else
-            r.redirect "/label_designer?#{qs}"
+            session[:new_label_attributes] = res.instance
+            qs = params[:label].map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')
+            if fetch?(r)
+              redirect_via_json("/label_designer?#{qs}")
+            else
+              r.redirect "/label_designer?#{qs}"
+            end
           end
         elsif fetch?(r)
           content = show_partial do

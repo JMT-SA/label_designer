@@ -1,0 +1,21 @@
+---
+:dataminer_definition: labels
+:multiselect:
+  :sub_labels:
+    :url: "/labels/labels/labels/$:id$/link_sub_labels"
+    :preselect: "SELECT sub_label_id AS id FROM multi_labels WHERE label_id = $:id$"
+    :section_caption: "SELECT 'Select multi-labels for ' || label_name FROM labels WHERE id = $:id$"
+    :can_be_cleared: false
+    :multiselect_save_remote: true
+    :conditions: sub_label
+:conditions:
+  :sub_label:
+    - :col: labels.label_dimension
+      :op: =
+      :val: $:label_dimension$
+    - :col: labels.id
+      :op: <>
+      :val: $:id$
+    - :col: labels.multi_label
+      :op: NOT
+      :val: true

@@ -51,12 +51,30 @@ class LabelInteractor < BaseInteractor
   def delete_label(id)
     @id = id
     name = label.label_name
-    repo.delete_label(id)
+    if label.multi_label
+      repo.delete_label_with_sub_labels(id)
+    else
+      repo.delete_label(id)
+    end
     success_response("Deleted label #{name}")
+  end
+
+  def link_multi_label(id, sub_label_ids)
+    repo.link_multi_label(id, sub_label_ids)
+    success_response('Linked sub-labels for a multi-label')
   end
 
   def validate_clone_label_params(params)
     LabelCloneSchema.call(params)
+  end
+
+  def can_preview?(id)
+    @id = id
+    if label.multi_label && repo.no_sub_labels(id).zero?
+      failed_response('This multi-label does not have any linked sub-labels')
+    else
+      success_response('ok')
+    end
   end
 
   def prepare_clone_label(id, params)

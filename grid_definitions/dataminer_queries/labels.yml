@@ -1,14 +1,17 @@
 ---
 :caption: Labels
-:sql: "  SELECT id, label_name, label_dimension, px_per_mm, container_type, \r\n       commodity,
-  market, language, category, sub_category, created_at, updated_at\r\n  FROM labels\r\n
-  ORDER BY label_name, id;\r\n\r\n  "
+:sql: "SELECT id, label_name, label_dimension, px_per_mm, container_type, \r\n       commodity,
+  market, language, category, sub_category, multi_label,\r\n       (SELECT string_agg(label_name,
+  '; ')\r\n        FROM (SELECT l.label_name FROM multi_labels m\r\n              JOIN
+  labels l ON l.id = m.sub_label_id\r\n              WHERE m.label_id = labels.id
+  ORDER BY m.print_sequence) subq) AS sub_labels,\r\n       created_at, updated_at\r\n
+  \ FROM labels\r\n ORDER BY label_name, id;\r\n"
 :limit: 
 :offset: 
 :columns:
   id:
     :name: id
-    :sequence_no: 10
+    :sequence_no: 12
     :caption: Id
     :namespaced_name: id
     :data_type: :integer
@@ -156,9 +159,39 @@
     :group_avg: false
     :group_min: false
     :group_max: false
+  multi_label:
+    :name: multi_label
+    :sequence_no: 10
+    :caption: Multi label
+    :namespaced_name: multi_label
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: false
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  sub_labels:
+    :name: sub_labels
+    :sequence_no: 11
+    :caption: Sub labels
+    :namespaced_name: 
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
   created_at:
     :name: created_at
-    :sequence_no: 11
+    :sequence_no: 13
     :caption: Created at
     :namespaced_name: created_at
     :data_type: :datetime
@@ -173,7 +206,7 @@
     :group_max: false
   updated_at:
     :name: updated_at
-    :sequence_no: 12
+    :sequence_no: 14
     :caption: Updated at
     :namespaced_name: updated_at
     :data_type: :datetime

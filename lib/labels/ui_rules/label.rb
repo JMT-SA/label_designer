@@ -41,7 +41,8 @@ module UiRules
         market: { renderer: :select, options: @master_repo.for_select_master_lists(where: { list_type: 'market' }) },
         language: { renderer: :select, options: @master_repo.for_select_master_lists(where: { list_type: 'language' }) },
         category: { renderer: :select, options: @master_repo.for_select_master_lists(where: { list_type: 'category' }) },
-        sub_category: { renderer: :select, options: @master_repo.for_select_master_lists(where: { list_type: 'sub_category' }) }
+        sub_category: { renderer: :select, options: @master_repo.for_select_master_lists(where: { list_type: 'sub_category' }) },
+        multi_label: { renderer: :checkbox }
       }
     end
 
@@ -60,7 +61,8 @@ module UiRules
                                     market: nil,
                                     language: nil,
                                     category: nil,
-                                    sub_category: nil)
+                                    sub_category: nil,
+                                    multi_label: false)
     end
   end
 end

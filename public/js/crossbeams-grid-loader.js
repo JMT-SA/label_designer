@@ -147,14 +147,33 @@ const crossbeamsGridEvents = {
           body: form,
         }).then(response => response.json())
           .then((data) => {
+            let closeDialog = true;
             if (data.redirect) {
               window.location = data.redirect;
             } else if (data.updateGridInPlace) {
               this.updateGridInPlace(data.updateGridInPlace.id, data.updateGridInPlace.changes);
+            } else if (data.replaceDialog) {
+              closeDialog = false;
+              const dlgContent = document.getElementById(crossbeamsUtils.activeDialogContent());
+              dlgContent.innerHTML = data.replaceDialog.content;
+              crossbeamsUtils.makeMultiSelects();
+              crossbeamsUtils.makeSearchableSelects();
+              const grids = dlgContent.querySelectorAll('[data-grid]');
+              grids.forEach((grid) => {
+                const newGridId = grid.getAttribute('id');
+                const gridEvent = new CustomEvent('gridLoad', { detail: newGridId });
+                document.dispatchEvent(gridEvent);
+              });
+              const sortable = Array.from(dlgContent.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
+              if (sortable.length > 0) {
+                crossbeamsUtils.makeListSortable(sortable[0].dataset.sortablePrefix);
+              }
             } else {
               console.log('Not sure what to do with this:', data);
             }
-            crossbeamsUtils.closePopupDialog();
+            if (closeDialog) {
+              crossbeamsUtils.closePopupDialog();
+            }
             // Only if not redirect...
             if (data.flash) {
               if (data.flash.notice) {

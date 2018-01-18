@@ -12,6 +12,7 @@ class Label < Dry::Struct
   attribute :language, Types::String
   attribute :category, Types::String.optional
   attribute :sub_category, Types::String.optional
+  attribute :multi_label, Types::Bool
   # attribute :sample_data, Types::Json::Hash
 
   #  label_name character varying(255) NOT NULL,

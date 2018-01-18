@@ -4,10 +4,12 @@
   - :url: /labels/labels/labels/$:id$/edit
     :text: Edit label
     :icon: fa-edit
+    :hide_if_true: multi_label
   - :url: /labels/labels/labels/$:id$/clone
     :text: Clone label
     :icon: fa-clone
     :popup: true
+    :hide_if_true: multi_label
   - :separator: true
   - :url: /labels/labels/labels/$:id$/properties
     :text: Change label properties
@@ -38,6 +40,11 @@
   # - :url: /labels/labels/labels/$:id$/download
   #   :text: download
   #   :icon: fa-download
+  - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$"
+    :text: select sub-labels
+    :icon: fa-list
+    :popup: true
+    :hide_if_false: multi_label
 :page_controls:
   - :control_type: :link
     :url: /labels/labels/labels/new
