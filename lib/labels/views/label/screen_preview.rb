@@ -23,9 +23,38 @@ module Labels
           layout
         end
 
-        def self.rules_and_fields(id) # rubocop:disable Metrics/AbcSize
+        def self.rules_and_fields(id)
           this_repo = LabelRepo.new
           obj       = this_repo.find_label(id)
+          if obj.multi_label
+            rules_for_multiple(this_repo, obj)
+          else
+            rules_for_single(obj)
+          end
+        end
+
+        def self.rules_for_multiple(repo, obj)
+          count = 0
+          xml_vars = []
+          vartypes = []
+          repo.sub_label_ids(obj.id).each do |sub_label_id|
+            sub_label = repo.find_label(sub_label_id)
+            doc       = Nokogiri::XML(sub_label.variable_xml)
+            sub_xml_vars = doc.css('variable_field_count').map do |var|
+              "F#{var.text.sub(/f/i, '').to_i + count}"
+            end
+            count += sub_xml_vars.length
+            xml_vars += sub_xml_vars
+            vartypes += doc.css('variable_type').map(&:text)
+          end
+          combos    = Hash[xml_vars.zip(vartypes)]
+
+          rules     = { fields: {}, name: 'label' }
+          xml_vars.each { |v| rules[:fields][v.to_sym] = { caption: "#{v} (#{combos[v]})" } }
+          [rules, xml_vars]
+        end
+
+        def self.rules_for_single(obj)
           doc       = Nokogiri::XML(obj.variable_xml)
           xml_vars  = doc.css('variable_field_count').map(&:text)
           vartypes  = doc.css('variable_type').map(&:text)

@@ -32,4 +32,8 @@ class LabelRepo < RepoBase
   def no_sub_labels(id)
     DB[:multi_labels].where(label_id: id).count
   end
+
+  def sub_label_ids(id)
+    DB[:multi_labels].where(label_id: id).order(:print_sequence).select_map(:sub_label_id)
+  end
 end

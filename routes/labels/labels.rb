@@ -56,7 +56,12 @@ class LabelDesigner < Roda
       end
 
       r.on 'background' do
-        "<img src='/labels/labels/labels/#{id}/png' />"
+        res = interactor.background_images(id)
+        if res.success
+          res.instance.map { |sub| "<img src='/labels/labels/labels/#{sub}/png' />" }.join("\n<hr>")
+        else
+          dialog_warning(res.message)
+        end
       end
 
       r.on 'png' do
@@ -81,7 +86,12 @@ class LabelDesigner < Roda
       end
 
       r.on 'print_preview' do
-        show_partial { Labels::Labels::Label::PrintPreview.call(id) }
+        res = interactor.can_preview?(id)
+        if res.success
+          show_partial { Labels::Labels::Label::PrintPreview.call(id) }
+        else
+          dialog_warning(res.message)
+        end
       end
 
       r.on 'send_preview', String do |screen_or_print|
@@ -174,14 +184,15 @@ class LabelDesigner < Roda
       end
       r.post do        # CREATE
         res = nil
-        res = if params[:label][:multi_label]
+        p params
+        res = if params[:label][:multi_label] == 't'
                 interactor.create_label(params[:label])
               else
                 interactor.pre_create_label(params[:label])
               end
 
         if res.success
-          if params[:label][:multi_label]
+          if params[:label][:multi_label] == 't'
             load_via_json("/list/sub_labels/multi?key=sub_labels&id=#{res.instance.id}&label_dimension=#{res.instance.label_dimension}")
           else
             session[:new_label_attributes] = res.instance

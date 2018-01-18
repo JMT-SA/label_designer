@@ -93,6 +93,17 @@ class LabelInteractor < BaseInteractor
     success_response('Ok', attrs)
   end
 
+  def background_images(id)
+    res = can_preview?(id)
+    return res unless res.success
+    ids = if label.multi_label
+            repo.sub_label_ids(id)
+          else
+            [id]
+          end
+    success_response('ok', ids)
+  end
+
   def png_image(id)
     label = repo.find_label(id)
     label.png_image
@@ -107,7 +118,44 @@ class LabelInteractor < BaseInteractor
     property_vars = vars ? vars.map { |k, v| "\n#{k}=#{v}" }.join : "\nF1=Variable Test Value"
     fname = label.label_name.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-')
     label_properties = %(Client: Name="NoSoft"\nF0=#{fname}#{property_vars}) # For testing only
-    stringio = Zip::OutputStream.write_buffer do |zio|
+    stringio = if label.multi_label
+                 zip_multi_label(label, fname, label_properties)
+               else
+                 zip_single_label(label, fname, label_properties)
+               end
+    [fname, stringio.string]
+  end
+
+  def make_combined_xml(label)
+    sub_label_ids = repo.sub_label_ids(label.id)
+    first = repo.find_label(sub_label_ids.shift)
+    doc = Nokogiri::XML(first.variable_xml)
+    sub_label_ids.each do |sub_label_id|
+      sub_label = repo.find_label(sub_label_id)
+      new_label = Nokogiri::XML(sub_label.variable_xml).search('label')
+      doc.at('labels').add_child(new_label)
+    end
+    doc.to_xml
+  end
+
+  def zip_multi_label(label, fname, label_properties)
+    combined_xml = make_combined_xml(label)
+    Zip::OutputStream.write_buffer do |zio|
+      repo.sub_label_ids(label.id).each do |sub_label_id|
+        sub_label = repo.find_label(sub_label_id)
+        sub_name = sub_label.label_name.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-')
+        zio.put_next_entry("#{sub_name}.png")
+        zio.write sub_label.png_image
+      end
+      zio.put_next_entry("#{fname}.xml")
+      zio.write combined_xml.chomp << "\n" # Ensure newline at end of file.
+      zio.put_next_entry("#{fname}.properties")
+      zio.write label_properties
+    end
+  end
+
+  def zip_single_label(label, fname, label_properties)
+    Zip::OutputStream.write_buffer do |zio|
       zio.put_next_entry("#{fname}.png")
       zio.write label.png_image
       zio.put_next_entry("#{fname}.xml")
@@ -115,7 +163,6 @@ class LabelInteractor < BaseInteractor
       zio.put_next_entry("#{fname}.properties")
       zio.write label_properties
     end
-    [fname, stringio.string]
   end
 
   def do_preview(id, screen_or_print, vars)
