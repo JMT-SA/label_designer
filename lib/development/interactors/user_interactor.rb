@@ -21,7 +21,7 @@ class UserInteractor < BaseInteractor
     UserSchema.call(params)
   end
 
-  def prepate_password(user_validation)
+  def prepare_password(user_validation)
     new_user = user_validation.to_h
     new_user[:password_hash] = BCrypt::Password.create(new_user.delete(:password))
     new_user.delete(:password_confirmation)
@@ -31,7 +31,7 @@ class UserInteractor < BaseInteractor
   def create_user(params)
     res = validate_new_user_params(params)
     return validation_failed_response(res) unless res.messages.empty?
-    @id = repo.create(:users, prepate_password(res))
+    @id = repo.create(:users, prepare_password(res))
     success_response("Created user #{user(false).user_name}",
                      user(false))
   rescue Sequel::UniqueConstraintViolation
