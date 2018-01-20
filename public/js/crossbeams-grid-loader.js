@@ -936,6 +936,9 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
       let rows = 0;
       if (httpRequest.readyState === 4 && httpRequest.status === 200) {
         httpResult = JSON.parse(httpRequest.responseText);
+        if (httpResult.exception) {
+          crossbeamsUtils.alert({ prompt: httpResult.flash.error, type: 'error' });
+        }
         // var midLevelColumnDefs, detailColumnDefs;
         if (httpResult.nestedColumnDefs) {
           newColDefs = translateColDefs(httpResult.nestedColumnDefs['1']);

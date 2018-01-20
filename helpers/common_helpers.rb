@@ -113,6 +113,10 @@ module CommonHelpers
     res.to_json
   end
 
+  def show_json_error(err)
+    { exception: err.class.name, flash: { error: "An error occurred: #{err.message}" } }.to_json
+  end
+
   def handle_json_error(err)
     response.status = 500
     { exception: err.class.name, flash: { error: "An error occurred: #{err.message}" } }.to_json

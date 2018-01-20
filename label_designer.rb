@@ -156,16 +156,24 @@ class LabelDesigner < Roda
 
         r.on 'grid' do
           response['Content-Type'] = 'application/json'
-          if params && !params.empty?
-            render_data_grid_rows(id, nil, params)
-          else
-            render_data_grid_rows(id)
+          begin
+            if params && !params.empty?
+              render_data_grid_rows(id, nil, params)
+            else
+              render_data_grid_rows(id)
+            end
+          rescue StandardError => e
+            show_json_error(e)
           end
         end
 
         r.on 'grid_multi', String do |key|
           response['Content-Type'] = 'application/json'
-          render_data_grid_multiselect_rows(id, ->(program, permission) { auth_blocked?(program, permission) }, key, params)
+          begin
+            render_data_grid_multiselect_rows(id, ->(program, permission) { auth_blocked?(program, permission) }, key, params)
+          rescue StandardError => e
+            show_json_error(e)
+          end
         end
       end
     end

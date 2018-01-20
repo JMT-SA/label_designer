@@ -10,12 +10,12 @@
     :conditions: sub_label
 :conditions:
   :sub_label:
-    - :col: labels.label_dimension
+    - :col: label_dimension
       :op: =
       :val: $:label_dimension$
-    - :col: labels.id
+    - :col: id
       :op: <>
       :val: $:id$
-    - :col: labels.multi_label
-      :op: NOT
+    - :col: multi_label
+      :op: <>
       :val: true
