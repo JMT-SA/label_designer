@@ -111,7 +111,45 @@ section.crossbeams_layout {
         border: 1px solid #eee;
         margin-left: 10px;
     }
-/* ------------ */
+/* ------------------------------------- */
+/* GRID COLUMN JUMP                      */
+/* ------------------------------------- */
+ul.crossbeams-column-jump-list
+{
+    display:none;
+    width: max-content;
+}
+.crossbeams-column-jump {
+  position: relative;
+  display: inline-block;
+}
+
+.crossbeams-column-jump:hover ul.crossbeams-column-jump-list
+{
+    display: block;
+    position: absolute;
+    z-index: 999;
+    background-color: white;
+    padding: 0;
+    margin: 0;
+    list-style-type: none;
+    max-height: 200px;
+    overflow-y: scroll;
+}
+
+ul.crossbeams-column-jump-list > li {
+  border-color: gray;
+  border-image: none;
+  border-style: solid solid none;
+  border-width: 1px 1px 0;
+  padding: 1px 5px;
+  line-height: 30px;
+}
+
+ul.crossbeams-column-jump-list > li:hover {
+  background-color: #d6d6e0;
+}
+/* ------------------------------------- */
 
 option[value=""] {
   color: #999;
