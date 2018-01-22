@@ -163,7 +163,7 @@ class LabelInteractor < BaseInteractor
 
   def zip_single_label(label, fname, label_properties)
     Zip::OutputStream.write_buffer do |zio|
-      zio.put_next_entry("#{fname}.png")
+      zio.put_next_entry("#{fname}_1.png")
       zio.write label.png_image
       zio.put_next_entry("#{fname}.xml")
       zio.write label.variable_xml.chomp << "\n" # Ensure newline at end of file.
