@@ -11,10 +11,12 @@ gem 'rake'
 gem 'roda', '~> 2.29'
 gem 'roda-symbolized_params'
 gem 'rodauth'
+gem 'rubocop', '~> 0.51'
 gem 'sass'
 gem 'sequel'
 gem 'sequel_postgresql_triggers'
 gem 'tilt'
+gem 'yard'
 
 gem 'crossbeams-dataminer', git: 'https://github.com/NoSoft-SA/crossbeams-dataminer.git'
 gem 'crossbeams-label_designer', git: 'https://github.com/NoSoft-SA/crossbeams-label_designer.git'
@@ -41,6 +43,4 @@ group :development do
   gem 'pry-doc'
   gem 'rack-console'
   gem 'rerun' # actually just for dev...
-  gem 'rubocop', '~> 0.51'
-  gem 'yard'
 end
