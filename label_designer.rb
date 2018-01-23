@@ -16,7 +16,7 @@ require 'dry-validation'
 require 'net/http'
 require 'uri'
 # require './lib/db_connections'
-require 'pry'
+require 'pry' if ENV.fetch('RACK_ENV') == 'development'
 
 module Types
   include Dry::Types.module
