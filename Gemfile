@@ -15,10 +15,14 @@ gem 'sequel'
 gem 'sequel_postgresql_triggers'
 gem 'tilt'
 
-gem 'crossbeams-dataminer',      path: File.expand_path('../../crossbeams-dataminer', __FILE__)
-gem 'crossbeams-label_designer', path: File.expand_path('../../crossbeams-label_designer', __FILE__)
-gem 'crossbeams-layout',         path: File.expand_path('../../crossbeams-layout', __FILE__)
-gem 'roda-data_grid',            path: File.expand_path('../../roda-data_grid', __FILE__)
+gem 'crossbeams-dataminer'
+gem 'crossbeams-label_designer'
+gem 'crossbeams-layout'
+gem 'roda-data_grid'
+# gem 'crossbeams-dataminer',      path: File.expand_path('../../crossbeams-dataminer', __FILE__)
+# gem 'crossbeams-label_designer', path: File.expand_path('../../crossbeams-label_designer', __FILE__)
+# gem 'crossbeams-layout',         path: File.expand_path('../../crossbeams-layout', __FILE__)
+# gem 'roda-data_grid',            path: File.expand_path('../../roda-data_grid', __FILE__)
 
 group :test do
   gem 'minitest'
