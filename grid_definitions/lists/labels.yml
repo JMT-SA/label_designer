@@ -21,6 +21,7 @@
     :icon: fa-image
     :title_field: label_name
     :popup: true
+  - :separator: true
   - :url: /labels/labels/labels/$:id$/preview
     :text: Preview
     :icon: fa-rocket
@@ -42,6 +43,7 @@
     :icon: fa-remove
     :is_delete: true
     :popup: true
+    :hide_if_true: part_of_multi_label
   # - :url: /labels/labels/labels/$:id$/download
   #   :text: download
   #   :icon: fa-download

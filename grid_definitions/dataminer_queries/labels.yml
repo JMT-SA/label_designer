@@ -1,11 +1,12 @@
 ---
 :caption: Labels
-:sql: "SELECT id, label_name, label_dimension, px_per_mm, container_type, \r\n       commodity,
+:sql: "  SELECT id, label_name, label_dimension, px_per_mm, container_type, \r\n       commodity,
   market, language, category, sub_category, multi_label,\r\n       (SELECT string_agg(label_name,
   '; ')\r\n        FROM (SELECT l.label_name FROM multi_labels m\r\n              JOIN
   labels l ON l.id = m.sub_label_id\r\n              WHERE m.label_id = labels.id
-  ORDER BY m.print_sequence) subq) AS sub_labels,\r\n       created_at, updated_at\r\n
-  \ FROM labels\r\n ORDER BY label_name, id;\r\n"
+  ORDER BY m.print_sequence) subq) AS sub_labels,\r\n       created_at, updated_at,\r\n
+  \      EXISTS(SELECT label_id FROM multi_labels WHERE sub_label_id = labels.id)
+  AS part_of_multi_label\r\n  FROM labels\r\n ORDER BY label_name, id;\r\n\r\n  "
 :limit: 
 :offset: 
 :columns:
@@ -214,6 +215,21 @@
     :format: 
     :hide: true
     :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  part_of_multi_label:
+    :name: part_of_multi_label
+    :sequence_no: 15
+    :caption: Part of multi label
+    :namespaced_name: 
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: true
+    :groupable: false
     :group_by_seq: 
     :group_sum: false
     :group_avg: false
