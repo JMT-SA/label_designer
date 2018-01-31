@@ -76,6 +76,15 @@ class LabelDesigner < Roda
         response.write(binary_data)
       end
 
+      r.on 'variable_list' do
+        res = interactor.can_preview?(id)
+        if res.success
+          show_partial { Labels::Labels::Label::VariableList.call(id) }
+        else
+          dialog_warning(res.message)
+        end
+      end
+
       r.on 'preview' do
         res = interactor.can_preview?(id)
         if res.success

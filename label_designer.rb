@@ -298,12 +298,13 @@ class LabelDesigner < Roda
   end
 
   def label_config(opts)
-    label = label_instance_for_config(opts)
-    id = opts[:cloned] ? nil : opts[:id]
+    label      = label_instance_for_config(opts)
+    id         = opts[:cloned] ? nil : opts[:id]
+    label_name = opts[:cloned] ? opts[:label_name] : label.label_name
 
     config = {
       labelState: opts[:id].nil? ? 'new' : 'edit',
-      labelName:  label.label_name,
+      labelName:  label_name,
       savePath: id.nil? ? '/save_label' : "/save_label/#{id}",
       labelDimension: label.label_dimension,
       id: id,

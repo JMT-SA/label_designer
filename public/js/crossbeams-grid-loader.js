@@ -342,6 +342,7 @@ const crossbeamsGridEvents = {
     // clear on Esc
     if (event.which === 27) {
       event.target.value = '';
+      // TODO: preventdefault.....
     }
     gridOptions.api.setQuickFilter(event.target.value);
   },
@@ -438,7 +439,10 @@ const crossbeamsGridFormatters = {
     if (item.title_field) {
       titleValue = params.data[item.title_field];
     } else {
-      titleValue = item.title ? item.title : '';
+      titleValue = item.title ? item.title : ''; // Unwrap $:xxx$ end get params.data[xxx]...
+      if (titleValue.indexOf('$:') > -1) {
+        titleValue = titleValue.replace(/\$:(.*?)\$/g, match => params.data[match.replace('$:', '').replace('$', '')]);
+      }
     }
     if (item.is_separator) {
       if (items.length > 0 && _.last(items).value !== '---') {

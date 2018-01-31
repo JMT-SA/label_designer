@@ -31,6 +31,11 @@
     :icon: fa-print
     :title: Print preview - fill in variables
     :popup: true
+  - :url: /labels/labels/labels/$:id$/variable_list
+    :text: Variable list
+    :icon: fa-list
+    :title: Variables for $:label_name$
+    :popup: true
   - :separator: true
   - :url: /labels/labels/labels/$:id$
     :text: Delete label
