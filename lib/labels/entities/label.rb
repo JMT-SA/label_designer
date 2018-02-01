@@ -13,7 +13,7 @@ class Label < Dry::Struct
   attribute :category, Types::String.optional
   attribute :sub_category, Types::String.optional
   attribute :multi_label, Types::Bool
-  # attribute :sample_data, Types::Json::Hash
+  attribute :sample_data, Types::Json::Hash.optional
 
   #  label_name character varying(255) NOT NULL,
   #   label_json text,

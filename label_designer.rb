@@ -291,23 +291,25 @@ class LabelDesigner < Roda
   def label_instance_for_config(opts)
     if opts[:id]
       repo = LabelRepo.new
-      repo.find_label(opts[:id])
+      label = repo.find_label(opts[:id])
+      if opts[:cloned]
+        label = Label.new(label.to_h.merge(id: nil, label_name: opts[:label_name]))
+      end
+      label
     else
       OpenStruct.new(opts)
     end
   end
 
   def label_config(opts)
-    label      = label_instance_for_config(opts)
-    id         = opts[:cloned] ? nil : opts[:id]
-    label_name = opts[:cloned] ? opts[:label_name] : label.label_name
+    label = label_instance_for_config(opts)
 
     config = {
       labelState: opts[:id].nil? ? 'new' : 'edit',
-      labelName:  label_name,
-      savePath: id.nil? ? '/save_label' : "/save_label/#{id}",
+      labelName:  label.label_name,
+      savePath: label.id.nil? ? '/save_label' : "/save_label/#{label.id}",
       labelDimension: label.label_dimension,
-      id: id,
+      id: label.id,
       pixelPerMM: label.px_per_mm,
       labelJSON: label.label_json
     }

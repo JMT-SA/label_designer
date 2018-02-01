@@ -174,6 +174,9 @@ class LabelInteractor < BaseInteractor
 
   def do_preview(id, screen_or_print, vars)
     label = repo.find_label(id)
+    # Store the input variables:
+    # repo.update_label(id, sample_data: "{#{vars.map { |k, v| %("#{k}":"#{v}") }.join(',')}}")
+    repo.update_label(id, sample_data: repo.hash_to_jsonb_str(vars))
 
     fname, binary_data = make_label_zip(label, vars)
     File.open('zz.zip', 'w') { |f| f.puts binary_data }

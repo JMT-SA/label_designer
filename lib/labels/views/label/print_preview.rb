@@ -5,10 +5,10 @@ module Labels
     module Label
       class PrintPreview
         def self.call(id, form_values: nil, form_errors: nil, remote: true)
-          rules, xml_vars = rules_and_fields(id)
+          label, rules, xml_vars = rules_and_fields(id)
 
           layout = Crossbeams::Layout::Page.build(rules) do |page|
-            page.form_object OpenStruct.new
+            page.form_object OpenStruct.new(label.sample_data || {})
             page.form_values form_values
             page.form_errors form_errors
             page.form do |form|
@@ -24,7 +24,7 @@ module Labels
           layout
         end
 
-        def self.rules_and_fields(id) # rubocop:disable Metrics/AbcSize
+        def self.rules_and_fields(id)
           this_repo = LabelRepo.new
           repo      = PrinterRepo.new
           obj       = this_repo.find_label(id)
@@ -36,7 +36,7 @@ module Labels
           end
         end
 
-        def self.rules_for_multiple(repo, obj, printers)
+        def self.rules_for_multiple(repo, obj, printers) # rubocop:disable Metrics/AbcSize
           count = 0
           xml_vars = []
           vartypes = []
@@ -58,7 +58,7 @@ module Labels
                        caption: 'Printer' }
           }, name: 'label' }
           xml_vars.each { |v| rules[:fields][v.to_sym] = { caption: "#{v} (#{combos[v]})" } }
-          [rules, xml_vars]
+          [obj, rules, xml_vars]
         end
 
         def self.rules_for_single(obj, printers)
@@ -73,7 +73,7 @@ module Labels
                        caption: 'Printer' }
           }, name: 'label' }
           xml_vars.each { |v| rules[:fields][v.to_sym] = { caption: "#{v} (#{combos[v]})" } }
-          [rules, xml_vars]
+          [obj, rules, xml_vars]
         end
       end
     end

@@ -5,10 +5,10 @@ module Labels
     module Label
       class ScreenPreview
         def self.call(id, form_values: nil, form_errors: nil, remote: true)
-          rules, xml_vars = rules_and_fields(id)
+          label, rules, xml_vars = rules_and_fields(id)
 
           layout = Crossbeams::Layout::Page.build(rules) do |page|
-            page.form_object OpenStruct.new
+            page.form_object OpenStruct.new(label.sample_data || {})
             page.form_values form_values
             page.form_errors form_errors
             page.form do |form|
@@ -51,7 +51,7 @@ module Labels
 
           rules     = { fields: {}, name: 'label' }
           xml_vars.each { |v| rules[:fields][v.to_sym] = { caption: "#{v} (#{combos[v]})" } }
-          [rules, xml_vars]
+          [obj, rules, xml_vars]
         end
 
         def self.rules_for_single(obj)
@@ -62,7 +62,7 @@ module Labels
 
           rules     = { fields: {}, name: 'label' }
           xml_vars.each { |v| rules[:fields][v.to_sym] = { caption: "#{v} (#{combos[v]})" } }
-          [rules, xml_vars]
+          [obj, rules, xml_vars]
         end
       end
     end
