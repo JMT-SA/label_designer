@@ -15,17 +15,17 @@ INSERT INTO program_functions (program_id, program_function_name, url, program_f
 VALUES ((SELECT id FROM programs WHERE program_name = 'Designs' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Available printers', '/list/printers', 3);
 
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
-VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Container Types', '/list/commodities/with_params?key=container_type', 1);
+VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Container Types', '/list/master_lists/with_params?key=container_type', 1);
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
-VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Commodities', '/list/commodities/with_params?key=commodity', 2);
+VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Commodities', '/list/master_lists/with_params?key=commodity', 2);
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
-VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Markets', '/list/commodities/with_params?key=market', 3);
+VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Markets', '/list/master_lists/with_params?key=market', 3);
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
-VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Languages', '/list/commodities/with_params?key=language', 4);
+VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Languages', '/list/master_lists/with_params?key=language', 4);
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
-VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Categories', '/list/commodities/with_params?key=category', 5);
+VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Categories', '/list/master_lists/with_params?key=category', 5);
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
-VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Sub-categories', '/list/commodities/with_params?key=sub_category', 6);
+VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Sub-categories', '/list/master_lists/with_params?key=sub_category', 6);
 
 
 

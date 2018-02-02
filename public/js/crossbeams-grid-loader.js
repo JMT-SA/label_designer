@@ -342,7 +342,6 @@ const crossbeamsGridEvents = {
     // clear on Esc
     if (event.which === 27) {
       event.target.value = '';
-      // TODO: preventdefault.....
     }
     gridOptions.api.setQuickFilter(event.target.value);
   },

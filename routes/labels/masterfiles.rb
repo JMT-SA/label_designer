@@ -55,7 +55,7 @@ class LabelDesigner < Roda
       interactor = MasterListInteractor.new({}, {}, {}, {})
       r.on 'new' do    # NEW
         if authorised?('masterfiles', 'new')
-          show_partial_or_page(fetch?(r)) { Labels::Masterfiles::MasterList::New.call(remote: fetch?(r)) }
+          show_partial_or_page(fetch?(r)) { Labels::Masterfiles::MasterList::New.call(form_values: { list_type: params[:key] }, remote: fetch?(r)) }
         else
           fetch?(r) ? dialog_permission_error : show_unauthorised
         end

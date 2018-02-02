@@ -3,6 +3,7 @@ public/js/ag-enterprise-activation.js
 public/tempfiles/*
 public/assets/*.*
 .dm_report_list.yml
+log/*
 
 # Used by dotenv library to load environment variables.
 .env.local

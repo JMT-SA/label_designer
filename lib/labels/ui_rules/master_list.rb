@@ -21,7 +21,8 @@ module UiRules
 
     def common_fields
       {
-        list_type: { renderer: :select, options: list_types },
+        # list_type: { renderer: :select, options: list_types },
+        list_type: { readonly: true },
         description: {}
       }
     end
@@ -37,8 +38,8 @@ module UiRules
                                     description: nil)
     end
 
-    def list_types
-      %w[container_type commodity market language category sub_category]
-    end
+    # def list_types
+    #   %w[container_type commodity market language category sub_category]
+    # end
   end
 end
