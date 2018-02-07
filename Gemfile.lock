@@ -7,23 +7,23 @@ GIT
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-label_designer.git
-  revision: 6c736e7d9ccfe8f1123bd135ddbee255fa11ba42
+  revision: 9962a984d1d642aa3dbad0e0458f88a65aae5a02
   specs:
-    crossbeams-label_designer (0.1.0)
+    crossbeams-label_designer (0.1.1)
       dry-configurable
       erubi
       json
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-layout.git
-  revision: 2adf0869541c36e17a4bb1f189d2975ae0bd4b32
+  revision: 3588bb057a58b2116d1e695d8da22760916984d5
   specs:
     crossbeams-layout (0.1.0)
       rouge
 
 GIT
   remote: https://github.com/NoSoft-SA/roda-data_grid.git
-  revision: 0c177ee32e840fa380a80a8f815c5671100b0b4f
+  revision: 888e5c76588821053f6c0b31c5b825ea4a3f9c73
   specs:
     roda-data_grid (0.1.0)
       axlsx
@@ -34,6 +34,8 @@ GIT
 GEM
   remote: https://rubygems.org/
   specs:
+    airbrussh (1.3.0)
+      sshkit (>= 1.6.1, != 1.7.0)
     ast (2.3.0)
     axlsx (2.0.1)
       htmlentities (~> 4.3.1)
@@ -41,6 +43,19 @@ GEM
       rubyzip (~> 1.0.0)
     bcrypt (3.1.11)
     byebug (9.0.6)
+    capistrano (3.10.1)
+      airbrussh (>= 1.0.0)
+      i18n
+      rake (>= 10.0.0)
+      sshkit (>= 1.9.0)
+    capistrano-bundler (1.3.0)
+      capistrano (~> 3.1)
+      sshkit (~> 1.2)
+    capistrano-chruby (0.1.2)
+      capistrano (~> 3.0)
+      sshkit (~> 1.3)
+    capistrano-passenger (0.2.0)
+      capistrano (~> 3.0)
     clipboard (1.1.1)
     coderay (1.1.1)
     concurrent-ruby (1.0.5)
@@ -81,6 +96,8 @@ GEM
     erubi (1.7.0)
     ffi (1.9.18)
     htmlentities (4.3.4)
+    i18n (0.9.3)
+      concurrent-ruby (~> 1.0)
     ice_nine (0.11.2)
     inflecto (0.0.2)
     json (2.1.0)
@@ -92,6 +109,9 @@ GEM
     mini_portile2 (2.2.0)
     minitest (5.10.3)
     minitest-hooks (1.4.2)
+    net-scp (1.2.1)
+      net-ssh (>= 2.6.5)
+    net-ssh (4.2.0)
     nokogiri (1.8.0)
       mini_portile2 (~> 2.2.0)
     parallel (1.12.0)
@@ -137,7 +157,7 @@ GEM
     rodauth (1.12.0)
       roda (>= 2.6.0)
       sequel (>= 4)
-    rouge (3.1.0)
+    rouge (3.1.1)
     rubocop (0.51.0)
       parallel (~> 1.10)
       parser (>= 2.3.3.1, < 3.0)
@@ -153,6 +173,9 @@ GEM
     sequel_postgresql_triggers (1.3.0)
       sequel
     slop (3.6.0)
+    sshkit (1.16.0)
+      net-scp (>= 1.1.2)
+      net-ssh (>= 2.8.0)
     tilt (2.0.7)
     unicode-display_width (1.3.0)
     yard (0.9.9)
@@ -162,6 +185,10 @@ PLATFORMS
 
 DEPENDENCIES
   bcrypt
+  capistrano
+  capistrano-bundler
+  capistrano-chruby
+  capistrano-passenger (>= 0.1.1)
   crossbeams-dataminer!
   crossbeams-label_designer!
   crossbeams-layout!

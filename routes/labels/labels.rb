@@ -111,6 +111,7 @@ class LabelDesigner < Roda
             f.write(res.instance.body)
             f.path
           end
+          File.chmod(0644, filepath) # Ensure web app can read the image.
           { replaceDialog: { content: "<img src='/#{File.join('tempfiles', File.basename(filepath))}'>" } }.to_json
         else
           { flash: { error: res.message } }.to_json

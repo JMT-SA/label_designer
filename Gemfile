@@ -37,10 +37,14 @@ group :test do
 end
 
 group :development do
+  gem 'capistrano'
+  gem 'capistrano-bundler'
+  gem 'capistrano-chruby'
+  gem 'capistrano-passenger', '>= 0.1.1'
   gem 'pry'
   gem 'pry-byebug'
   gem 'pry-clipboard'
   gem 'pry-doc'
   gem 'rack-console'
-  gem 'rerun' # actually just for dev...
+  gem 'rerun'
 end
