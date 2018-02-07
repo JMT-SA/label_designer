@@ -1,103 +1,89 @@
-require 'mina/chruby'
-require 'mina/git'
-require 'mina/bundler'
-require 'mina/deploy'
+# config valid for current version and patch releases of Capistrano
+# lock '~> 3.10.1' # --- Handled by bundler...
+set :chruby_ruby, 'ruby-2.5.0'
 
-# Basic settings:
+set :application, 'label_designer'
+set :repo_url, 'git@github.com:NoSoft-SA/label_designer.git'
 
-# This is required, because user-input is required to install gems from github.
-# Once the gems are published, this can probably be changed back to :pretty.
-set :execution_mode, :system
-# ---
-set :application_name, 'label_designer'
-# set :domain, '192.168.50.27'
-set :domain, '10.0.0.6'
-set :deploy_to, '/home/nsld/label_designer'
-set :repository, 'https://github.com/NoSoft-SA/label_designer.git'
-# set :branch, 'master'
-set :branch, 'develop'
+# *********************************************************************************************************************************************************
+# NB. On first deploy, go to the realease on the server and run the bundle install command:
+# /usr/local/bin/chruby-exec ruby-2.5.0 -- bundle install --path /home/nsld/label_designer/shared/bundle --without development test --deployment --quiet
+# (modified as appropriate). This will prompt for github user/password -  so that the gems from github can be fetched. Subsequent deploys should just work.
+# *********************************************************************************************************************************************************
 
-# Optional settings:
-set :user, 'nsld'          # Username in the server to SSH to.
-#   set :port, '30000'           # SSH port number.
-#   set :forward_agent, true     # SSH forward_agent.
-set :version_scheme, :datetime
+# Default branch is :master
+# ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
+set :branch, :develop # WHILE testing...
 
-set :rake, 'bundle exec rake'
+set :rack_env, :production # SET THESE UP IN deploy files (hm6, hm7, nosoft, schb...)
 
-# Shared dirs and files will be symlinked into the app-folder by the 'deploy:link_shared_paths' step.
-# Some plugins already add folders to shared_dirs like `mina/rails` add `public/assets`, `vendor/bundle` and many more
-# run `mina -d` to see all folders and files already included in `shared_dirs` and `shared_files`
-set :shared_dirs, fetch(:shared_dirs, []).push('public/assets', 'public/tempfiles', 'tmp')
-# set :shared_files, fetch(:shared_files, []).push('config/database.yml', 'config/secrets.yml')
+# Default deploy_to directory is /var/www/my_app_name
+# set :deploy_to, '/home/nsld/label_designer' # Set in config in deploy/ dir
 
-# This task is the environment that is loaded for all remote run commands, such as
-# `mina deploy` or `mina rake`.
-task :remote_environment do
-  invoke :chruby, 'ruby-2.5'
-end
+# Default value for :format is :airbrussh.
+# set :format, :airbrussh
 
-# Put any custom commands you need to run at setup
-# All paths in `shared_dirs` and `shared_paths` will be created on their own.
-task :setup do
-  # command %{rbenv install 2.3.0 --skip-existing}
-end
+# You can configure the Airbrussh format using :format_options.
+# These are the defaults.
+# set :format_options, command_output: true, log_file: 'log/capistrano.log', color: :auto, truncate: :auto
 
-desc 'Deploys the current version to the server.'
-task :deploy do
-  # uncomment this line to make sure you pushed your local branch to the remote origin
-  # invoke :'git:ensure_pushed'
-  deploy do
-    # Put things that will set up an empty directory into a fully set-up
-    # instance of your project.
-    invoke :'git:clone'
-    invoke :'deploy:link_shared_paths'
-    invoke :'bundle:install'
-    comment %(Migrating database)
-    command %(#{fetch(:rake)} db:migrate)
-    comment %(Pre-compiling assets)
-    command %(RACK_ENV=production #{fetch(:rake)} assets:precompile)
-    invoke :'deploy:cleanup'
+# Default value for :pty is false
+# set :pty, true
 
-    # TODO: restart puma & nginx
-    # on :launch do
-    #   in_path(fetch(:current_path)) do
-    #     command %(mkdir -p tmp/)
-    #     command %(touch tmp/restart.txt)
-    #   end
-    # end
-  end
+# Default value for :linked_files is []
+# append :linked_files, 'config/database.yml', 'config/secrets.yml'
+append :linked_files, 'public/js/ag-enterprise-activation.js'
 
-  # you can use `run :local` to run tasks on local machine before of after the deploy scripts
-  # run(:local){ say 'done' }
-end
+# Default value for linked_dirs is []
+# append :linked_dirs, 'log', 'tmp/pids', 'tmp/cache', 'tmp/sockets', 'public/system'
+append :linked_dirs, 'log', 'tmp', 'public/assets', 'public/tempfiles', 'vendor/bundle'
 
-desc 'Add a user'
-task :add_user do
-  require 'highline/import'
-  require 'bcrypt'
+# Default value for default_env is {}
+# set :default_env, { path: '/opt/ruby/bin:$PATH' }
 
-  login = ask('Create a new user: Login code (No spaces, lowercase):')
-  name = ask('Create a new user: Name:')
-  passwd = ask('Create a new user: Password:') { |q| q.echo = 'x' }
-  comment %(Creating new user - #{name})
-  pwd_hash = BCrypt::Password.create(passwd)
-  sql = "INSERT INTO users (login_name, user_name, password_hash) VALUES ('#{login}', '#{name}', '#{pwd_hash.gsub('$', '\$')}');"
+# Default value for local_user is ENV['USER']
+# set :local_user, -> { `git config user.name`.chomp }
 
-  command %(psql -U postgres -d label_designer -c "#{sql}")
-end
+# Default value for keep_releases is 5
+# set :keep_releases, 5
 
-desc 'Seed the database'
-task :db_seed do
-  run :remote do
-    command %(cd "#{fetch(:current_path)}/db/seeds")
-    command %(psql -U postgres -d label_designer < basic_menu.sql)
-    command %(psql -U postgres -d label_designer < security_basics.sql)
-    command %(psql -U postgres -d label_designer < label_designer_menu.sql)
-    command %(psql -U postgres -d label_designer < initial_user_security.sql)
+# Uncomment the following to require manually verifying the host key before first deploy.
+# set :ssh_options, verify_host_key: :secure
+
+desc 'Runs rake db:migrate if migrations are set'
+task :migrate do
+  on primary :db do
+    within release_path do
+      with rack_env: fetch(:rack_env) do
+        execute :rake, 'db:migrate'
+      end
+    end
   end
 end
 
-# For help in making your deploy script, see the Mina documentation:
-#
-#  - https://github.com/mina-deploy/mina/tree/master/docs
+desc 'Runs rake assets:precompile'
+task :precompile do
+  on primary :app do
+    within release_path do
+      with rack_env: fetch(:rack_env) do
+        execute :rake, 'assets:precompile'
+      end
+    end
+  end
+end
+
+namespace :devops do
+  desc 'Copy initial files'
+  task :copy_initial do
+    on roles(:app) do |_|
+      upload! 'public/js/ag-enterprise-activation.js', "#{shared_path}/public/js/ag-enterprise-activation.js"
+    end
+  end
+end
+
+namespace :deploy do
+  after :updated, :migrate_and_precompile do
+    invoke 'migrate'
+    invoke 'precompile'
+  end
+end
