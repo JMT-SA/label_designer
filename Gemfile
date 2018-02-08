@@ -8,10 +8,10 @@ gem 'pg'
 gem 'puma'
 gem 'rack_csrf'
 gem 'rake'
-gem 'roda', '~> 2.29'
+gem 'roda'
 gem 'roda-symbolized_params'
 gem 'rodauth'
-gem 'rubocop', '~> 0.51'
+gem 'rubocop'
 gem 'sass'
 gem 'sequel'
 gem 'sequel_postgresql_triggers'
@@ -33,7 +33,7 @@ gem 'roda-data_grid', git: 'https://github.com/NoSoft-SA/roda-data_grid.git'
 
 group :test do
   gem 'minitest'
-  gem 'minitest-hooks', '1.4.2'
+  gem 'minitest-hooks'
 end
 
 group :development do
