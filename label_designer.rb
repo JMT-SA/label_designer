@@ -64,7 +64,7 @@ class LabelDesigner < Roda
   plugin :all_verbs
   plugin :render
   plugin :partials
-  plugin :assets, css: 'style.scss', precompiled: 'prestyle.css'
+  plugin :assets, css: 'style.scss', precompiled: 'prestyle.css', sri: nil # SRI: nil because integrity calculated incorrectly....
   plugin :public # serve assets from public folder.
   plugin :multi_route
   plugin :content_for, append: true
