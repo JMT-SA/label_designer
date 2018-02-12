@@ -13,7 +13,7 @@ set :repo_url, 'git@github.com:NoSoft-SA/label_designer.git'
 
 # Default branch is :master
 # ask :branch, `git rev-parse --abbrev-ref HEAD`.chomp
-set :branch, :develop # WHILE testing...
+set :branch, :master # WHILE testing...
 
 set :rack_env, :production # SET THESE UP IN deploy files (hm6, hm7, nosoft, schb...)
 

@@ -17,6 +17,7 @@ hold/*
 ## Vim
 tags
 .srclist
+.smartgf*
 
 # Assets plugin metadata file
 prestyle.css
