@@ -38,6 +38,7 @@ Dir['./helpers/**/*.rb'].each { |f| require f }
 Dir['./lib/applets/*.rb'].each { |f| require f }
 
 ENV['ROOT'] = File.dirname(__FILE__)
+ENV['VERSION'] = File.read('VERSION')
 LABEL_SERVER_URI = ENV.fetch('LABEL_SERVER_URI')
 
 Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration for label designer gem.
@@ -120,7 +121,12 @@ class LabelDesigner < Roda
                                        :label_designer,
                                        :datagrid,
                                        :ag_grid,
-                                       :selectr).to_html)
+                                       :selectr,
+                                       :sortable,
+                                       :konva,
+                                       :lodash,
+                                       :multi,
+                                       :sweetalert).to_html)
     end
 
     r.on 'label_designer' do
