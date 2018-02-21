@@ -2,35 +2,41 @@
 :dataminer_definition: labels
 :actions:
   - :url: /label_designer/$:id$/edit
-    :text: Edit label
+    :text: Edit
     :icon: fa-edit
   - :url: /label_designer/$:id$/clone
-    :text: Clone label
+    :text: Clone
     :icon: fa-clone
     :popup: true
   - :separator: true
   - :url: /label_designer/$:id$/properties
-    :text: Change label properties
-    :icon: fa-info
+    :text: Edit Properties
+    :icon: fa-edit
     :title: Properties
     :popup: true
   - :url: /label_designer/$:id$/background
-    :text: Background image
+    :text: Background Image
     :icon: fa-image
     :title_field: label_name
     :popup: true
+  - :separator: true
+  - :url: /labels/labels/labels/$:id$/variable_list
+    :text: Variable Lists
+    :icon: fa-info
+    :title: Variables for $:label_name$
+    :popup: true
   - :url: /label_designer/$:id$/preview
     :text: Preview
-    :icon: fa-rocket
+    :icon: fa-eye
     :title: Preview - fill in variables
     :popup: true
   - :url: /label_designer/$:id$/print_preview
-    :text: Print Preview
+    :text: Print Test Preview
     :icon: fa-print
     :title: Print preview - fill in variables
     :popup: true
   - :separator: true
   - :url: /label_designer/$:id$
-    :text: Delete label
+    :text: Delete
     :icon: fa-remove
     :is_delete: true

@@ -2,18 +2,18 @@
 :dataminer_definition: labels
 :actions:
   - :url: /labels/labels/labels/$:id$/edit
-    :text: Edit label
+    :text: Edit
     :icon: fa-edit
     :hide_if_true: multi_label
   - :url: /labels/labels/labels/$:id$/clone
-    :text: Clone label
+    :text: Clone
     :icon: fa-clone
     :popup: true
     :hide_if_true: multi_label
   - :separator: true
   - :url: /labels/labels/labels/$:id$/properties
-    :text: Change label properties
-    :icon: fa-info
+    :text: Edit properties
+    :icon: fa-edit
     :title: Properties
     :popup: true
   - :url: /labels/labels/labels/$:id$/background
@@ -22,24 +22,24 @@
     :title_field: label_name
     :popup: true
   - :separator: true
+  - :url: /labels/labels/labels/$:id$/variable_list
+    :text: Variable List
+    :icon: fa-info
+    :title: Variables for $:label_name$
+    :popup: true
   - :url: /labels/labels/labels/$:id$/preview
     :text: Preview
-    :icon: fa-rocket
+    :icon: fa-eye
     :title: Preview - fill in variables
     :popup: true
   - :url: /labels/labels/labels/$:id$/print_preview
-    :text: Print Preview
+    :text: Print Test Preview
     :icon: fa-print
     :title: Print preview - fill in variables
     :popup: true
-  - :url: /labels/labels/labels/$:id$/variable_list
-    :text: Variable list
-    :icon: fa-list
-    :title: Variables for $:label_name$
-    :popup: true
   - :separator: true
   - :url: /labels/labels/labels/$:id$
-    :text: Delete label
+    :text: Delete
     :icon: fa-remove
     :is_delete: true
     :popup: true
