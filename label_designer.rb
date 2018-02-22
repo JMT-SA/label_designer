@@ -178,7 +178,7 @@ class LabelDesigner < Roda
               render_data_grid_rows(id)
             end
           rescue StandardError => e
-            show_json_error(e)
+            show_json_exception(e)
           end
         end
 
@@ -187,7 +187,7 @@ class LabelDesigner < Roda
           begin
             render_data_grid_multiselect_rows(id, ->(program, permission) { auth_blocked?(program, permission) }, key, params)
           rescue StandardError => e
-            show_json_error(e)
+            show_json_exception(e)
           end
         end
       end
