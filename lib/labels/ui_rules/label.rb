@@ -3,9 +3,9 @@
 module UiRules
   class LabelRule < Base
     def generate_rules
-      @this_repo = LabelRepo.new
-      @print_repo = PrinterRepo.new
-      @master_repo = MasterListRepo.new
+      @this_repo = LabelApp::LabelRepo.new
+      @print_repo = LabelApp::PrinterRepo.new
+      @master_repo = LabelApp::MasterListRepo.new
       make_form_object
       apply_form_values
 
