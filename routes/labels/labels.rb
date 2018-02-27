@@ -11,7 +11,7 @@ class LabelDesigner < Roda
     # LABELS
     # --------------------------------------------------------------------------
     r.on 'labels', Integer do |id|
-      interactor = LabelInteractor.new({}, {}, {}, {})
+      interactor = LabelApp::LabelInteractor.new({}, {}, {}, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:labels, id) do
@@ -111,7 +111,7 @@ class LabelDesigner < Roda
             f.write(res.instance.body)
             f.path
           end
-          File.chmod(0644, filepath) # Ensure web app can read the image.
+          File.chmod(0o644, filepath) # Ensure web app can read the image.
           { replaceDialog: { content: "<img src='/#{File.join('tempfiles', File.basename(filepath))}'>" } }.to_json
         else
           { flash: { error: res.message } }.to_json
@@ -184,7 +184,7 @@ class LabelDesigner < Roda
       end
     end
     r.on 'labels' do
-      interactor = LabelInteractor.new({}, {}, {}, {})
+      interactor = LabelApp::LabelInteractor.new({}, {}, {}, {})
       r.on 'new' do    # NEW
         if authorised?('labels', 'new')
           show_partial_or_page(fetch?(r)) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
@@ -232,3 +232,4 @@ class LabelDesigner < Roda
     end
   end
 end
+# rubocop:enable Metrics/BlockLength

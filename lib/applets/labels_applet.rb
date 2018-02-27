@@ -8,3 +8,6 @@ Dir["#{root_dir}/labels/repositories/*.rb"].each { |f| require f }
 Dir["#{root_dir}/labels/ui_rules/*.rb"].each { |f| require f }
 Dir["#{root_dir}/labels/validations/*.rb"].each { |f| require f }
 Dir["#{root_dir}/labels/views/**/*.rb"].each { |f| require f }
+
+module LabelApp
+end
