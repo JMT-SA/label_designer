@@ -241,7 +241,7 @@ class LabelDesigner < Roda
     r.on 'save_label' do
       r.on :id do |id|
         r.post do
-          repo = LabelRepo.new
+          repo = LabelApp::LabelRepo.new
           changeset = { label_json: params[:label],
                         variable_xml: params[:XMLString],
                         png_image: Sequel.blob(image_from_param(params[:imageString])) }
@@ -254,7 +254,7 @@ class LabelDesigner < Roda
       end
 
       r.post do
-        repo = LabelRepo.new
+        repo = LabelApp::LabelRepo.new
         extra_attributes = session[:new_label_attributes]
         changeset = { label_json: params[:label],
                       label_name: params[:labelName],
@@ -305,7 +305,7 @@ class LabelDesigner < Roda
 
   def label_instance_for_config(opts)
     if opts[:id]
-      repo = LabelRepo.new
+      repo = LabelApp::LabelRepo.new
       label = repo.find_label(opts[:id])
       if opts[:cloned]
         label = Label.new(label.to_h.merge(id: nil, label_name: opts[:label_name]))
@@ -342,6 +342,8 @@ class LabelDesigner < Roda
   LABEL_SIZES = {
     '84x64': { 'width': '84', 'height': '64' },
     '84x100': { 'width': '84', 'height': '100' },
+    '97x78': { 'width': '97', 'height': '78' },
+    '78x97': { 'width': '78', 'height': '97' },
     '100x70': { 'width': '100', 'height': '70' },
     '100x84': { 'width': '100', 'height': '84' },
     '100x100': { 'width': '100', 'height': '100' },
