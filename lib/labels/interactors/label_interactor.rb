@@ -3,7 +3,7 @@
 module LabelApp
   class LabelInteractor < BaseInteractor
     def repo
-      @repo ||= LabelRepo.new
+      @repo ||= LabelApp::LabelRepo.new
     end
 
     def label(cached = true)

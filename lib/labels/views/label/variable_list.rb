@@ -5,7 +5,7 @@ module Labels
     module Label
       class VariableList
         def self.call(id, remote: true)
-          this_repo = LabelRepo.new
+          this_repo = LabelApp::LabelRepo.new
           obj       = this_repo.find_label(id)
           rules, xml_vars = rules_and_fields(this_repo, obj)
 
