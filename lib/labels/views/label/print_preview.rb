@@ -26,7 +26,7 @@ module Labels
 
         def self.rules_and_fields(id)
           this_repo = LabelApp::LabelRepo.new
-          repo      = PrinterRepo.new
+          repo      = LabelApp::PrinterRepo.new
           obj       = this_repo.find_label(id)
           printers  = repo.printers_for(obj.px_per_mm)
           if obj.multi_label
