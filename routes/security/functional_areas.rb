@@ -112,7 +112,6 @@ class LabelDesigner < Roda
         end
       end
       r.is do
-        p 'IS'
         r.get do       # SHOW
           if authorised?('menu', 'read')
             show_partial { Security::FunctionalAreas::Program::Show.call(id) }
@@ -166,7 +165,7 @@ class LabelDesigner < Roda
       end
 
       r.post do        # CREATE
-        res = interactor.create_program(params[:program])
+        res = interactor.create_program(params[:program], self.class.name)
         if res.success
           flash[:notice] = res.message
           if fetch?(r)

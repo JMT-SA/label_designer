@@ -24,7 +24,7 @@ module Labels
         end
 
         def self.rules_and_fields(id)
-          this_repo = LabelRepo.new
+          this_repo = LabelApp::LabelRepo.new
           obj       = this_repo.find_label(id)
           if obj.multi_label
             rules_for_multiple(this_repo, obj)

@@ -3,7 +3,7 @@
 module UiRules
   class PrinterRule < Base
     def generate_rules
-      @this_repo = PrinterRepo.new
+      @repo = LabelApp::PrinterRepo.new
       make_form_object
       apply_form_values
 
@@ -35,7 +35,7 @@ module UiRules
     def make_form_object
       make_new_form_object && return if @mode == :new
 
-      @form_object = @this_repo.find_printer(@options[:id])
+      @form_object = @repo.find_printer(@options[:id])
     end
 
     def make_new_form_object

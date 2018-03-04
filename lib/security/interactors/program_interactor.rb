@@ -17,19 +17,21 @@ class ProgramInteractor < BaseInteractor
     ProgramSchema.call(params)
   end
 
-  def create_program(params)
+  def create_program(params, webapp)
     res = validate_program_params(params)
     return validation_failed_response(res) unless res.messages.empty?
-    @id = repo.create(:programs, res.to_h)
+    @id = repo.create_program(res.to_h, webapp)
     success_response("Created program #{program.program_name}",
                      program)
   end
 
   def update_program(id, params)
+    p id
     @id = id
     res = validate_program_params(params)
     return validation_failed_response(res) unless res.messages.empty?
-    repo.update(:programs, id, res.to_h)
+    p id
+    repo.update_program(id, res.to_h)
     success_response("Updated program #{program.program_name}",
                      program(false))
   end

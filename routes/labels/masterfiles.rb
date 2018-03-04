@@ -11,7 +11,7 @@ class LabelDesigner < Roda
     # MASTER LISTS
     # --------------------------------------------------------------------------
     r.on 'master_lists', Integer do |id|
-      interactor = MasterListInteractor.new({}, {}, {}, {})
+      interactor = LabelApp::MasterListInteractor.new({}, {}, {}, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:master_lists, id) do
@@ -52,7 +52,7 @@ class LabelDesigner < Roda
       end
     end
     r.on 'master_lists' do
-      interactor = MasterListInteractor.new({}, {}, {}, {})
+      interactor = LabelApp::MasterListInteractor.new({}, {}, {}, {})
       r.on 'new' do    # NEW
         if authorised?('masterfiles', 'new')
           show_partial_or_page(fetch?(r)) { Labels::Masterfiles::MasterList::New.call(form_values: { list_type: params[:key] }, remote: fetch?(r)) }

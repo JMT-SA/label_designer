@@ -5,7 +5,7 @@ module Labels
     module Label
       class SortSubLabels
         def self.call(id, sub_label_ids)
-          repo = LabelRepo.new
+          repo = LabelApp::LabelRepo.new
           label_list = repo.sub_label_list(sub_label_ids)
 
           layout = Crossbeams::Layout::Page.build do |page|
