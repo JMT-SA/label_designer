@@ -194,7 +194,6 @@ class LabelDesigner < Roda
       end
       r.post do        # CREATE
         res = nil
-        p params
         res = if params[:label][:multi_label] == 't'
                 interactor.create_label(params[:label])
               else
