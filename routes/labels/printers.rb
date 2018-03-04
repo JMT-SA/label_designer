@@ -5,7 +5,7 @@ class LabelDesigner < Roda
     # PRINTERS
     # --------------------------------------------------------------------------
     r.on 'printers', Integer do |id|
-      interactor = PrinterInteractor.new({}, {}, {}, {})
+      interactor = LabelApp::PrinterInteractor.new({}, {}, {}, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:printers, id) do
@@ -18,7 +18,7 @@ class LabelDesigner < Roda
     end
 
     r.on 'printers' do
-      interactor = PrinterInteractor.new({}, {}, {}, {})
+      interactor = LabelApp::PrinterInteractor.new({}, {}, {}, {})
       r.on 'refresh' do
         res = interactor.refresh_printers
         if res.success

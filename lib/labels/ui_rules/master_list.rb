@@ -3,7 +3,7 @@
 module UiRules
   class MasterListRule < Base
     def generate_rules
-      @this_repo = MasterListRepo.new
+      @repo = LabelApp::MasterListRepo.new
       make_form_object
       apply_form_values
 
@@ -30,7 +30,7 @@ module UiRules
     def make_form_object
       make_new_form_object && return if @mode == :new
 
-      @form_object = @this_repo.find_master_list(@options[:id])
+      @form_object = @repo.find_master_list(@options[:id])
     end
 
     def make_new_form_object
