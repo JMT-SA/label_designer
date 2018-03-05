@@ -8,6 +8,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+- Make user login case-insensitive.
 ### Fixed
 
 ## [0.1.2] - 2018-03-04
