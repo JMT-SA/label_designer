@@ -308,7 +308,7 @@ class LabelDesigner < Roda
       repo = LabelApp::LabelRepo.new
       label = repo.find_label(opts[:id])
       if opts[:cloned]
-        label = Label.new(label.to_h.merge(id: nil, label_name: opts[:label_name]))
+        label = LabelApp::Label.new(label.to_h.merge(id: nil, label_name: opts[:label_name]))
       end
       label
     else
