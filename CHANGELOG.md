@@ -8,6 +8,9 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+- Audit changes to labels table.
+- Validation changes to manage stripping input strings.
+- AG-Grid version 17. New theme "balham".
 - Make user login case-insensitive.
 ### Fixed
 

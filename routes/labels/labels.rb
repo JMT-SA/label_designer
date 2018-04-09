@@ -3,9 +3,9 @@
 # rubocop:disable Metrics/BlockLength
 
 class LabelDesigner < Roda
-  def authorised?(key, permission)
-    true
-  end
+  # def authorised?(key, permission)
+  #   true
+  # end
 
   route 'labels', 'labels' do |r|
     # LABELS
@@ -19,7 +19,7 @@ class LabelDesigner < Roda
       end
 
       r.on 'edit' do   # EDIT
-        if authorised?('labels', 'edit')
+        if authorised?('designs', 'edit')
           view(inline: label_designer_page(id: id))
         else
           dialog_permission_error
@@ -148,7 +148,7 @@ class LabelDesigner < Roda
 
       r.is do
         r.get do       # SHOW
-          if authorised?('labels', 'read')
+          if authorised?('designs', 'read')
             show_partial { Labels::Labels::Label::Show.call(id) }
           else
             dialog_permission_error
@@ -186,7 +186,7 @@ class LabelDesigner < Roda
     r.on 'labels' do
       interactor = LabelApp::LabelInteractor.new({}, {}, {}, {})
       r.on 'new' do    # NEW
-        if authorised?('labels', 'new')
+        if authorised?('designs', 'new')
           show_partial_or_page(fetch?(r)) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
         else
           fetch?(r) ? dialog_permission_error : show_unauthorised

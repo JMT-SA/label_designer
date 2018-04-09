@@ -3,9 +3,9 @@
 # rubocop:disable Metrics/BlockLength
 
 class LabelDesigner < Roda
-  def authorised?(key, permission)
-    true
-  end
+  # def authorised?(key, permission)
+  #   true
+  # end
 
   route 'masterfiles', 'labels' do |r|
     # MASTER LISTS
