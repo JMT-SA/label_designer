@@ -10,8 +10,10 @@ require 'crossbeams/layout'
 require 'crossbeams/label_designer'
 require 'roda/data_grid'
 require 'yaml'
+require 'pstore'
 require 'base64'
 require 'zip'
+require 'dry/inflector'
 require 'dry-struct'
 require 'dry-validation'
 require 'net/http'
@@ -21,6 +23,18 @@ require 'pry' if ENV.fetch('RACK_ENV') == 'development'
 
 module Types
   include Dry::Types.module
+
+  # Strips leading and trailing spaces from the input string.
+  # Returns nil if the new result is blank.
+  # Non-string input (including nil) passes through to be handled by the dry-validation schema.
+  StrippedString = Types::String.constructor do |str|
+    if str&.class&.name == 'String'
+      newstr = str.strip.chomp
+      newstr&.empty? ? nil : newstr
+    else
+      str
+    end
+  end
 end
 
 module Crossbeams
@@ -32,6 +46,7 @@ require './lib/crossbeams_responses'
 require './lib/repo_base'
 require './lib/base_interactor'
 require './lib/base_service'
+require './lib/local_store' # Will only work for processes running from one dir.
 require './lib/ui_rules'
 require './lib/library_versions'
 Dir['./helpers/**/*.rb'].each { |f| require f }
@@ -50,6 +65,9 @@ end
 class LabelDesigner < Roda
   include CommonHelpers
   include MenuHelpers
+
+  # Store the name of this class for use in scaffold generating.
+  ENV['RODA_KLASS'] = to_s
 
   use Rack::Session::Cookie, secret: 'some_nice_long_random_string_DSKJH4378EYR7EGKUFH', key: '_lbld_session'
   use Rack::MethodOverride # USe with all_verbs plugin to allow "r.delete" etc.
@@ -71,7 +89,7 @@ class LabelDesigner < Roda
   plugin :content_for, append: true
   plugin :symbolized_params    # - automatically converts all keys of params to symbols.
   plugin :flash
-  plugin :csrf, raise: true # , :skip => ['POST:/report_error'] # FIXME: Remove the +raise+ param when going live!
+  plugin :csrf, raise: true, skip_if: ->(_) { ENV['RACK_ENV'] == 'test' } # , :skip => ['POST:/report_error'] # FIXME: Remove the +raise+ param when going live!
   plugin :json_parser
   plugin :rodauth do
     db DB # .connection
@@ -104,11 +122,16 @@ class LabelDesigner < Roda
     r.redirect('/login') if current_user.nil? # Session might have the incorrect user_id
 
     r.root do
-      view('home')
       r.redirect('/list/labels')
     end
 
     r.multi_route
+
+    r.on 'iframe', Integer do |id|
+      repo = SecurityApp::MenuRepo.new
+      pf = repo.find_program_function(id)
+      view(inline: %(<iframe src="#{pf.url}" title="#{pf.program_function_name}" width="100%" style="height:80vh"></iframe>))
+    end
 
     r.is 'logout' do
       rodauth.logout
@@ -137,6 +160,11 @@ class LabelDesigner < Roda
       view('crossbeams_layout_page')
     end
 
+    r.is 'not_found' do
+      response.status = 404
+      view(inline: '<div class="crossbeams-error-note"><strong>Error</strong><br>The requested resource was not found.</div>')
+    end
+
     r.on 'label_designer' do
       r.is do
         view(inline: label_designer_page(label_name: params[:label_name],
@@ -145,6 +173,7 @@ class LabelDesigner < Roda
       end
     end
 
+    # Generic grid lists.
     r.on 'list' do
       r.on :id do |id|
         r.is do
@@ -173,9 +202,9 @@ class LabelDesigner < Roda
           response['Content-Type'] = 'application/json'
           begin
             if params && !params.empty?
-              render_data_grid_rows(id, nil, params)
+              render_data_grid_rows(id, ->(program, permission) { auth_blocked?(program, permission) }, params)
             else
-              render_data_grid_rows(id)
+              render_data_grid_rows(id, ->(program, permission) { auth_blocked?(program, permission) })
             end
           rescue StandardError => e
             show_json_exception(e)
@@ -214,26 +243,24 @@ class LabelDesigner < Roda
 
         r.on 'grid' do
           response['Content-Type'] = 'application/json'
-          render_search_grid_rows(id, params)
+          render_search_grid_rows(id, params, ->(program, permission) { auth_blocked?(program, permission) })
         end
 
         r.on 'xls' do
-          begin
-            caption, xls = render_excel_rows(id, params)
-            response.headers['content_type'] = 'application/vnd.ms-excel'
-            response.headers['Content-Disposition'] = "attachment; filename=\"#{caption.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-') + '.xls'}\""
-            response.write(xls) # NOTE: could this use streaming to start downloading quicker?
-          rescue Sequel::DatabaseError => e
-            view(inline: <<-HTML)
-            <p style='color:red;'>There is a problem with the SQL definition of this report:</p>
-            <p>Report: <em>#{caption}</em></p>The error message is:
-            <pre>#{e.message}</pre>
-            <button class="pure-button" onclick="crossbeamsUtils.toggleVisibility('sql_code', this);return false">
-              <i class="fa fa-info"></i> Toggle SQL
-            </button>
-            <pre id="sql_code" style="display:none;"><%= sql_to_highlight(@rpt.runnable_sql) %></pre>
-            HTML
-          end
+          caption, xls = render_excel_rows(id, params)
+          response.headers['content_type'] = 'application/vnd.ms-excel'
+          response.headers['Content-Disposition'] = "attachment; filename=\"#{caption.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-') + '.xls'}\""
+          response.write(xls) # NOTE: could this use streaming to start downloading quicker?
+        rescue Sequel::DatabaseError => e
+          view(inline: <<-HTML)
+          <p style='color:red;'>There is a problem with the SQL definition of this report:</p>
+          <p>Report: <em>#{caption}</em></p>The error message is:
+          <pre>#{e.message}</pre>
+          <button class="pure-button" onclick="crossbeamsUtils.toggleVisibility('sql_code', this);return false">
+            <i class="fa fa-info"></i> Toggle SQL
+          </button>
+          <pre id="sql_code" style="display:none;"><%= sql_to_highlight(@rpt.runnable_sql) %></pre>
+          HTML
         end
       end
     end
@@ -351,3 +378,5 @@ class LabelDesigner < Roda
     '145x50': { 'width': '145', 'height': '50' }
   }.freeze
 end
+# rubocop:enable Metrics/ClassLength
+# rubocop:enable Metrics/BlockLength

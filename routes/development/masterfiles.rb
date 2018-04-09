@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+# rubocop:disable Metrics/ClassLength
 # rubocop:disable Metrics/BlockLength
 
 class LabelDesigner < Roda
@@ -7,7 +8,7 @@ class LabelDesigner < Roda
     # USERS
     # --------------------------------------------------------------------------
     r.on 'users', Integer do |id|
-      interactor = UserInteractor.new(current_user, {}, {}, {})
+      interactor = DevelopmentApp::UserInteractor.new(current_user, {}, {}, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:users, id) do
@@ -53,7 +54,7 @@ class LabelDesigner < Roda
       end
     end
     r.on 'users' do
-      interactor = UserInteractor.new(current_user, {}, {}, {})
+      interactor = DevelopmentApp::UserInteractor.new(current_user, {}, {}, {})
       r.on 'new' do    # NEW
         if authorised?('masterfiles', 'new')
           show_partial_or_page(fetch?(r)) { Development::Masterfiles::User::New.call(remote: fetch?(r)) }
@@ -89,3 +90,6 @@ class LabelDesigner < Roda
     end
   end
 end
+
+# rubocop:enable Metrics/ClassLength
+# rubocop:enable Metrics/BlockLength
