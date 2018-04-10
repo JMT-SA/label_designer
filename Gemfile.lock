@@ -7,16 +7,16 @@ GIT
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-label_designer.git
-  revision: fe71225ffd8ad26842d8617d74394dbfd54b511b
+  revision: 10c020c9f594cc542864f1227a25d7988d377f80
   specs:
-    crossbeams-label_designer (0.1.1)
+    crossbeams-label_designer (0.1.2)
       dry-configurable
       erubi
       json
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-layout.git
-  revision: 5f51a185f91a97ddabb852658a28c9000cd7a175
+  revision: 80deab0475857b3dc76fdeb69f6d37bb47b56744
   specs:
     crossbeams-layout (0.1.4)
       rouge
@@ -93,7 +93,7 @@ GEM
       dry-equalizer (~> 0.2)
       dry-logic (~> 0.4, >= 0.4.0)
       dry-types (~> 0.12.0)
-    erubi (1.7.0)
+    erubi (1.7.1)
     ffi (1.9.21)
     htmlentities (4.3.4)
     i18n (0.9.4)
@@ -154,7 +154,7 @@ GEM
       ffi (>= 0.5.0, < 2)
     rerun (0.13.0)
       listen (~> 3.0)
-    roda (3.5.0)
+    roda (3.6.0)
       rack
     roda-symbolized_params (0.0.2)
     rodauth (1.15.0)
