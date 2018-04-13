@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'minitest/autorun'
-require "mocha/mini_test"
+require 'mocha/minitest'
 require 'minitest/stub_any_instance'
 require 'minitest/hooks/test'
 require 'minitest/rg'
@@ -16,9 +16,7 @@ require 'sequel'
 ENV['RACK_ENV'] = 'test'
 require './config/environment'
 
-module Types
-  include Dry::Types.module
-end
+require './lib/types_for_dry'
 require './lib/crossbeams_responses'
 require './lib/repo_base'
 

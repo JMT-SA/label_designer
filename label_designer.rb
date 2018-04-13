@@ -18,30 +18,14 @@ require 'dry-struct'
 require 'dry-validation'
 require 'net/http'
 require 'uri'
-# require './lib/db_connections'
 require 'pry' if ENV.fetch('RACK_ENV') == 'development'
-
-module Types
-  include Dry::Types.module
-
-  # Strips leading and trailing spaces from the input string.
-  # Returns nil if the new result is blank.
-  # Non-string input (including nil) passes through to be handled by the dry-validation schema.
-  StrippedString = Types::String.constructor do |str|
-    if str&.class&.name == 'String'
-      newstr = str.strip.chomp
-      newstr&.empty? ? nil : newstr
-    else
-      str
-    end
-  end
-end
 
 module Crossbeams
   class FrameworkError < StandardError
   end
 end
 
+require './lib/types_for_dry'
 require './lib/crossbeams_responses'
 require './lib/repo_base'
 require './lib/base_interactor'
@@ -92,24 +76,16 @@ class LabelDesigner < Roda
   plugin :csrf, raise: true, skip_if: ->(_) { ENV['RACK_ENV'] == 'test' } # , :skip => ['POST:/report_error'] # FIXME: Remove the +raise+ param when going live!
   plugin :json_parser
   plugin :rodauth do
-    db DB # .connection
+    db DB
     enable :login, :logout # , :change_password
     logout_route 'a_dummy_route' # Override 'logout' route so that we have control over it.
     # logout_notice_flash 'Logged out'
     session_key :user_id
-    login_param 'login_name' # 'user_name'
+    login_param 'login_name'
     login_label 'Login name'
-    login_column :login_name # :user_name
-    accounts_table :users
-    account_password_hash_column :password_hash # :hashed_password (This is old base64 version)
-    # require_bcrypt? false
-    # password_match? do |password| # Use legacy password hashing. Maybe change this to modern bcrypt using extra new pwd field?
-    #   account[:hashed_password] == Base64.encode64(password)
-    # end
-    # title_instance_variable :@title
-    # if DEMO_MODE
-    #   before_change_password{r.halt(404)}
-    # end
+    login_column :login_name
+    accounts_table :vw_active_users # Only active users can login.
+    account_password_hash_column :password_hash
   end
   Dir['./routes/*.rb'].each { |f| require f }
 

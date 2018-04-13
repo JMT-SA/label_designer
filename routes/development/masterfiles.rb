@@ -8,7 +8,7 @@ class LabelDesigner < Roda
     # USERS
     # --------------------------------------------------------------------------
     r.on 'users', Integer do |id|
-      interactor = DevelopmentApp::UserInteractor.new(current_user, {}, {}, {})
+      interactor = DevelopmentApp::UserInteractor.new(current_user, {}, { route_url: request.path }, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:users, id) do
@@ -54,7 +54,7 @@ class LabelDesigner < Roda
       end
     end
     r.on 'users' do
-      interactor = DevelopmentApp::UserInteractor.new(current_user, {}, {}, {})
+      interactor = DevelopmentApp::UserInteractor.new(current_user, {}, { route_url: request.path }, {})
       r.on 'new' do    # NEW
         if authorised?('masterfiles', 'new')
           show_partial_or_page(fetch?(r)) { Development::Masterfiles::User::New.call(remote: fetch?(r)) }
