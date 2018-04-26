@@ -24,25 +24,50 @@ class TestCoreRoutes < RouteTester
     assert last_response.body.include?('Labels')
   end
 
-  # ROUTES
-  # >> Rodauth...
-  # developer_documentation
-  # iframe
-  # logout
-  # versions
-  # not_found
-  # list
-  #  :id
-  #    with_params
-  #    multi
-  #    grid
-  #    grid_multi
-  #    nested_grid
-  # print_grid
-  # search
-  #   :id
-  #     run
-  #     grid
-  #     xls
-end
+  def test_iframe_content
+    authorise_pass!
+    pf = OpenStruct.new(url: '/path_to_content', program_function_name: 'A PF')
+    SecurityApp::MenuRepo.any_instance.stubs(:find_program_function).returns(pf)
+    get '/iframe/123', {}, 'rack.session' => { user_id: 1 }
 
+    assert last_response.ok?
+    assert last_response.body.include?('<iframe')
+  end
+
+  def test_logout
+    authorise_pass!
+    get '/logout', {}, 'rack.session' => { user_id: 1 }
+
+    assert last_response.redirect?
+    follow_redirect!
+    assert last_response.ok?
+    assert last_response.body.include?('Login')
+  end
+
+  def test_versions
+    authorise_pass!
+    get '/versions', {}, 'rack.session' => { user_id: 1 }
+
+    assert last_response.ok?
+    assert last_response.body.include?('Application')
+    assert last_response.body.include?('Crossbeams::Layout')
+    assert last_response.body.include?('Crossbeams::Dataminer')
+    assert last_response.body.include?('Crossbeams::LabelDesigner')
+    assert last_response.body.include?('Roda::DataGrid')
+    assert last_response.body.include?('AG-Grid')
+    assert last_response.body.include?('Selectr')
+    assert last_response.body.include?('Sortable')
+    assert last_response.body.include?('Konva')
+    assert last_response.body.include?('Lodash')
+    assert last_response.body.include?('Multi')
+    assert last_response.body.include?('Sweet Alert2')
+  end
+
+  def test_not_found
+    authorise_pass!
+    get '/not_found', {}, 'rack.session' => { user_id: 1 }
+
+    assert last_response.not_found?
+    assert last_response.body.include?('The requested resource was not found')
+  end
+end
