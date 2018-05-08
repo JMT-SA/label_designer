@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module LabelApp
-  class MasterListRepo < RepoBase
+  class MasterListRepo < BaseRepo
     build_for_select :master_lists,
       # label: :description,
       value: :description,

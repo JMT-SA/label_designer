@@ -13,7 +13,7 @@ require 'pry' if ENV.fetch('RACK_ENV') == 'development'
 
 require './lib/types_for_dry'
 require './lib/crossbeams_responses'
-require './lib/repo_base'
+require './lib/base_repo'
 require './lib/base_interactor'
 require './lib/base_service'
 require './lib/local_store' # Will only work for processes running from one dir.
