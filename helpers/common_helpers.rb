@@ -14,12 +14,25 @@ module CommonHelpers
   end
 
   def show_partial_or_page(partial, &block)
-    @layout = block.yield
-    @layout.add_csrf_tag(csrf_tag)
-    if partial
-      @layout.render
+    page = stashed_page
+    if page
+      show_page { page }
+    elsif partial
+      show_partial(&block)
     else
-      view('crossbeams_layout_page')
+      show_page(&block)
+    end
+  end
+
+  def re_show_form(route, res, url: nil, &block)
+    form = block.yield
+    if fetch?(route)
+      content = show_partial { form }
+      update_dialog_content(content: content, error: res.message)
+    else
+      flash[:error] = res.message
+      stash_page(form)
+      route.redirect url || '/'
     end
   end
 
@@ -79,13 +92,23 @@ module CommonHelpers
     @current_user ||= DevelopmentApp::UserRepo.new.find(:users, DevelopmentApp::User, session[:user_id])
   end
 
-  def authorised?(programs, sought_permission)
-    return false unless current_user
-    prog_repo = SecurityApp::MenuRepo.new
-    prog_repo.authorise?(current_user, Array(programs), sought_permission)
+  def store_current_functional_area(functional_area_name)
+    @functional_area_id = SecurityApp::MenuRepo.new.functional_area_id_for_name(functional_area_name)
   end
 
-  def auth_blocked?(programs, sought_permission)
+  def current_functional_area
+    @functional_area_id
+  end
+
+  def authorised?(programs, sought_permission, functional_area_id = nil)
+    return false unless current_user
+    functional_area_id ||= current_functional_area
+    prog_repo = SecurityApp::MenuRepo.new
+    prog_repo.authorise?(current_user, Array(programs), sought_permission, functional_area_id)
+  end
+
+  def auth_blocked?(functional_area_name, programs, sought_permission)
+    store_current_functional_area(functional_area_name)
     !authorised?(programs, sought_permission)
   end
 
@@ -97,7 +120,11 @@ module CommonHelpers
   end
 
   def redirect_to_last_grid(route)
-    route.redirect session[:last_grid_url]
+    if fetch?(route)
+      redirect_via_json(session[:last_grid_url])
+    else
+      route.redirect session[:last_grid_url]
+    end
   end
 
   def redirect_via_json_to_last_grid

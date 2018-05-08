@@ -16,22 +16,16 @@ class LabelDesigner < Roda
       end
 
       r.on 'edit' do   # EDIT
-        if authorised?('masterfiles', 'edit')
-          show_partial { Development::Masterfiles::User::Edit.call(id) }
-        else
-          dialog_permission_error
-        end
+        raise Crossbeams::AuthorizationError unless authorised?('masterfiles', 'edit')
+        show_partial { Development::Masterfiles::User::Edit.call(id) }
       end
       r.is do
         r.get do       # SHOW
-          if authorised?('masterfiles', 'read')
-            show_partial { Development::Masterfiles::User::Show.call(id) }
-          else
-            dialog_permission_error
-          end
+          raise Crossbeams::AuthorizationError unless authorised?('masterfiles', 'read')
+          show_partial { Development::Masterfiles::User::Show.call(id) }
         end
         r.patch do     # UPDATE
-          response['Content-Type'] = 'application/json'
+          return_json_response
           res = interactor.update_user(id, params[:user])
           if res.success
             update_grid_row(id,
@@ -47,7 +41,8 @@ class LabelDesigner < Roda
           end
         end
         r.delete do    # DELETE
-          response['Content-Type'] = 'application/json'
+          return_json_response
+          raise Crossbeams::AuthorizationError unless authorised?('masterfiles', 'delete')
           res = interactor.delete_user(id)
           delete_grid_row(id, notice: res.message)
         end
@@ -56,34 +51,19 @@ class LabelDesigner < Roda
     r.on 'users' do
       interactor = DevelopmentApp::UserInteractor.new(current_user, {}, { route_url: request.path }, {})
       r.on 'new' do    # NEW
-        if authorised?('masterfiles', 'new')
-          show_partial_or_page(fetch?(r)) { Development::Masterfiles::User::New.call(remote: fetch?(r)) }
-        else
-          fetch?(r) ? dialog_permission_error : show_unauthorised
-        end
+        raise Crossbeams::AuthorizationError unless authorised?('masterfiles', 'new')
+        show_partial_or_page(fetch?(r)) { Development::Masterfiles::User::New.call(remote: fetch?(r)) }
       end
       r.post do        # CREATE
         res = interactor.create_user(params[:user])
         if res.success
           flash[:notice] = res.message
-          if fetch?(r)
-            redirect_via_json_to_last_grid
-          else
-            redirect_to_last_grid(r)
-          end
-        elsif fetch?(r)
-          content = show_partial do
+          redirect_to_last_grid(r)
+        else
+          re_show_form(r, res, url: '/development/masterfiles/users/new') do
             Development::Masterfiles::User::New.call(form_values: params[:user],
                                                      form_errors: res.errors,
-                                                     remote: true)
-          end
-          update_dialog_content(content: content, error: res.message)
-        else
-          flash[:error] = res.message
-          show_page do
-            Development::Masterfiles::User::New.call(form_values: params[:security_group],
-                                                     form_errors: res.errors,
-                                                     remote: false)
+                                                     remote: fetch?(r))
           end
         end
       end

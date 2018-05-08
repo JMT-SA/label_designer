@@ -1,12 +1,9 @@
 # frozen_string_literal: true
 
+# rubocop:disable Metrics/ClassLength
 # rubocop:disable Metrics/BlockLength
 
 class LabelDesigner < Roda
-  # def authorised?(key, permission)
-  #   true
-  # end
-
   route 'labels', 'labels' do |r|
     # LABELS
     # --------------------------------------------------------------------------
@@ -19,11 +16,8 @@ class LabelDesigner < Roda
       end
 
       r.on 'edit' do   # EDIT
-        if authorised?('designs', 'edit')
-          view(inline: label_designer_page(id: id))
-        else
-          dialog_permission_error
-        end
+        raise Crossbeams::AuthorizationError unless authorised?('designs', 'edit')
+        view(inline: label_designer_page(id: id))
       end
 
       r.on 'clone' do
@@ -104,7 +98,7 @@ class LabelDesigner < Roda
       end
 
       r.on 'send_preview', String do |screen_or_print|
-        response['Content-Type'] = 'application/json'
+        return_json_response
         res = interactor.do_preview(id, screen_or_print, params[:label])
         if res.success
           filepath = Tempfile.open([res.instance.fname, '.png'], 'public/tempfiles') do |f|
@@ -148,14 +142,11 @@ class LabelDesigner < Roda
 
       r.is do
         r.get do       # SHOW
-          if authorised?('designs', 'read')
-            show_partial { Labels::Labels::Label::Show.call(id) }
-          else
-            dialog_permission_error
-          end
+          raise Crossbeams::AuthorizationError unless authorised?('designs', 'read')
+          show_partial { Labels::Labels::Label::Show.call(id) }
         end
         r.patch do     # UPDATE
-          response['Content-Type'] = 'application/json'
+          return_json_response
           res = interactor.update_label(id, params[:label])
           if res.success
             grid_cols = res.instance.to_h
@@ -177,7 +168,8 @@ class LabelDesigner < Roda
         end
 
         r.delete do    # DELETE
-          response['Content-Type'] = 'application/json'
+          return_json_response
+          raise Crossbeams::AuthorizationError unless authorised?('designs', 'delete')
           res = interactor.delete_label(id)
           delete_grid_row(id, notice: res.message)
         end
@@ -186,11 +178,8 @@ class LabelDesigner < Roda
     r.on 'labels' do
       interactor = LabelApp::LabelInteractor.new({}, {}, {}, {})
       r.on 'new' do    # NEW
-        if authorised?('designs', 'new')
-          show_partial_or_page(fetch?(r)) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
-        else
-          fetch?(r) ? dialog_permission_error : show_unauthorised
-        end
+        raise Crossbeams::AuthorizationError unless authorised?('designs', 'new')
+        show_partial_or_page(fetch?(r)) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
       end
       r.post do        # CREATE
         res = nil
@@ -212,23 +201,23 @@ class LabelDesigner < Roda
               r.redirect "/label_designer?#{qs}"
             end
           end
-        elsif fetch?(r)
-          content = show_partial do
-            Labels::Labels::Label::New.call(form_values: params[:label],
-                                            form_errors: res.errors,
-                                            remote: true)
-          end
-          update_dialog_content(content: content, error: res.message)
         else
-          flash[:error] = res.message
-          show_page do
+          re_show_form(r, res, url: '/labels/labels/labels/new') do
             Labels::Labels::Label::New.call(form_values: params[:label],
                                             form_errors: res.errors,
-                                            remote: false)
+                                            remote: fetch?(r))
           end
         end
       end
     end
   end
+
+  # GET /labels/publish
+  route 'publish', 'labels' do |r|
+    r.is do
+      view(inline: 'Publish labels - select, send to server, choose server...')
+    end
+  end
 end
+# rubocop:enable Metrics/ClassLength
 # rubocop:enable Metrics/BlockLength

@@ -41,11 +41,13 @@ class RouteTester < Minitest::Test
 
   def authorise_pass!
     DevelopmentApp::UserRepo.any_instance.stubs(:find).returns(base_user)
+    SecurityApp::MenuRepo.any_instance.stubs(:functional_area_id_for_name).returns(1)
     SecurityApp::MenuRepo.any_instance.stubs(:authorise?).returns(true)
   end
 
   def authorise_fail!
     DevelopmentApp::UserRepo.any_instance.stubs(:find).returns(base_user)
+    SecurityApp::MenuRepo.any_instance.stubs(:functional_area_id_for_name).returns(1)
     SecurityApp::MenuRepo.any_instance.stubs(:authorise?).returns(false)
   end
 
@@ -121,6 +123,11 @@ class RouteTester < Minitest::Test
     follow_redirect!
     assert last_response.ok?
     assert last_response.body.include?('FAIL')
+  end
+
+  def expect_bad_page(content: 'FAIL')
+    assert last_response.ok?
+    assert_match(/#{content}/, last_response.body)
   end
 
   def expect_bland_page(content: 'HTML_PAGE')

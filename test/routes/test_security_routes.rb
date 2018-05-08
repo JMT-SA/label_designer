@@ -107,9 +107,14 @@ class TestSecurityRoutes < RouteTester
     ensure_exists!(INTERACTOR)
     SecurityApp::FunctionalAreaInteractor.any_instance.stubs(:create_functional_area).returns(bad_response)
     Security::FunctionalAreas::FunctionalArea::New.stub(:call, bland_page) do
+      post_as_fetch 'security/functional_areas/functional_areas', {}, 'rack.session' => { user_id: 1, last_grid_url: '/' }
+    end
+    expect_bad_page
+
+    Security::FunctionalAreas::FunctionalArea::New.stub(:call, bland_page) do
       post 'security/functional_areas/functional_areas', {}, 'rack.session' => { user_id: 1, last_grid_url: '/' }
     end
-    expect_bland_page
+    expect_bad_redirect(url: '/security/functional_areas/functional_areas/new')
   end
 
   def test_create_remotely_fail
