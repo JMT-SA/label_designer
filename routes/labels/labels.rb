@@ -179,7 +179,7 @@ class LabelDesigner < Roda
       interactor = LabelApp::LabelInteractor.new({}, {}, {}, {})
       r.on 'new' do    # NEW
         raise Crossbeams::AuthorizationError unless authorised?('designs', 'new')
-        show_partial_or_page(fetch?(r)) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
+        show_partial_or_page(r) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
       end
       r.post do        # CREATE
         res = nil

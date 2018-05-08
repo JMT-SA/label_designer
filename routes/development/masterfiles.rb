@@ -52,7 +52,7 @@ class LabelDesigner < Roda
       interactor = DevelopmentApp::UserInteractor.new(current_user, {}, { route_url: request.path }, {})
       r.on 'new' do    # NEW
         raise Crossbeams::AuthorizationError unless authorised?('masterfiles', 'new')
-        show_partial_or_page(fetch?(r)) { Development::Masterfiles::User::New.call(remote: fetch?(r)) }
+        show_partial_or_page(r) { Development::Masterfiles::User::New.call(remote: fetch?(r)) }
       end
       r.post do        # CREATE
         res = interactor.create_user(params[:user])
