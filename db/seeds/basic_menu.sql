@@ -47,6 +47,15 @@ VALUES ((SELECT id FROM programs WHERE program_name = 'Generators' AND functiona
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
 VALUES ((SELECT id FROM programs WHERE program_name = 'Generators' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Development')), 'New Scaffold', '/development/generators/scaffolds/new', 1);
 
+INSERT INTO programs (program_name, program_sequence, functional_area_id)
+VALUES ('Logging', 1, (SELECT id FROM functional_areas WHERE functional_area_name = 'Development'));
+
+INSERT INTO programs_webapps (program_id, webapp)
+VALUES ((SELECT id FROM programs WHERE program_name = 'Logging' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Development')), 'LabelDesigner');
+
+INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
+VALUES ((SELECT id FROM programs WHERE program_name = 'Logging' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Development')), 'Search logged actions', '/search/logged_actions', 1);
+
 -- INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
 -- VALUES ((SELECT id FROM programs WHERE program_name = 'Generators' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Development')), 'Documentation', '/developer_documentation/start', 2);
 

@@ -5,7 +5,7 @@ class LabelDesigner < Roda
     # PRINTERS
     # --------------------------------------------------------------------------
     r.on 'printers', Integer do |id|
-      interactor = LabelApp::PrinterInteractor.new({}, {}, {}, {})
+      interactor = LabelApp::PrinterInteractor.new(current_user, {}, { route_url: request.path }, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:printers, id) do
@@ -18,7 +18,7 @@ class LabelDesigner < Roda
     end
 
     r.on 'printers' do
-      interactor = LabelApp::PrinterInteractor.new({}, {}, {}, {})
+      interactor = LabelApp::PrinterInteractor.new(current_user, {}, { route_url: request.path }, {})
       r.on 'refresh' do
         res = interactor.refresh_printers
         if res.success
@@ -26,11 +26,7 @@ class LabelDesigner < Roda
         else
           flash[:error] = res.message
         end
-        if fetch?(r)
-          redirect_via_json_to_last_grid
-        else
-          redirect_to_last_grid(r)
-        end
+        redirect_to_last_grid(r)
       end
     end
   end

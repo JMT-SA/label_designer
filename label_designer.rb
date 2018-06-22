@@ -177,7 +177,10 @@ class LabelDesigner < Roda
           changeset = { label_json: params[:label],
                         variable_xml: params[:XMLString],
                         png_image: Sequel.blob(image_from_param(params[:imageString])) }
-          repo.update_label(id, changeset)
+          DB.transaction do
+            repo.update_label(id, changeset)
+            repo.log_action(user_name: current_user.user_name, context: 'update label', route_url: request.path)
+          end
 
           flash[:notice] = 'Updated'
           response['Content-Type'] = 'application/json'
@@ -200,7 +203,10 @@ class LabelDesigner < Roda
                       sub_category: extra_attributes[:sub_category],
                       variable_xml: params[:XMLString],
                       png_image: Sequel.blob(image_from_param(params[:imageString])) }
-        repo.create_label(changeset)
+        DB.transaction do
+          repo.create_label(changeset)
+          repo.log_action(user_name: current_user.user_name, context: 'create label', route_url: request.path)
+        end
         session[:new_label_attributes] = nil
         flash[:notice] = 'Created'
         response['Content-Type'] = 'application/json'

@@ -8,12 +8,8 @@ module LabelApp
       @repo ||= LabelRepo.new
     end
 
-    def label(cached = true)
-      if cached
-        @label ||= repo.find_label(@id)
-      else
-        @label = repo.find_label(@id)
-      end
+    def label(id)
+      repo.find_label(id)
     end
 
     def validate_label_params(params)
@@ -37,29 +33,41 @@ module LabelApp
     def create_label(params)
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
-      @id = repo.create_label(res)
-      success_response("Created label #{label.label_name}",
-                       label)
+      id = nil
+      DB.transaction do
+        id = repo.create_label(res)
+        log_transaction
+      end
+      instance = label(id)
+      success_response("Created label #{instance.label_name}",
+                       instance)
+    rescue Sequel::UniqueConstraintViolation
+      validation_failed_response(OpenStruct.new(messages: { label_name: ['This label already exists'] }))
     end
 
     def update_label(id, params)
-      @id = id
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
-      repo.update_label(id, res)
-      success_response("Updated label #{label.label_name}",
-                       label(false))
+      DB.transaction do
+        repo.update_label(id, res)
+        log_transaction
+      end
+      instance = label(id)
+      success_response("Updated label #{instance.label_name}",
+                       instance)
     end
 
     def delete_label(id)
-      @id = id
-      name = label.label_name
-      if label.multi_label
-        repo.delete_label_with_sub_labels(id)
-      else
-        repo.delete_label(id)
+      instance = label(id)
+      DB.transaction do
+        if instance.multi_label
+          repo.delete_label_with_sub_labels(id)
+        else
+          repo.delete_label(id)
+        end
+        log_transaction
       end
-      success_response("Deleted label #{name}")
+      success_response("Deleted label #{instance.label_name}")
     end
 
     def link_multi_label(id, sub_label_ids)
@@ -72,8 +80,7 @@ module LabelApp
     end
 
     def can_preview?(id)
-      @id = id
-      if label.multi_label && repo.no_sub_labels(id).zero?
+      if label(id).multi_label && repo.no_sub_labels(id).zero?
         failed_response('This multi-label does not have any linked sub-labels')
       else
         success_response('ok')
@@ -83,15 +90,15 @@ module LabelApp
     def prepare_clone_label(id, params)
       res = validate_clone_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
-      @id = id
+      instance = label(id)
       attrs = {
         label_name: params[:label_name],
-        container_type: label.container_type,
-        commodity: label.commodity,
-        market: label.market,
-        language: label.language,
-        category: label.category,
-        sub_category: label.sub_category
+        container_type: instance.container_type,
+        commodity: instance.commodity,
+        market: instance.market,
+        language: instance.language,
+        category: instance.category,
+        sub_category: instance.sub_category
       }
       success_response('Ok', attrs)
     end
@@ -99,7 +106,7 @@ module LabelApp
     def background_images(id)
       res = can_preview?(id)
       return res unless res.success
-      ids = if label.multi_label
+      ids = if label(id).multi_label
               repo.sub_label_ids(id)
             else
               [id]
@@ -108,13 +115,13 @@ module LabelApp
     end
 
     def png_image(id)
-      label = repo.find_label(id)
-      label.png_image
+      instance = label(id)
+      instance.png_image
     end
 
     def label_zip(id)
-      label = repo.find_label(id)
-      make_label_zip(label)
+      instance = label(id)
+      make_label_zip(instance)
     end
 
     def make_label_zip(label, vars = nil)
@@ -176,12 +183,12 @@ module LabelApp
     end
 
     def do_preview(id, screen_or_print, vars)
-      label = repo.find_label(id)
+      instance = label(id)
       # Store the input variables:
       # repo.update_label(id, sample_data: "{#{vars.map { |k, v| %("#{k}":"#{v}") }.join(',')}}")
       repo.update_label(id, sample_data: repo.hash_to_jsonb_str(vars))
 
-      fname, binary_data = make_label_zip(label, vars)
+      fname, binary_data = make_label_zip(instance, vars)
       File.open('zz.zip', 'w') { |f| f.puts binary_data }
 
       mes_repo = MesServerRepo.new

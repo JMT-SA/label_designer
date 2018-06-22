@@ -8,7 +8,7 @@ class LabelDesigner < Roda
     # LABELS
     # --------------------------------------------------------------------------
     r.on 'labels', Integer do |id|
-      interactor = LabelApp::LabelInteractor.new({}, {}, {}, {})
+      interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:labels, id) do
@@ -16,7 +16,7 @@ class LabelDesigner < Roda
       end
 
       r.on 'edit' do   # EDIT
-        raise Crossbeams::AuthorizationError unless authorised?('designs', 'edit')
+        check_auth!('designs', 'edit')
         view(inline: label_designer_page(id: id))
       end
 
@@ -142,7 +142,7 @@ class LabelDesigner < Roda
 
       r.is do
         r.get do       # SHOW
-          raise Crossbeams::AuthorizationError unless authorised?('designs', 'read')
+          check_auth!('designs', 'read')
           show_partial { Labels::Labels::Label::Show.call(id) }
         end
         r.patch do     # UPDATE
@@ -169,16 +169,16 @@ class LabelDesigner < Roda
 
         r.delete do    # DELETE
           return_json_response
-          raise Crossbeams::AuthorizationError unless authorised?('designs', 'delete')
+          check_auth!('designs', 'delete')
           res = interactor.delete_label(id)
           delete_grid_row(id, notice: res.message)
         end
       end
     end
     r.on 'labels' do
-      interactor = LabelApp::LabelInteractor.new({}, {}, {}, {})
+      interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
       r.on 'new' do    # NEW
-        raise Crossbeams::AuthorizationError unless authorised?('designs', 'new')
+        check_auth!('designs', 'new')
         show_partial_or_page(r) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
       end
       r.post do        # CREATE

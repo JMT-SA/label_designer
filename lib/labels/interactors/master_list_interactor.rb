@@ -6,12 +6,8 @@ module LabelApp
       @repo ||= MasterListRepo.new
     end
 
-    def master_list(cached = true)
-      if cached
-        @master_list ||= repo.find_master_list(@id)
-      else
-        @master_list = repo.find_master_list(@id)
-      end
+    def master_list(id)
+      repo.find_master_list(id)
     end
 
     def validate_master_list_params(params)
@@ -21,24 +17,36 @@ module LabelApp
     def create_master_list(params)
       res = validate_master_list_params(params)
       return validation_failed_response(res) unless res.messages.empty?
-      @id = repo.create_master_list(res)
-      success_response("Created master list #{master_list.list_type}",
-                       master_list)
+      id = nil
+      DB.transaction do
+        id = repo.create_master_list(res)
+        log_transaction
+      end
+      instance = master_list(id)
+      success_response("Created master list #{instance.list_type}",
+                       instance)
+    rescue Sequel::UniqueConstraintViolation
+      validation_failed_response(OpenStruct.new(messages: { list_type: ['This master list already exists'] }))
     end
 
     def update_master_list(id, params)
-      @id = id
       res = validate_master_list_params(params)
       return validation_failed_response(res) unless res.messages.empty?
-      repo.update_master_list(id, res)
-      success_response("Updated master list #{master_list.list_type}",
-                       master_list(false))
+      DB.transaction do
+        repo.update_master_list(id, res)
+        log_transaction
+      end
+      instance = master_list(id)
+      success_response("Updated master list #{instance.list_type}",
+                       instance)
     end
 
     def delete_master_list(id)
-      @id = id
-      name = master_list.list_type
-      repo.delete_master_list(id)
+      name = master_list(id).list_type
+      DB.transaction do
+        repo.delete_master_list(id)
+        log_transaction
+      end
       success_response("Deleted master list #{name}")
     end
   end

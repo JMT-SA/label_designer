@@ -44,9 +44,9 @@
     :is_delete: true
     :popup: true
     :hide_if_true: part_of_multi_label
-  # - :url: /labels/labels/labels/$:id$/download
-  #   :text: download
-  #   :icon: fa-download
+  - :url: /labels/labels/labels/$:id$/download
+    :text: download
+    :icon: fa-download
   - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$"
     :text: select sub-labels
     :icon: fa-list
