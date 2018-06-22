@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.1.4] - 2018-06-22
+- Upgrade framework.
+- AG-Grid version 18.
+
 ## [0.1.3] - 2018-04-09
 ### Changed
 - Audit changes to labels table.
