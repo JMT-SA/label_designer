@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+# rubocop:disable Metrics/ClassLength
+
 module LabelApp
   class LabelInteractor < BaseInteractor
     def repo
@@ -191,6 +193,18 @@ module LabelApp
       end
     end
 
+    # Create a zip file of zipped labels for publishing.
+    def make_combined_zip(label_ids)
+      stringio = Zip::OutputStream.write_buffer do |zio|
+        repo.all(:labels, LabelApp::Label, id: label_ids).each do |sub_label|
+          fname, binary_data = make_label_zip(sub_label)
+          zio.put_next_entry("#{fname}.zip")
+          zio.write binary_data
+        end
+      end
+      ["ld_publish_#{Date.today.strftime('%Y_%m_%d')}", stringio.string]
+    end
+
     # def do_preview_full(id, screen_or_print)
     #   response['Content-Type'] = 'application/json'
     #   begin
@@ -247,3 +261,4 @@ module LabelApp
     # end
   end
 end
+# rubocop:enable Metrics/ClassLength

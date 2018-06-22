@@ -13,13 +13,36 @@ module CommonHelpers
     @layout.render
   end
 
-  def show_partial_or_page(partial, &block)
-    @layout = block.yield
-    @layout.add_csrf_tag(csrf_tag)
-    if partial
-      @layout.render
+  def show_partial_or_page(route, &block)
+    page = stashed_page
+    if page
+      show_page { page }
+    elsif fetch?(route)
+      show_partial(&block)
     else
-      view('crossbeams_layout_page')
+      show_page(&block)
+    end
+  end
+
+  def re_show_form(route, res, url: nil, &block)
+    form = block.yield
+    if fetch?(route)
+      content = show_partial { form }
+      update_dialog_content(content: content, error: res.message)
+    else
+      flash[:error] = res.message
+      stash_page(form)
+      route.redirect url || '/'
+    end
+  end
+
+  def show_page_or_update_dialog(route, res, &block)
+    if fetch?(route)
+      content = show_partial(&block)
+      update_dialog_content(content: content, notice: res.message)
+    else
+      flash[:notice] = res.message
+      show_page(&block)
     end
   end
 
@@ -79,30 +102,36 @@ module CommonHelpers
     @current_user ||= DevelopmentApp::UserRepo.new.find(:users, DevelopmentApp::User, session[:user_id])
   end
 
-  def authorised?(programs, sought_permission)
-    return false unless current_user
-    prog_repo = SecurityApp::MenuRepo.new
-    prog_repo.authorise?(current_user, Array(programs), sought_permission)
+  def store_current_functional_area(functional_area_name)
+    @functional_area_id = SecurityApp::MenuRepo.new.functional_area_id_for_name(functional_area_name)
   end
 
-  def auth_blocked?(programs, sought_permission)
+  def current_functional_area
+    @functional_area_id
+  end
+
+  def authorised?(programs, sought_permission, functional_area_id = nil)
+    return false unless current_user
+    functional_area_id ||= current_functional_area
+    prog_repo = SecurityApp::MenuRepo.new
+    prog_repo.authorise?(current_user, Array(programs), sought_permission, functional_area_id)
+  end
+
+  def auth_blocked?(functional_area_name, programs, sought_permission)
+    store_current_functional_area(functional_area_name)
     !authorised?(programs, sought_permission)
   end
 
-  def show_unauthorised
-    response.status = 404
-    view(inline: "<div class='crossbeams-warning-note'><strong>Warning</strong><br>You do not have permission for this task</div>")
-  end
-
-  def can_do_dataminer_admin?
-    # TODO: what decides that user can do admin? security role on dm program?
-    # program + user -> program_users -> security_group -> security_permissions
-    current_user && authorised?(:data_miner, :admin)
-    # current_user # && current_user[:department_name] == 'IT'
+  def check_auth!(programs, sought_permission, functional_area_id = nil)
+    raise Crossbeams::AuthorizationError unless authorised?(programs, sought_permission, functional_area_id)
   end
 
   def redirect_to_last_grid(route)
-    route.redirect session[:last_grid_url]
+    if fetch?(route)
+      redirect_via_json(session[:last_grid_url])
+    else
+      route.redirect session[:last_grid_url]
+    end
   end
 
   def redirect_via_json_to_last_grid
@@ -117,27 +146,32 @@ module CommonHelpers
     { loadNewUrl: url }.to_json
   end
 
-  def show_json_notice(message)
-    { flash: { notice: message } }.to_json
-  end
-
-  def show_json_error(message)
-    { flash: { error: message } }.to_json
+  def make_id_correct_type(id_in)
+    if id_in.is_a?(String)
+      id_in.scan(/\D/).empty? ? id_in.to_i : id_in
+    else
+      id_in
+    end
   end
 
   def update_grid_row(id, changes:, notice: nil)
-    res = { updateGridInPlace: { id: id.to_i, changes: changes } }
+    res = { updateGridInPlace: { id: make_id_correct_type(id), changes: changes } }
     res[:flash] = { notice: notice } if notice
     res.to_json
   end
 
-  def delete_grid_row(id_in, notice: nil)
-    id = if id_in.is_a?(String)
-           id_in.scan(/\D/).empty? ? id_in.to_i : id_in
-         else
-           id_in
-         end
-    res = { removeGridRowInPlace: { id: id } }
+  # Create a list of attributes for passing to the +update_grid_row+ method.
+  #
+  # @param instance [Hash/Dry-type] the instance.
+  # @param row_keys [Array] the keys to attributes of the instance.
+  # @param extras [Hash] extra key/value combinations to add/replace attributes.
+  # @return [Hash] the chosen attributes.
+  def select_attributes(instance, row_keys, extras = {})
+    Hash[row_keys.map { |k| [k, instance[k]] }].merge(extras)
+  end
+
+  def delete_grid_row(id, notice: nil)
+    res = { removeGridRowInPlace: { id: make_id_correct_type(id) } }
     res[:flash] = { notice: notice } if notice
     res.to_json
   end
@@ -147,15 +181,6 @@ module CommonHelpers
     res[:flash] = { notice: notice } if notice
     res[:flash] = { error: error } if error
     res.to_json
-  end
-
-  def show_json_exception(err)
-    { exception: err.class.name, flash: { error: "An error occurred: #{err.message}" } }.to_json
-  end
-
-  def handle_json_error(err)
-    response.status = 500
-    { exception: err.class.name, flash: { error: "An error occurred: #{err.message}" } }.to_json
   end
 
   def json_replace_select_options(dom_id, options_array, message = nil)
@@ -195,31 +220,12 @@ module CommonHelpers
     res.to_json
   end
 
-  def handle_error(err)
-    response.status = 500
-    view(inline: "<div class='crossbeams-error-note'><strong>Error</strong><br>#{err}</div>")
-  end
-
   def handle_not_found(route)
     if request.xhr?
       "<div class='crossbeams-error-note'><strong>Error</strong><br>The requested resource was not found.</div>"
     else
       route.redirect '/not_found'
     end
-  end
-
-  def dialog_warning(message)
-    "<div class='crossbeams-warning-note'><strong>Warning</strong><br>#{message}</div>"
-  end
-
-  def dialog_permission_error
-    response.status = 404
-    "<div class='crossbeams-warning-note'><strong>Warning</strong><br>You do not have permission for this task</div>"
-  end
-
-  def dialog_error(err, state = nil)
-    response.status = 500
-    "<div class='crossbeams-error-note'><strong>#{state || 'ERROR'}</strong><br>#{err}</div>"
   end
 
   def stash_page(value)
@@ -230,5 +236,10 @@ module CommonHelpers
   def stashed_page
     store = LocalStore.new(current_user.id)
     store.read_once(:stashed_page)
+  end
+
+  def webquery_url_for(report_id)
+    port = request.port == '80' || request.port.nil? ? '' : ":#{request.port}"
+    "http://#{request.host}#{port}/webquery/#{report_id}"
   end
 end

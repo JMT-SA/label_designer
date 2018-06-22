@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module LabelApp
-  class LabelRepo < RepoBase
+  class LabelRepo < BaseRepo
     crud_calls_for :labels, name: :label, wrapper: Label
     crud_calls_for :multi_labels, name: :multi_label
 

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module LabelApp
-  class PrinterRepo < RepoBase
+  class PrinterRepo < BaseRepo
     build_for_select :printers,
                      label: %i[printer_name printer_type],
                      value: :id,

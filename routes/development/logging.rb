@@ -15,18 +15,24 @@ class LabelDesigner < Roda
 
       r.is do
         r.get do       # SHOW
-          if authorised?('logging', 'read')
-            # using id of logged_action, build a grid of changes.
-            show_page { Development::Logging::LoggedAction::Show.call(id) }
-          else
-            show_unauthorised
-          end
+          check_auth!('logging', 'read')
+          # using id of logged_action, build a grid of changes.
+          show_page { Development::Logging::LoggedAction::Show.call(id) }
         end
       end
 
       r.on 'grid' do
-        response['Content-Type'] = 'application/json'
-        interactor.logged_actions_grid(id)
+        return_json_response
+        begin
+          interactor.logged_actions_grid(id)
+        rescue StandardError => e
+          show_json_exception(e)
+        end
+      end
+
+      r.on 'diff' do
+        left, right = interactor.diff_action(id)
+        show_partial { Development::Logging::LoggedAction::Diff.call(id, left, right) }
       end
     end
   end

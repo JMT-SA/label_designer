@@ -1,6 +1,6 @@
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-dataminer.git
-  revision: 79495b6ff1ad2241a30972b04d1d23be5294a5e7
+  revision: 52c9f91d522b547637b59c503f1a35a701dc4ed0
   specs:
     crossbeams-dataminer (0.1.4)
       pg_query (= 1.0.2)
@@ -16,16 +16,17 @@ GIT
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-layout.git
-  revision: 80deab0475857b3dc76fdeb69f6d37bb47b56744
+  revision: 015b687e8a0fe40b217f571e21e819a4914285c9
   specs:
-    crossbeams-layout (0.1.4)
+    crossbeams-layout (0.1.6)
+      diffy
       rouge
 
 GIT
   remote: https://github.com/NoSoft-SA/roda-data_grid.git
-  revision: c69bca2dbaa6c9d8bde7bc105be5f67e8ed8cfe2
+  revision: ecc64b9e6c4b9eefb88b049b78ea4756fd19cd3c
   specs:
-    roda-data_grid (0.1.2)
+    roda-data_grid (0.1.4)
       axlsx
       crossbeams-dataminer
       crossbeams-layout
@@ -59,6 +60,7 @@ GEM
     clipboard (1.1.1)
     coderay (1.1.2)
     concurrent-ruby (1.0.5)
+    diffy (3.2.1)
     dotenv (2.2.2)
     dry-configurable (0.7.0)
       concurrent-ruby (~> 1.0)
@@ -118,7 +120,7 @@ GEM
     net-scp (1.2.1)
       net-ssh (>= 2.6.5)
     net-ssh (4.2.0)
-    nokogiri (1.8.2)
+    nokogiri (1.8.3)
       mini_portile2 (~> 2.3.0)
     parallel (1.12.1)
     parser (2.5.1.0)
@@ -139,7 +141,7 @@ GEM
       pry (~> 0.11)
       yard (~> 0.9.11)
     puma (3.11.4)
-    rack (2.0.4)
+    rack (2.0.5)
     rack-console (1.3.1)
       rack (>= 1.1)
       rack-test
@@ -154,7 +156,7 @@ GEM
       ffi (>= 0.5.0, < 2)
     rerun (0.13.0)
       listen (~> 3.0)
-    roda (3.6.0)
+    roda (3.9.0)
       rack
     roda-symbolized_params (0.0.2)
     rodauth (1.16.0)
