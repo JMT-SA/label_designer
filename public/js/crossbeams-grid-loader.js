@@ -177,9 +177,7 @@ const crossbeamsGridEvents = {
                 document.dispatchEvent(gridEvent);
               });
               const sortable = Array.from(dlgContent.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
-              if (sortable.length > 0) {
-                crossbeamsUtils.makeListSortable(sortable[0].dataset.sortablePrefix);
-              }
+              sortable.forEach((elem) => crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix, elem.dataset.sortableGroup))
             } else {
               console.log('Not sure what to do with this:', data);
             }
@@ -538,6 +536,9 @@ const crossbeamsGridFormatters = {
     // If items are hidden, the last item(s) could be separators.
     // Remove them here.
     items = _.dropRightWhile(items, ['value', '---']);
+    if (items.length === 0) {
+      return '';
+    }
     return `<button class='grid-context-menu' data-dom-grid-id='${params.context.domGridId}' data-row='${JSON.stringify(items)}'>&nbsp;<i class="fa fa-chevron-right blue"></i>&nbsp;</button>`;
   },
 
@@ -916,6 +917,13 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
           if (col[attr] === 'crossbeamsGridFormatters.hrefPromptFormatter') {
             newCol[attr] = crossbeamsGridFormatters.hrefPromptFormatter;
           }
+        } else if (attr === 'valueFormatter') {
+          if (col[attr] === 'crossbeamsGridFormatters.numberWithCommas2') {
+            newCol[attr] = crossbeamsGridFormatters.numberWithCommas2;
+          }
+          if (col[attr] === 'crossbeamsGridFormatters.numberWithCommas4') {
+            newCol[attr] = crossbeamsGridFormatters.numberWithCommas4;
+          }
         } else if (attr === 'cellEditor') {
           if (col[attr] === 'NumericCellEditor') {
             newCol[attr] = NumericCellEditor;
@@ -958,6 +966,11 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
         httpResult = JSON.parse(httpRequest.responseText);
         if (httpResult.exception) {
           crossbeamsUtils.alert({ prompt: httpResult.flash.error, type: 'error' });
+          if (httpResult.backtrace) {
+            console.log('==Backend Backtrace==');
+            console.info(httpResult.backtrace.join('\n'));
+          }
+          return null;
         }
         // var midLevelColumnDefs, detailColumnDefs;
         if (httpResult.nestedColumnDefs) {
@@ -983,6 +996,7 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
           crossbeamsGridEvents.makeColumnScrollList(gridOptions.context.domGridId, newColDefs);
         }
       }
+      return null;
     };
     httpRequest.send();
   };

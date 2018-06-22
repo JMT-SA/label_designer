@@ -6,7 +6,6 @@ gem 'dry-struct'
 gem 'dry-validation'
 gem 'nokogiri'
 gem 'pg'
-gem 'puma'
 gem 'rack_csrf'
 gem 'rake'
 gem 'roda'
@@ -52,4 +51,5 @@ group :development do
   gem 'pry-doc'
   gem 'rack-console'
   gem 'rerun'
+  gem 'puma'
 end

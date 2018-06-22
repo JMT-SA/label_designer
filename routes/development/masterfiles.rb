@@ -16,12 +16,12 @@ class LabelDesigner < Roda
       end
 
       r.on 'edit' do   # EDIT
-        raise Crossbeams::AuthorizationError unless authorised?('masterfiles', 'edit')
+        check_auth!('masterfiles', 'edit')
         show_partial { Development::Masterfiles::User::Edit.call(id) }
       end
       r.is do
         r.get do       # SHOW
-          raise Crossbeams::AuthorizationError unless authorised?('masterfiles', 'read')
+          check_auth!('masterfiles', 'read')
           show_partial { Development::Masterfiles::User::Show.call(id) }
         end
         r.patch do     # UPDATE
@@ -42,7 +42,7 @@ class LabelDesigner < Roda
         end
         r.delete do    # DELETE
           return_json_response
-          raise Crossbeams::AuthorizationError unless authorised?('masterfiles', 'delete')
+          check_auth!('masterfiles', 'delete')
           res = interactor.delete_user(id)
           delete_grid_row(id, notice: res.message)
         end
@@ -51,7 +51,7 @@ class LabelDesigner < Roda
     r.on 'users' do
       interactor = DevelopmentApp::UserInteractor.new(current_user, {}, { route_url: request.path }, {})
       r.on 'new' do    # NEW
-        raise Crossbeams::AuthorizationError unless authorised?('masterfiles', 'new')
+        check_auth!('masterfiles', 'new')
         show_partial_or_page(r) { Development::Masterfiles::User::New.call(remote: fetch?(r)) }
       end
       r.post do        # CREATE

@@ -15,7 +15,7 @@ class LabelDesigner < Roda
 
       r.is do
         r.get do       # SHOW
-          raise Crossbeams::AuthorizationError unless authorised?('logging', 'read')
+          check_auth!('logging', 'read')
           # using id of logged_action, build a grid of changes.
           show_page { Development::Logging::LoggedAction::Show.call(id) }
         end
@@ -23,7 +23,16 @@ class LabelDesigner < Roda
 
       r.on 'grid' do
         return_json_response
-        interactor.logged_actions_grid(id)
+        begin
+          interactor.logged_actions_grid(id)
+        rescue StandardError => e
+          show_json_exception(e)
+        end
+      end
+
+      r.on 'diff' do
+        left, right = interactor.diff_action(id)
+        show_partial { Development::Logging::LoggedAction::Diff.call(id, left, right) }
       end
     end
   end

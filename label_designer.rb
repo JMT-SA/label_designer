@@ -6,6 +6,7 @@
 require 'bundler'
 Bundler.require(:default, ENV.fetch('RACK_ENV', 'development'))
 
+require 'base64'
 require 'pstore'
 require 'net/http'
 require 'uri'
@@ -93,6 +94,25 @@ class LabelDesigner < Roda
 
     r.assets unless ENV['RACK_ENV'] == 'production'
     r.public
+
+    # Routes that must work without authentication
+    # --------------------------------------------
+    r.on 'webquery', String do |id|
+      # A dummy user
+      user = DevelopmentApp::User.new(id: 0, login_name: 'webquery', user_name: 'webquery', password_hash: 'dummy', email: nil, active: true)
+      interactor = DataminerApp::PreparedReportInteractor.new(user, {}, { route_url: request.path }, {})
+      interactor.prepared_report_as_html(id)
+    end
+
+    # https://support.office.com/en-us/article/import-data-from-database-using-native-database-query-power-query-f4f448ac-70d5-445b-a6ba-302db47a1b00?ui=en-US&rs=en-US&ad=US
+    r.on 'xmlreport', String do |id|
+      # A dummy user
+      user = DevelopmentApp::User.new(id: 0, login_name: 'webquery', user_name: 'webquery', password_hash: 'dummy', email: nil, active: true)
+      interactor = DataminerApp::PreparedReportInteractor.new(user, {}, { route_url: request.path }, {})
+      interactor.prepared_report_as_xml(id)
+    end
+    # Do the same as XML?
+    # --------------------------------------------
 
     r.rodauth
     rodauth.require_authentication

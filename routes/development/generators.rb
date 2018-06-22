@@ -6,16 +6,7 @@ class LabelDesigner < Roda
     # --------------------------------------------------------------------------
     r.on 'scaffolds' do
       r.on 'new' do    # NEW
-        # begin
-        # if authorised?('menu', 'new')
         show_page { Development::Generators::Scaffolds::New.call }
-        # else
-        #   show_unauthorised
-        # end
-        # Should lead to step 1, 2 etc.
-        # rescue StandardError => e
-        #   handle_error(e)
-        # end
       end
 
       r.on 'save_snippet' do
