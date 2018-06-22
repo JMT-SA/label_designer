@@ -4,8 +4,14 @@ VALUES ('Label Designer');
 INSERT INTO programs (program_name, program_sequence, functional_area_id)
 VALUES ('Designs', 1, (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer'));
 
+INSERT INTO programs_webapps (program_id, webapp)
+VALUES ((SELECT id FROM programs WHERE program_name = 'Designs' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'LabelDesigner');
+
 INSERT INTO programs (program_name, program_sequence, functional_area_id)
 VALUES ('Master Lists', 1, (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer'));
+
+INSERT INTO programs_webapps (program_id, webapp)
+VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'LabelDesigner');
 
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
 VALUES ((SELECT id FROM programs WHERE program_name = 'Designs' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'List labels', '/list/labels', 1);

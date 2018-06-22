@@ -215,6 +215,7 @@ class LabelDesigner < Roda
   # GET /labels/publish
   route 'publish', 'labels' do |r|
     r.is do
+      # Todo: use section callback to fetch list of server/printers.
       view(inline: 'Publish labels - select, send to server, choose server...')
     end
   end

@@ -1,6 +1,6 @@
 # config valid for current version and patch releases of Capistrano
 # lock '~> 3.10.1' # --- Handled by bundler...
-set :chruby_ruby, 'ruby-2.5.0'
+set :chruby_ruby, 'ruby-2.5.1'
 
 set :application, 'label_designer'
 set :repo_url, 'git@github.com:NoSoft-SA/label_designer.git'
