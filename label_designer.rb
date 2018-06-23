@@ -45,6 +45,7 @@ class LabelDesigner < Roda
   include CommonHelpers
   include ErrorHelpers
   include MenuHelpers
+  include DataminerHelpers
 
   use Rack::Session::Cookie, secret: 'some_nice_long_random_string_DSKJH4378EYR7EGKUFH', key: '_lbld_session'
   use Rack::MethodOverride # Use with all_verbs plugin to allow 'r.delete' etc.

@@ -24,7 +24,7 @@ GIT
 
 GIT
   remote: https://github.com/NoSoft-SA/roda-data_grid.git
-  revision: ecc64b9e6c4b9eefb88b049b78ea4756fd19cd3c
+  revision: 5806d34a45d21e6d57ee84a8d910f9076322944a
   specs:
     roda-data_grid (0.1.4)
       axlsx
@@ -225,6 +225,7 @@ DEPENDENCIES
   roda-data_grid!
   roda-symbolized_params
   rodauth
+  rouge
   rubocop
   sass
   sequel
