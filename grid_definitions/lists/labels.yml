@@ -5,17 +5,29 @@
     :text: Edit
     :icon: fa-edit
     :hide_if_true: multi_label
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: edit
   - :url: /labels/labels/labels/$:id$/clone
     :text: Clone
     :icon: fa-clone
     :popup: true
     :hide_if_true: multi_label
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: edit
   - :separator: true
   - :url: /labels/labels/labels/$:id$/properties
     :text: Edit properties
     :icon: fa-edit
     :title: Properties
     :popup: true
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: edit
   - :url: /labels/labels/labels/$:id$/background
     :text: Background image
     :icon: fa-image
@@ -44,6 +56,10 @@
     :is_delete: true
     :popup: true
     :hide_if_true: part_of_multi_label
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: edit
   - :url: /labels/labels/labels/$:id$/download
     :text: download
     :icon: fa-download
@@ -52,6 +68,10 @@
     :icon: fa-list
     :popup: true
     :hide_if_false: multi_label
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: edit
 :page_controls:
   - :control_type: :link
     :url: /labels/labels/labels/new
