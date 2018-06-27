@@ -225,13 +225,27 @@ class LabelDesigner < Roda
     page = Crossbeams::LabelDesigner::Page.new(opts[:id])
     # page.json_load_path = '/load_label_via_json' # Override config just before use.
     # page.json_save_path =  opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}"
-    html = page.render
-    css  = page.css
-    js   = page.javascript
+    html = page.render      # --> ASCII-8BIT
+    css  = page.css         # --> ASCII-8BIT
+    js   = page.javascript  # --> UTF-8
+
+    # p '>>> HTML enc'
+    # p html.encoding
+    # p '>>> CSS enc'
+    # p css.encoding
+    # p '>>> JS enc'
+    # p js.encoding
+
+    # ">>> HTML enc"
+    # #<Encoding:ASCII-8BIT>
+    # ">>> CSS enc"
+    # #<Encoding:ASCII-8BIT>
+    # ">>> JS enc"
+    # #<Encoding:UTF-8>
 
     # TODO: include csrf headers in the page....
 
-    <<-HTML
+    <<-HTML # --> UTF-8
     #{html}
     <% content_for :late_style do %>
       #{css}

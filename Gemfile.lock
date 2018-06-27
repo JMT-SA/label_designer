@@ -7,7 +7,7 @@ GIT
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-label_designer.git
-  revision: 10c020c9f594cc542864f1227a25d7988d377f80
+  revision: 136468b566e11bdd920d3feba1fd0f75a14ddcd2
   specs:
     crossbeams-label_designer (0.1.2)
       dry-configurable
