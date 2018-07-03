@@ -174,6 +174,7 @@ class LabelDesigner < Roda
     r.on 'save_label' do
       r.on :id do |id|
         r.post do
+          return_json_response
           repo = LabelApp::LabelRepo.new
           changeset = { label_json: params[:label],
                         variable_xml: params[:XMLString],
@@ -184,12 +185,12 @@ class LabelDesigner < Roda
           end
 
           flash[:notice] = 'Updated'
-          response['Content-Type'] = 'application/json'
           { redirect: session[:last_grid_url] }.to_json
         end
       end
 
       r.post do
+        return_json_response
         repo = LabelApp::LabelRepo.new
         extra_attributes = session[:new_label_attributes]
         changeset = { label_json: params[:label],
@@ -210,7 +211,6 @@ class LabelDesigner < Roda
         end
         session[:new_label_attributes] = nil
         flash[:notice] = 'Created'
-        response['Content-Type'] = 'application/json'
         { redirect: session[:last_grid_url] }.to_json
       end
     end
