@@ -292,17 +292,20 @@ class LabelDesigner < Roda
     Base64.decode64(data_uri_parts[2])
   end
 
-  LABEL_SIZES = {
-    '84x64': { 'width': '84', 'height': '64' },
-    '84x100': { 'width': '84', 'height': '100' },
-    '97x78': { 'width': '97', 'height': '78' },
-    '78x97': { 'width': '78', 'height': '97' },
-    '100x70': { 'width': '100', 'height': '70' },
-    '100x84': { 'width': '100', 'height': '84' },
-    '100x100': { 'width': '100', 'height': '100' },
-    '105x250': { 'width': '105', 'height': '250' },
-    '145x50': { 'width': '145', 'height': '50' }
-  }.freeze
+  # Label sizes. The arrays contain width then height.
+  LABEL_SIZES = Hash[[
+    [84,   64],
+    [84,  100],
+    [97,   78],
+    [78,   97],
+    [77,  130],
+    [100,  70],
+    [100,  84],
+    [100, 100],
+    [105, 250],
+    [130, 100],
+    [145,  50]
+  ].map { |w, h| ["#{w}x#{h}", { 'width': w, 'height': h }] }].freeze
 end
 # rubocop:enable Metrics/ClassLength
 # rubocop:enable Metrics/BlockLength
