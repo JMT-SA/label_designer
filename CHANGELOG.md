@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.1.5] - 2018-07-06
+### Changed
+- Upgrade Konva from version 1.6.0 to version 2.1.7 (specifically to fix an error where the background image was saved with the wrong dimensions).
+
 ## [0.1.4] - 2018-06-22
 - Upgrade framework.
 - AG-Grid version 18.
