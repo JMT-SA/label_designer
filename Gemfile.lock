@@ -7,7 +7,7 @@ GIT
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-label_designer.git
-  revision: 473dcc6f91ad649a585bc604d35091d898034004
+  revision: b28c286e7d3cef8037101f17009522c141023c14
   specs:
     crossbeams-label_designer (0.1.4)
       dry-configurable
@@ -16,9 +16,9 @@ GIT
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-layout.git
-  revision: a03a586eeeb4e85282cb420aac0116786cbf3b0e
+  revision: 8abd579085a4ececd930e31d5a7f13ddf1aeba84
   specs:
-    crossbeams-layout (0.1.8)
+    crossbeams-layout (0.1.9)
       diffy
       rouge
 
