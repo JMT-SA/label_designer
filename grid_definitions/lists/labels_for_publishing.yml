@@ -1,0 +1,6 @@
+---
+:dataminer_definition: labels
+:multiselect:
+  :standard:
+    :url: "/labels/publish/batch/publish"
+    :section_caption: "Choose labels for publishing"

@@ -211,14 +211,6 @@ class LabelDesigner < Roda
       end
     end
   end
-
-  # GET /labels/publish
-  route 'publish', 'labels' do |r|
-    r.is do
-      # TODO: use section callback to fetch list of server/printers.
-      view(inline: 'Publish labels - select, send to server, choose server...')
-    end
-  end
 end
 # rubocop:enable Metrics/ClassLength
 # rubocop:enable Metrics/BlockLength

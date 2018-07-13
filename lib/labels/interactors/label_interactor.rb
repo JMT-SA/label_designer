@@ -200,6 +200,108 @@ module LabelApp
       end
     end
 
+    def publish_labels(vars)
+      # {:printer_type=>"Datamax", :targets=>["192.168.50.201", "192.168.50.200"], :label_ids=>[5, 6, 23]}
+      # instance = label(id)
+      # Store the input variables:
+      # repo.update_label(id, sample_data: repo.hash_to_jsonb_str(vars))
+      # TODO: store history of publishing...
+
+      fname, binary_data = make_combined_zip(vars[:label_ids])
+      # File.open('zz.zip', 'w') { |f| f.puts binary_data }
+
+      mes_repo = MesServerRepo.new
+      res = mes_repo.send_publish_package(vars[:printer_type], vars[:targets], fname, binary_data)
+      if res.success
+        success_response('Published labels.', OpenStruct.new(fname: fname, body: res.instance))
+      else
+        failed_response(res.message)
+      end
+    end
+
+    def publishing_status(vars)
+      mes_repo = MesServerRepo.new
+      res = mes_repo.send_publish_status(vars[:printer_type], combined_zip_filename)
+      if res.success
+        # TODO: use step wrapper to do formatting
+        success_response('Published labels.', OpenStruct.new(done: all_published?(vars, res.instance), body: publishing_table(vars, res.instance))) # decide on done...
+      elsif res.instance == '404' # Nothing sent yet...
+        success_response('Published labels.', OpenStruct.new(done: false, body: publishing_table(vars, [])))
+      else
+        failed_response(res.message, res.instance) # instance is response code
+      end
+    end
+
+    def all_published?(vars, response_body)
+      expected = vars[:targets].length * vars[:label_ids].length
+      response_body.length == expected && response_body.all? { |item| !item['Status'].nil? }
+    end
+
+    def publishing_table(vars, response_body)
+      lkp = publishing_table_lookup(response_body)
+      cols = vars[:targets].sort.unshift('Label')
+      rows = publishing_table_rows(lkp)
+      # Placeholders for not-sent labels...
+      publishing_table_add_missing_rows(rows, vars, lkp)
+      Crossbeams::Layout::Table.new({}, rows, cols, cell_classes: publishing_table_classes(vars[:targets])).render
+    end
+
+    def publishing_table_add_missing_rows(rows, vars, lkp)
+      # ((vars[:label_ids].length + 1) - lkp.keys.length).times { rows << { 'Label' => '...', '192.168.50.200' => '500 Dummy err' } }
+      (vars[:label_ids].length - lkp.keys.length).times { rows << { 'Label' => '...', '192.168.50.200' => '500 Dummy err' } }
+    end
+
+    def publishing_table_classes(targets)
+      rules = {}
+      targets.each do |target|
+        rules[target] = ->(status) { status.to_s.include?('200') ? 'green' : 'red' }
+      end
+      rules
+    end
+
+    def publishing_table_rows(lkp)
+      lkp.keys.map do |key|
+        { 'Label' => key }.merge(lkp[key])
+      end
+    end
+
+    def publishing_table_lookup(response_body)
+      lkp = {}
+      response_body.each do |item|
+        key = item['File'].sub('.zip', '')
+        lkp[key] ||= {}
+        lkp[key][item['To']] = item['Status']
+        # would be nice to send a class to the cell td
+        # if in column def, have lambda rule to call
+      end
+      lkp
+    end
+
+    #  - File: RUS_SU8206a.zip
+    #    Status:  200 OK
+    #    To: 192.168.50.202
+    #    PrinterType: Datamax
+    #    Date:  07-11-2018
+    #    Time:  08:27:06
+    #  - File: RUS_SU8206a.zip
+    #    Status:  200 OK
+    #    To: 192.168.50.201
+    #    PrinterType: Datamax
+    #    Date:  07-11-2018
+    #    Time:  08:27:06
+    #  - File: RUS_SU8206.zip
+    #    Status:  200 OK
+    #    To: 192.168.50.202
+    #    PrinterType: Datamax
+    #    Date:  07-11-2018
+    #    Time:  08:27:06
+    #  - File: RUS_SU8206.zip
+    #    Status:  200 OK
+    #    To: 192.168.50.201
+    #    PrinterType: Datamax
+    #    Date:  07-11-2018
+    #    Time:  08:27:06
+
     # Create a zip file of zipped labels for publishing.
     def make_combined_zip(label_ids)
       stringio = Zip::OutputStream.write_buffer do |zio|
@@ -209,7 +311,15 @@ module LabelApp
           zio.write binary_data
         end
       end
-      ["ld_publish_#{Date.today.strftime('%Y_%m_%d')}", stringio.string]
+      [combined_zip_filename, stringio.string]
+    end
+
+    def combined_zip_filename
+      "ld_publish_#{Date.today.strftime('%Y_%m_%d')}"
+    end
+
+    def dummy
+      success_response('Published labels.', OpenStruct.new(fname: 'filename', body: 'returned'))
     end
   end
 end

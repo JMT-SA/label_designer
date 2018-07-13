@@ -14,6 +14,28 @@ module LabelApp
       success_response('Refreshed printers', printer_list['PrinterList'])
     end
 
+    def publish_target_list
+      res = request_uri(publish_target_list_uri)
+      return res unless res.success
+
+      yaml_list = YAML.safe_load(res.instance.body)
+      success_response('Target destinations', yaml_list['PublishServerList'])
+    end
+
+    def send_publish_package(printer_type, targets, fname, binary_data)
+      res = post_package(publish_send_uri, printer_type, targets, fname, binary_data)
+      return res unless res.success
+      success_response('ok', res.instance.body)
+    end
+
+    def send_publish_status(printer_type, filename)
+      res = request_uri(publish_status_uri(printer_type, filename))
+      return res unless res.success
+
+      yaml_list = YAML.safe_load(res.instance.body)
+      success_response('Status', yaml_list['Data'])
+    end
+
     def preview_label(screen_or_print, vars, fname, binary_data)
       res = post_binary(preview_uri, vars, screen_or_print, fname, binary_data)
       return res unless res.success
@@ -21,6 +43,19 @@ module LabelApp
     end
 
     private
+
+    def publish_part_of_body(printer_type, targets)
+      post_body = []
+      post_body << "--#{BOUNDARY}\r\n"
+      post_body << "Content-Disposition: form-data; name=\"printertype\"\r\n"
+      post_body << "\r\n#{printer_type}"
+      post_body << "\r\n--#{BOUNDARY}--\r\n"
+      post_body << "--#{BOUNDARY}\r\n"
+      post_body << "Content-Disposition: form-data; name=\"publishlist\"\r\n"
+      post_body << "\r\n#{targets.join(',')}"
+      post_body << "\r\n--#{BOUNDARY}--\r\n"
+      post_body
+    end
 
     def print_part_of_body(vars)
       post_body = []
@@ -69,6 +104,25 @@ module LabelApp
       failed_response("There was an error: #{e.message}")
     end
 
+    def post_package(uri, printer_type, targets, fname, binary_data)
+      post_body = publish_part_of_body(printer_type, targets)
+      post_body += shared_part_of_body(fname, binary_data)
+
+      http = Net::HTTP.new(uri.host, uri.port)
+      request = Net::HTTP::Post.new(uri.request_uri)
+      request.body = post_body.join
+      request['Content-Type'] = "multipart/form-data, boundary=#{BOUNDARY}"
+
+      response = http.request(request)
+      format_response(response)
+    rescue Timeout::Error
+      failed_response('The call to the server timed out.')
+    rescue Errno::ECONNREFUSED
+      failed_response('The connection was refused. Perhaps the server is not running.')
+    rescue StandardError => e
+      failed_response("There was an error: #{e.message}")
+    end
+
     def request_uri(uri)
       http = Net::HTTP.new(uri.host, uri.port)
       request = Net::HTTP::Get.new(uri.request_uri)
@@ -88,12 +142,24 @@ module LabelApp
         success_response(response.code, response)
       else
         msg = response.code.start_with?('5') ? 'The destination server encountered an error.' : 'The request was not successful.'
-        failed_response("#{msg} The response code is #{response.code}")
+        failed_response("#{msg} The response code is #{response.code}", response.code)
       end
     end
 
     def printer_list_uri
       URI.parse("#{LABEL_SERVER_URI}?Type=GetPrinterList&ListType=yaml")
+    end
+
+    def publish_target_list_uri
+      URI.parse("#{LABEL_SERVER_URI}?Type=GetPublishServerList&ListType=yaml")
+    end
+
+    def publish_send_uri
+      URI.parse("#{LABEL_SERVER_URI}LabelPublishFileUpload")
+    end
+
+    def publish_status_uri(printer_type, filename)
+      URI.parse("#{LABEL_SERVER_URI}?Type=GetPublishFileStatus&ListType=yaml&Name=#{filename}&PrinterType=#{printer_type}")
     end
 
     def preview_uri
