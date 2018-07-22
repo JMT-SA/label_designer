@@ -786,31 +786,61 @@ const crossbeamsUtils = {
         'X-Custom-Request-Type': 'Fetch',
       }),
     })
-    .then(response => response.text()) // TODO: Make this JSON.........
-    .then((responseText) => {
-      contentDiv.classList.remove('content-loading');
-      contentDiv.innerHTML = responseText;
+    .then((response) => {
+      if (response.status === 200) {
+        return response.json();
+      }
+      throw new HttpError(response);
+    })
+    .then((data) => {
+      if (data.content) {
+        contentDiv.classList.remove('content-loading');
+        contentDiv.innerHTML = data.content;
 
-      // check if there are any areas in the content that should be modified by polling...
-      const pollsters = contentDiv.querySelectorAll('[data-poll-message-url]');
-      pollsters.forEach((pollable) => {
-        const pollUrl = pollable.dataset.pollMessageUrl;
-        const pollInterval = pollable.dataset.pollMessageInterval;
-        this.pollMessage(pollable, pollUrl, pollInterval);
-      });
+        // check if there are any areas in the content that should be modified by polling...
+        const pollsters = contentDiv.querySelectorAll('[data-poll-message-url]');
+        pollsters.forEach((pollable) => {
+          const pollUrl = pollable.dataset.pollMessageUrl;
+          const pollInterval = pollable.dataset.pollMessageInterval;
+          this.pollMessage(pollable, pollUrl, pollInterval);
+        });
 
-      crossbeamsUtils.makeMultiSelects();
-      crossbeamsUtils.makeSearchableSelects();
-      const grids = contentDiv.querySelectorAll('[data-grid]');
-      grids.forEach((grid) => {
-        const gridId = grid.getAttribute('id');
-        const gridEvent = new CustomEvent('gridLoad', { detail: gridId });
-        document.dispatchEvent(gridEvent);
-      });
-      const sortable = Array.from(contentDiv.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
-      sortable.forEach((elem) => {
-        crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix, elem.dataset.sortableGroup);
-      });
+        crossbeamsUtils.makeMultiSelects();
+        crossbeamsUtils.makeSearchableSelects();
+        const grids = contentDiv.querySelectorAll('[data-grid]');
+        grids.forEach((grid) => {
+          const gridId = grid.getAttribute('id');
+          const gridEvent = new CustomEvent('gridLoad', { detail: gridId });
+          document.dispatchEvent(gridEvent);
+        });
+        const sortable = Array.from(contentDiv.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
+        sortable.forEach((elem) => {
+          crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix, elem.dataset.sortableGroup);
+        });
+      }
+      if (data.flash) {
+        if (data.flash.notice) {
+          Jackbox.success(data.flash.notice);
+        }
+        if (data.flash.error) {
+          if (data.exception) {
+            Jackbox.error(data.flash.error, { time: 20 });
+            if (data.backtrace) {
+              console.log('==Backend Backtrace==');
+              console.info(data.backtrace.join('\n'));
+            }
+          } else {
+            Jackbox.error(data.flash.error);
+          }
+        }
+      }
+    }).catch((data) => {
+      if (data.response && data.response.status === 500) {
+        data.response.text().then((body) => {
+          document.getElementById(crossbeamsUtils.activeDialogContent()).innerHTML = body;
+        });
+      }
+      Jackbox.error(`An error occurred ${data}`, { time: 20 });
     });
   },
 

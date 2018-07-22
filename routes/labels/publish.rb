@@ -16,7 +16,8 @@ class LabelDesigner < Roda
       end
 
       r.get 'show_targets' do
-        show_partial { Labels::Publish::Batch::SelectTargets.call }
+        return_json_response
+        { content: show_partial { Labels::Publish::Batch::SelectTargets.call } }.to_json
       end
 
       r.post 'select_labels' do
@@ -37,13 +38,14 @@ class LabelDesigner < Roda
       end
 
       r.get 'send' do
+        return_json_response
         interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
         # sleep 0.5
         store = LocalStore.new(current_user.id)
         # store.write(:testing_testing, 3)
         res = interactor.publish_labels(store.read(:lbl_publish_steps))
         # res = interactor.dummy
-        show_partial { Labels::Publish::Batch::Send.call(res) }
+        { content: show_partial { Labels::Publish::Batch::Send.call(res) } }.to_json
       end
 
       r.get 'feedback' do
