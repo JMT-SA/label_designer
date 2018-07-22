@@ -836,8 +836,22 @@ const crossbeamsUtils = {
       }
     }).catch((data) => {
       if (data.response && data.response.status === 500) {
-        data.response.text().then((body) => {
-          document.getElementById(crossbeamsUtils.activeDialogContent()).innerHTML = body;
+        data.response.json().then((body) => {
+          if (body.flash.error) {
+            contentDiv.classList.remove('content-loading');
+            contentDiv.innerHTML = body.flash.error;
+            if (body.exception) {
+              if (body.backtrace) {
+                console.log('EXCEPTION:', body.exception, body.flash.error);
+                console.log('==Backend Backtrace==');
+                console.info(body.backtrace.join('\n'));
+              }
+            } else {
+              Jackbox.error(body.flash.error);
+            }
+          } else {
+            console.log('==ERROR==', body);
+          }
         });
       }
       Jackbox.error(`An error occurred ${data}`, { time: 20 });
