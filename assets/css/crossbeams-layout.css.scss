@@ -627,6 +627,13 @@ tr.roweven {
   font-weight: bold;
 }
 
+input:required {
+  border-right: thick solid orange;
+}
+
+div.multi-wrapper.required {
+  border-right: thick solid orange;
+}
 /* -------------------------------------------------------------------------- *\
  * Styles for PROGRESS display
  * -------------------------------------------------------------------------- */

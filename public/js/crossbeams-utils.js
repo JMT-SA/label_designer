@@ -265,7 +265,10 @@ const crossbeamsUtils = {
   makeMultiSelects: function makeMultiSelects() {
     const sels = document.querySelectorAll('[data-multi]');
     sels.forEach((sel) => {
-      multi(sel); // multi select with two panes...
+      multi(sel, {
+        non_selected_header: 'Options',
+        selected_header: 'Selected',
+      }); // multi select with two panes...
 
       // observeSelected behaviour - get rules from select element and
       // add selected options to a sortable element.
