@@ -5,11 +5,9 @@ module Labels
     module Batch
       class SelectLabels
         def self.call(current_step)
-          # ui_rule = UiRules::Compiler.new(:label_publish, :select_labels)
-          # rules   = ui_rule.compile
           rules = {}
 
-          desc = ["Printer: #{current_step[:printer_type]}", "Targets: #{current_step[:targets].join(', ')}"] # Use text desc of choices...
+          desc = current_step.step_2_desc
 
           layout = Crossbeams::Layout::Page.build(rules) do |page|
             page.section do |section|

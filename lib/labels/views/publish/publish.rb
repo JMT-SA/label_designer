@@ -5,7 +5,7 @@ module Labels
     module Batch
       class Publish
         def self.call(current_step)
-          desc = ["Printer: #{current_step[:printer_type]}", "Targets: #{current_step[:targets].join(', ')}", "#{current_step[:label_ids].length} Labels"] # Use text desc of choices...
+          desc = current_step.step_3_desc
 
           layout = Crossbeams::Layout::Page.build({}) do |page|
             page.section do |section|

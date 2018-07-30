@@ -7,7 +7,7 @@ class LabelDesigner < Roda
   route 'publish', 'labels' do |r|
     # BATCH PUBLISH
     # --------------------------------------------------------------------------
-    # interactor = LabelApp::PublishInteractor.new(current_user, {}, { route_url: request.path }, {})
+    interactor = LabelApp::PublishInteractor.new(current_user, {}, { route_url: request.path }, {})
 
     r.on 'batch' do
       r.is do
@@ -17,52 +17,44 @@ class LabelDesigner < Roda
 
       r.get 'show_targets' do
         return_json_response
-        { content: show_partial { Labels::Publish::Batch::SelectTargets.call } }.to_json
+        res = interactor.publishing_server_options
+        # stash....
+        if res.success
+          { content: show_partial { Labels::Publish::Batch::SelectTargets.call(res.instance) } }.to_json
+        else
+          show_json_error(res.message, status: 200)
+        end
       end
 
       r.post 'select_labels' do
-        store = LocalStore.new(current_user.id)
-        store.write(:lbl_publish_steps, printer_type: params[:batch][:printer_type], targets: params[:batch][:target_destinations])
-        show_page { Labels::Publish::Batch::SelectLabels.call(store.read(:lbl_publish_steps)) }
+        res = interactor.select_targets(params[:batch]) #=> validate resolution
+        # if res.success
+        show_page { Labels::Publish::Batch::SelectLabels.call(res.instance) }
+        # else
+        #   re_show_form(r, res, url: '/labels/publish/batch') do
+        #     Labels::Publish::Batch::Targets.call(form_values: params[:batch],
+        #                                          form_errors: res.errors)
+        #   end
+        # end
         # VALIDATE: 1) printer chosen; 2) Server chosen, 3) Chosen server is configured for the chosen printer.
         # Store params in step (selected targets)
         # Get list of ELIGIBLE labels (approved) with publish history (Show date updated - max published date as days since published)
       end
 
       r.post 'publish' do
-        ids = multiselect_grid_choices(params)
-        store = LocalStore.new(current_user.id)
-        current = store.read(:lbl_publish_steps)
-        store.write(:lbl_publish_steps, current.merge(label_ids: ids))
-        show_page { Labels::Publish::Batch::Publish.call(store.read(:lbl_publish_steps)) }
+        res = interactor.save_label_selections(multiselect_grid_choices(params))
+        show_page { Labels::Publish::Batch::Publish.call(res.instance) }
       end
 
       r.get 'send' do
         return_json_response
-        interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
-        # sleep 0.5
-        store = LocalStore.new(current_user.id)
-        # store.write(:testing_testing, 3)
-        res = interactor.publish_labels(store.read(:lbl_publish_steps))
-        # res = interactor.dummy
+        res = interactor.publish_labels # (store.read(:lbl_publish_steps))
         { content: show_partial { Labels::Publish::Batch::Send.call(res) } }.to_json
       end
 
       r.get 'feedback' do
         return_json_response
-        interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
-        # sleep 1
-        store = LocalStore.new(current_user.id)
-        # cnt = store.read(:testing_testing)
-        # if cnt.positive?
-        #   store.write(:testing_testing, cnt - 1)
-        #   { updateMessage: { content: "<div class='relative w-100'><div class='absolute-fill tr mr5 pr5'><span style='text-align:right;font-size:22px;font-weight:bold;margin-right:1em'>Countdown: </span><span style='text-align:right;font-size:48px;font-weight:bold'>#{cnt}</span></div></div>", continuePolling: true } }.to_json
-        # else
-        #   store.delete(:testing_testing)
-        #   # { updateMessage: { content: '<div class="relative w-100"><div class="absolute-fill tr mr5 pr5"><span style="color:blue;font-size:22px;font-weight:bold">All done now!</span></div></div>', finaliseProgressStep: 'cbl-current-step', continuePolling: false } }.to_json
-        #   { updateMessage: { content: '<div class="relative w-100"><div class="absolute-fill tr mr5 pr5"><span style="color:blue;font-size:22px;font-weight:bold">All done now!</span></div></div>', finaliseProgressStep: 'cbl-current-step' } }.to_json
-        # end
-        res = interactor.publishing_status(store.read(:lbl_publish_steps))
+        res = interactor.publishing_status # (store.read(:lbl_publish_steps))
         # TODO: differentiate between failure and exception - exception should stop polling...
         if res.success
           payload = { content: res.instance.body.to_s, continuePolling: !res.instance.done }
@@ -74,11 +66,6 @@ class LabelDesigner < Roda
         end
       end
     end
-
-    # Progress/steps/wizard... Multi-step process
-    # Wrapper in Interactors that reads & writes state using LocalStore.
-    # Surfaces methods: steps, state_display, store_params(params, step no), final_id
-    # Send final_id to Layout so that it can be targeted to go to fully-finished.
   end
 end
 # rubocop:enable Metrics/BlockLength
