@@ -62,7 +62,7 @@ module LabelApp
       res = mes_repo.send_publish_status(vars[:chosen_printer], LabelFiles.new.combined_zip_filename)
       if res.success
         # TODO: use step wrapper to do formatting
-        success_response('Published labels.', OpenStruct.new(done: all_published?(vars, res.instance), body: publishing_table(vars, res.instance))) # decide on done...
+        success_response('Published labels.', OpenStruct.new(done: all_published?(vars, res.instance), body: publishing_table(vars, res.instance) + sql_display(vars, res.instance))) # decide on done...
       elsif res.instance == '404' # Nothing sent yet...
         success_response('Published labels.', OpenStruct.new(done: false, body: publishing_table(vars, [])))
       else
@@ -73,6 +73,21 @@ module LabelApp
     def all_published?(vars, response_body)
       expected = vars[:chosen_targets].length * vars[:label_ids].length
       response_body.length == expected && response_body.all? { |item| !item['Status'].nil? }
+    end
+
+    def sql_display(vars, response_body)
+      return '' unless all_published?(vars, response_body)
+      lkp = publishing_table_lookup(response_body)
+      sql = lkp.keys.map do |key|
+        <<~SQL
+          INSERT INTO dbo.mes_label_template_files
+          (label_template_file, mes_peripheral_type_id, mes_peripheral_type_code, created_at, updated_at)
+          SELECT '#{key}.nsld', mp.id, mp.code, getdate(), getdate()
+          FROM mes_peripheral_types mp
+          WHERE UPPER(mp.code) = '#{vars[:chosen_printer].upcase};'
+        SQL
+      end
+      '<hr>' + Crossbeams::Layout::Text.new({}, sql.join("\n"), toggle_button: true, toggle_caption: 'Toggle SQL for template insert', syntax: :sql).render
     end
 
     def publishing_table(vars, response_body)
