@@ -121,6 +121,7 @@ class LabelDesigner < Roda
     r.redirect('/login') if current_user.nil? # Session might have the incorrect user_id
 
     r.root do
+      # TODO: Config this, and maybe set it up per user.
       r.redirect('/list/labels')
     end
 

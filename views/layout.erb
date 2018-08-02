@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <%= csrf_metatag %>
 
-    <title>Label Designer</title>
+    <title><%= ENV['APP_CAPTION'] %></title>
 
     <link rel="stylesheet" href="/css/jackbox.css">
     <link rel="stylesheet" href="/css/font-awesome.min.css">
@@ -25,7 +25,7 @@
   <header>
     <div class="system-name">
       <a href="/" class="dib f5 f4-ns fw6 mt0 mb2 link dark-green" title="Home">
-        Label Designer
+        <%= ENV['APP_CAPTION'] %>
         <div class="dib">
           <small class="nowrap f6 mt2 mt3-ns pr2 black-70 fw2">v<%= ENV['VERSION'] %></small>
         </div>
