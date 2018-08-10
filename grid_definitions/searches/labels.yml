@@ -3,40 +3,40 @@
 :actions:
   - :url: /label_designer/$:id$/edit
     :text: Edit
-    :icon: fa-edit
+    :icon: edit
   - :url: /label_designer/$:id$/clone
     :text: Clone
-    :icon: fa-clone
+    :icon: copy
     :popup: true
   - :separator: true
   - :url: /label_designer/$:id$/properties
     :text: Edit Properties
-    :icon: fa-edit
+    :icon: edit
     :title: Properties
     :popup: true
   - :url: /label_designer/$:id$/background
     :text: Background Image
-    :icon: fa-image
+    :icon: photo
     :title_field: label_name
     :popup: true
   - :separator: true
   - :url: /labels/labels/labels/$:id$/variable_list
     :text: Variable Lists
-    :icon: fa-info
+    :icon: information-solid
     :title: Variables for $:label_name$
     :popup: true
   - :url: /label_designer/$:id$/preview
     :text: Preview
-    :icon: fa-eye
+    :icon: view-show
     :title: Preview - fill in variables
     :popup: true
   - :url: /label_designer/$:id$/print_preview
     :text: Print Test Preview
-    :icon: fa-print
+    :icon: printer
     :title: Print preview - fill in variables
     :popup: true
   - :separator: true
   - :url: /label_designer/$:id$
     :text: Delete
-    :icon: fa-remove
+    :icon: delete
     :is_delete: true
