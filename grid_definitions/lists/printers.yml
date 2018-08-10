@@ -3,7 +3,7 @@
 :actions:
 - :url: "/labels/printers/printers/$:id$"
   :text: view
-  :icon: fa-eye
+  :icon: view-show
   :title: View
   :popup: true
 :page_controls:

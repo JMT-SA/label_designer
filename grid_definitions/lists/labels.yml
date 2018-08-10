@@ -3,7 +3,7 @@
 :actions:
   - :url: /labels/labels/labels/$:id$/edit
     :text: Edit
-    :icon: fa-edit
+    :icon: edit
     :hide_if_true: multi_label
     :auth:
       :function: label designer
@@ -11,7 +11,7 @@
       :permission: edit
   - :url: /labels/labels/labels/$:id$/clone
     :text: Clone
-    :icon: fa-clone
+    :icon: copy
     :popup: true
     :hide_if_true: multi_label
     :auth:
@@ -21,7 +21,7 @@
   - :separator: true
   - :url: /labels/labels/labels/$:id$/properties
     :text: Edit properties
-    :icon: fa-edit
+    :icon: edit
     :title: Properties
     :popup: true
     :auth:
@@ -30,29 +30,29 @@
       :permission: edit
   - :url: /labels/labels/labels/$:id$/background
     :text: Background image
-    :icon: fa-image
+    :icon: photo
     :title_field: label_name
     :popup: true
   - :separator: true
   - :url: /labels/labels/labels/$:id$/variable_list
     :text: Variable List
-    :icon: fa-info
+    :icon: information-solid
     :title: Variables for $:label_name$
     :popup: true
   - :url: /labels/labels/labels/$:id$/preview
     :text: Preview
-    :icon: fa-eye
+    :icon: view-show
     :title: Preview - fill in variables
     :popup: true
   - :url: /labels/labels/labels/$:id$/print_preview
     :text: Print Test Preview
-    :icon: fa-print
+    :icon: printer
     :title: Print preview - fill in variables
     :popup: true
   - :separator: true
   - :url: /labels/labels/labels/$:id$
     :text: Delete
-    :icon: fa-remove
+    :icon: delete
     :is_delete: true
     :popup: true
     :hide_if_true: part_of_multi_label
@@ -62,10 +62,10 @@
       :permission: edit
   - :url: /labels/labels/labels/$:id$/download
     :text: download
-    :icon: fa-download
+    :icon: download
   - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$"
     :text: select sub-labels
-    :icon: fa-list
+    :icon: list
     :popup: true
     :hide_if_false: multi_label
     :auth:
