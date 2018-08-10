@@ -118,25 +118,39 @@
     crossbeamsUtils.makeMultiSelects();
     crossbeamsUtils.makeSearchableSelects();
 
+    document.body.addEventListener('keydown', (event) => {
+      if (event.target.classList.contains('cbl-to-upper') && event.keyCode === 13) {
+        event.target.value = event.target.value.toUpperCase();
+      }
+      if (event.target.classList.contains('cbl-to-lower') && event.keyCode === 13) {
+        event.target.value = event.target.value.toLowerCase();
+      }
+    });
+
     document.body.addEventListener('click', (event) => {
+      // Disable a button on click
       if (event.target.dataset && event.target.dataset.disableWith) {
         preventMultipleSubmits(event.target);
       }
+      // Briefly disable a button
       if (event.target.dataset && event.target.dataset.brieflyDisableWith) {
         preventMultipleSubmitsBriefly(event.target);
       }
+      // Open modal dialog
       if (event.target.dataset && event.target.dataset.popupDialog) {
         crossbeamsUtils.popupDialog(event.target.text, event.target.href);
         event.stopPropagation();
         event.preventDefault();
       }
-      if (event.target.dataset && event.target.dataset.cbHintFor) {
-        const id = event.target.dataset.cbHintFor;
+      // Show hint dialog
+      if (event.target.parentNode.dataset && event.target.parentNode.dataset.cbHintFor) {
+        const id = event.target.parentNode.dataset.cbHintFor;
         const el = document.querySelector(`[data-cb-hint='${id}']`);
         if (el) {
           crossbeamsUtils.showHtmlInDialog('Hint', el.innerHTML);
         }
       }
+      // Copy to clipboard
       if (event.target.dataset && event.target.dataset.clipboard && event.target.dataset.clipboard === 'copy') {
         const input = document.getElementById(event.target.id.replace('_clip_i', '').replace('_clip', ''));
         input.select();
@@ -149,6 +163,7 @@
           Jackbox.warning('Cannot copy, hit Ctrl+C to copy the selected text');
         }
       }
+      // Close a modal dialog
       if (event.target.classList.contains('close-dialog')) {
         crossbeamsUtils.closePopupDialog();
         event.stopPropagation();
@@ -185,6 +200,24 @@
             } else if (data.updateGridInPlace) {
               data.updateGridInPlace.forEach((gridRow) => {
                 crossbeamsGridEvents.updateGridInPlace(gridRow.id, gridRow.changes);
+              });
+            } else if (data.actions) {
+              if (data.keep_dialog_open) {
+                closeDialog = false;
+              }
+              data.actions.forEach((action) => {
+                if (action.replace_options) {
+                  crossbeamsUtils.replaceSelectrOptions(action);
+                }
+                if (action.replace_multi_options) {
+                  crossbeamsUtils.replaceMultiOptions(action);
+                }
+                if (action.replace_input_value) {
+                  crossbeamsUtils.replaceInputValue(action);
+                }
+                if (action.replace_list_items) {
+                  crossbeamsUtils.replaceListItems(action);
+                }
               });
             } else if (data.replaceDialog) {
               closeDialog = false;
