@@ -6,23 +6,6 @@ GIT
       pg_query (= 1.0.2)
 
 GIT
-  remote: https://github.com/NoSoft-SA/crossbeams-label_designer.git
-  revision: 550d5ba72a0ee477984455ccaca829af5fc6e46a
-  specs:
-    crossbeams-label_designer (0.1.4)
-      dry-configurable
-      erubi
-      json
-
-GIT
-  remote: https://github.com/NoSoft-SA/crossbeams-layout.git
-  revision: 5d95556d2ef13687cc6d2284afe5169dab8549fe
-  specs:
-    crossbeams-layout (0.1.9)
-      diffy
-      rouge
-
-GIT
   remote: https://github.com/NoSoft-SA/roda-data_grid.git
   revision: 3a40726aa00b72201152b87c4c3c1ba24b2571a0
   specs:
@@ -31,6 +14,21 @@ GIT
       crossbeams-dataminer
       crossbeams-layout
       roda
+
+PATH
+  remote: /home/james/ra/crossbeams/crossbeams-label_designer
+  specs:
+    crossbeams-label_designer (0.1.5)
+      dry-configurable
+      erubi
+      json
+
+PATH
+  remote: /home/james/ra/crossbeams/crossbeams-layout
+  specs:
+    crossbeams-layout (0.1.9)
+      diffy
+      rouge
 
 GEM
   remote: https://rubygems.org/

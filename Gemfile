@@ -21,16 +21,16 @@ gem 'tilt'
 gem 'yard'
 
 gem 'crossbeams-dataminer', git: 'https://github.com/NoSoft-SA/crossbeams-dataminer.git'
-gem 'crossbeams-label_designer', git: 'https://github.com/NoSoft-SA/crossbeams-label_designer.git'
-gem 'crossbeams-layout', git: 'https://github.com/NoSoft-SA/crossbeams-layout.git'
+# gem 'crossbeams-label_designer', git: 'https://github.com/NoSoft-SA/crossbeams-label_designer.git'
+# gem 'crossbeams-layout', git: 'https://github.com/NoSoft-SA/crossbeams-layout.git'
 gem 'roda-data_grid', git: 'https://github.com/NoSoft-SA/roda-data_grid.git'
 # gem 'crossbeams-dataminer'
 # gem 'crossbeams-label_designer'
 # gem 'crossbeams-layout'
 # gem 'roda-data_grid'
 # gem 'crossbeams-dataminer',      path: File.expand_path('../../crossbeams-dataminer', __FILE__)
-# gem 'crossbeams-label_designer', path: File.expand_path('../crossbeams-label_designer', __dir__)
-# gem 'crossbeams-layout',         path: File.expand_path('../crossbeams-layout', __dir__)
+gem 'crossbeams-label_designer', path: File.expand_path('../crossbeams-label_designer', __dir__)
+gem 'crossbeams-layout',         path: File.expand_path('../crossbeams-layout', __dir__)
 # gem 'roda-data_grid',            path: File.expand_path('../../roda-data_grid', __FILE__)
 
 group :test do
