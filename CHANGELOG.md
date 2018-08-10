@@ -8,8 +8,12 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
-- All icon usage changed from using FontAwesome to using embedded SVG icons.
 ### Fixed
+
+## [0.2.0] - 2018-08-10
+### Changed
+- All icon usage changed from using FontAwesome to using embedded SVG icons.
+- Font sizes adapt to label resolution to produce more accurate printed sizes. Requires each text box in every label to be selected and the label saved to store the new correct sizes. NB: This can make text slightly smaller or larger and bounding boxes may need to be resized or font size changed.
 
 ## [0.1.5] - 2018-07-06
 ### Changed
