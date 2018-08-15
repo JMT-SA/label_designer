@@ -8,16 +8,7 @@
 
     <title><%= ENV['APP_CAPTION'] %></title>
 
-    <!--link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.4/css/bootstrap.min.css"-->
-
-    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
-    <!-- WARNING: Respond.js doesn't work if you view the page via file:// -->
-    <!--[if lt IE 9]>
-      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
-    <![endif]-->
     <link rel="stylesheet" href="/css/jackbox.css">
-    <link rel="stylesheet" href="/css/font-awesome.min.css">
     <link rel="stylesheet" href="/css/tachyons.min.css">
     <link rel="stylesheet" href="/css/sweetalert2.min.css">
     <link rel="stylesheet" href="/css/jquery.contextMenu.min.css">
@@ -57,7 +48,6 @@
       <%= yield %>
     </div>
 
-
     <div class="dialog" aria-hidden="true" id="crossbeams-popup-dialog-level1">
       <div class="dialog-overlay" tabindex="-1"></div> <!-- data-a11y-dialog-hide></div> -->
       <div id="dialog-error-level1" class="brown bg-washed-red ba b--light-red absolute top-1 left-1 pa3" style="display:none;z-index:60;min-width:20em;"></div>
@@ -88,13 +78,15 @@
           <% asset_type = assets_paths(:css).any? { |p| p.include?('scss') } ? :bug : :show %>
           ASSETS: <%= Crossbeams::Layout::Icon.new(asset_type).render %>
         <% end %>
-
     </footer>
 
     <script src="/js/lodash.js" type="text/javascript"></script>
-    <script src="/js/konva.min.js?seq=1" type="text/javascript"></script>
-    <script src="/js/ag-grid-enterprise.min.js" type="text/javascript"></script>
-    <script src="/js/ag-enterprise-activation.js" type="text/javascript"></script>
+    <% if @label_edit_page %>
+      <script src="/js/konva.min.js?seq=1" type="text/javascript"></script>
+    <% else %>
+      <script src="/js/ag-grid-enterprise.min.js" type="text/javascript"></script>
+      <script src="/js/ag-enterprise-activation.js" type="text/javascript"></script>
+  <% end %>
     <script src="/js/jackbox.min.js" type="text/javascript"></script>
     <script src="/js/jquery-3.2.1.min.js" type="text/javascript"></script>
     <script src="/js/jquery.ui.position.min.js" type="text/javascript"></script>
@@ -102,11 +94,11 @@
     <script src="/js/sweetalert2.min.js" type="text/javascript"></script>
     <script src="/js/Sortable.min.js" type="text/javascript"></script>
     <script src="/js/crossbeams-local-storage.js" type="text/javascript"></script>
-    <script src="/js/crossbeams-utils.js?seq=1" type="text/javascript"></script>
-    <script src="/js/crossbeams-layout.js?seq=2" type="text/javascript"></script>
-    <script src="/js/crossbeams-grid-loader.js?seq=3" type="text/javascript"></script>
+    <script src="/js/crossbeams-utils.js?seq=2" type="text/javascript"></script>
+    <script src="/js/crossbeams-layout.js?seq=3" type="text/javascript"></script>
+    <script src="/js/crossbeams-grid-loader.js?seq=4" type="text/javascript"></script>
     <script src="/js/crossbeams-data-miner-params.js" type="text/javascript"></script>
-    <script src="/js/crossbeams-menu-builder.js" type="text/javascript"></script>
+    <script src="/js/crossbeams-menu-builder.js?seq=1" type="text/javascript"></script>
     <script src="/js/selectr.min.js" type="text/javascript"></script>
     <script src="/js/multi.min.js" type="text/javascript"></script>
     <script src="/js/a11y-dialog-cbeam.js" type="text/javascript"></script>

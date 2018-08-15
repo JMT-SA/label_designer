@@ -167,6 +167,7 @@ class LabelDesigner < Roda
 
     r.on 'label_designer' do
       r.is do
+        @label_edit_page = true
         view(inline: label_designer_page(label_name: params[:label_name],
                                          label_dimension: params[:label_dimension],
                                          px_per_mm: params[:px_per_mm]))

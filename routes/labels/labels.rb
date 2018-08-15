@@ -17,6 +17,7 @@ class LabelDesigner < Roda
 
       r.on 'edit' do   # EDIT
         check_auth!('designs', 'edit')
+        @label_edit_page = true
         view(inline: label_designer_page(id: id))
       end
 
@@ -40,6 +41,7 @@ class LabelDesigner < Roda
       end
 
       r.on 'show_clone' do
+        @label_edit_page = true
         view(inline: label_designer_page(label_name: session[:new_label_attributes][:label_name],
                                          id: id,
                                          cloned: true))
@@ -179,6 +181,7 @@ class LabelDesigner < Roda
       interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
       r.on 'new' do    # NEW
         check_auth!('designs', 'new')
+        set_last_grid_url('/list/labels', r)
         show_partial_or_page(r) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
       end
       r.post do        # CREATE
