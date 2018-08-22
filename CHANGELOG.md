@@ -8,8 +8,11 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
-- Crossbeams::LabelDesigner upgraded to version 0.1.6 (Lato Light font added, toolbar redesign).
 ### Fixed
+
+## [0.2.1] - 2018-08-22
+### Changed
+- Crossbeams::LabelDesigner upgraded to version 0.1.6 (Lato Light font added, toolbar redesign).
 
 ## [0.2.0] - 2018-08-10
 ### Changed
