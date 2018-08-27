@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.2.2] - 2018-08-27
+### Changed
+- Crossbeams::LabelDesigner upgraded to version 0.1.7 (Canvas scrolling changed, fix bug with undo).
+
 ## [0.2.1] - 2018-08-22
 ### Changed
 - Crossbeams::LabelDesigner upgraded to version 0.1.6 (Lato Light font added, toolbar redesign).

@@ -7,9 +7,9 @@ GIT
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-label_designer.git
-  revision: 4ece44f32dd3d2fa4360d3b7429829a027e52505
+  revision: 9f78855e622249b02690dab7df1b1ddd158d60a6
   specs:
-    crossbeams-label_designer (0.1.6)
+    crossbeams-label_designer (0.1.7)
       dry-configurable
       erubi
       json
