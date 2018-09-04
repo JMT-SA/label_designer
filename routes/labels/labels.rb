@@ -116,6 +116,7 @@ class LabelDesigner < Roda
 
       r.on 'link_sub_labels' do
         r.post do
+          return_json_response
           content = show_partial { Labels::Labels::Label::SortSubLabels.call(id, multiselect_grid_choices(params)) }
           update_dialog_content(content: content, notice: 'Re-order the sub-labels')
         end

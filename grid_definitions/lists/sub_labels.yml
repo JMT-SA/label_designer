@@ -6,7 +6,7 @@
     :preselect: "SELECT sub_label_id AS id FROM multi_labels WHERE label_id = $:id$"
     :section_caption: "SELECT 'Select multi-labels for ' || label_name FROM labels WHERE id = $:id$"
     :can_be_cleared: false
-    :multiselect_save_remote: true
+    :multiselect_save_method: remote
     :conditions: sub_label
 :conditions:
   :sub_label:
