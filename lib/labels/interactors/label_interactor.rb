@@ -34,7 +34,7 @@ module LabelApp
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
       id = nil
-      DB.transaction do
+      repo.transaction do
         id = repo.create_label(res)
         log_transaction
       end
@@ -48,7 +48,7 @@ module LabelApp
     def update_label(id, params)
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
-      DB.transaction do
+      repo.transaction do
         repo.update_label(id, res)
         log_transaction
       end
@@ -59,7 +59,7 @@ module LabelApp
 
     def delete_label(id)
       instance = label(id)
-      DB.transaction do
+      repo.transaction do
         if instance.multi_label
           repo.delete_label_with_sub_labels(id)
         else
@@ -143,7 +143,7 @@ module LabelApp
       }
       attrs = LabelFiles.new.import_file(tempfile, attrs)
       id = nil
-      DB.transaction do
+      repo.transaction do
         id = repo.create_label(attrs)
         log_transaction
       end
