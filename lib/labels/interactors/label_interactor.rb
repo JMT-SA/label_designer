@@ -124,6 +124,35 @@ module LabelApp
       LabelFiles.new.make_label_zip(instance)
     end
 
+    def label_export(id)
+      instance = label(id)
+      raise 'Multi-labels cannot be exported' if instance.multi_label
+      LabelFiles.new.make_export_zip(instance)
+    end
+
+    def import_label(params) # rubocop:disable Metrics/AbcSize
+      return failed_response('No file selected to import') unless params[:import_file] && (tempfile = params[:import_file][:tempfile])
+      attrs = {
+        label_name: params[:label_name],
+        container_type: params[:container_type],
+        commodity: params[:commodity],
+        market: params[:market],
+        language: params[:language],
+        category: params[:category],
+        sub_category: params[:sub_category]
+      }
+      attrs = LabelFiles.new.import_file(tempfile, attrs)
+      id = nil
+      DB.transaction do
+        id = repo.create_label(attrs)
+        log_transaction
+      end
+      instance = label(id)
+      success_response("Imported label #{instance.label_name}", instance)
+    rescue Sequel::UniqueConstraintViolation
+      validation_failed_response(OpenStruct.new(messages: { label_name: ['This label already exists'] }))
+    end
+
     def do_preview(id, screen_or_print, vars)
       instance = label(id)
       # Store the input variables:

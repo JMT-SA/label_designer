@@ -63,6 +63,14 @@
   - :url: /labels/labels/labels/$:id$/download
     :text: download
     :icon: download
+  - :url: /labels/labels/labels/$:id$/export
+    :text: export
+    :icon: save-disk
+    :hide_if_true: multi_label
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: export
   - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$"
     :text: select sub-labels
     :icon: list

@@ -18,6 +18,41 @@ module LabelApp
       [fname, stringio.string]
     end
 
+    def make_export_zip(label) # rubocop:disable Metrics/AbcSize
+      attrs = { 'label_name': label.label_name,
+                'label_dimension': label.label_dimension,
+                'px_per_mm': label.px_per_mm }
+      stringio = Zip::OutputStream.write_buffer do |zio|
+        zio.put_next_entry('png_image')
+        zio.write label.png_image
+        zio.put_next_entry('variable_xml')
+        zio.write label.variable_xml
+        zio.put_next_entry('label_json')
+        zio.write label.label_json.to_s
+        zio.put_next_entry('attributes')
+        zio.write attrs.to_json
+      end
+      [label.label_name, stringio.string]
+    end
+
+    def import_file(tempfile, attrs)
+      Zip::InputStream.open(tempfile) do |io|
+        while (entry = io.get_next_entry)
+          case entry.name
+          when 'attributes'
+            temps = JSON.parse(io.read)
+            attrs[:label_dimension] = temps['label_dimension']
+            attrs[:px_per_mm] = temps['px_per_mm']
+          when 'png_image'
+            attrs[:png_image] = Sequel.blob(io.read)
+          else
+            attrs[entry.name.to_sym] = io.read
+          end
+        end
+      end
+      attrs
+    end
+
     def make_combined_xml(label, fname)
       sub_label_ids = repo.sub_label_ids(label.id)
       first = repo.find_label(sub_label_ids.shift)

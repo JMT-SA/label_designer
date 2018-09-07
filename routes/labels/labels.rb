@@ -72,6 +72,14 @@ class LabelDesigner < Roda
         response.write(binary_data)
       end
 
+      r.on 'export' do
+        check_auth!('designs', 'export')
+        fname, binary_data = interactor.label_export(id)
+        response.headers['content_type'] = 'application/x-zip-compressed'
+        response.headers['Content-Disposition'] = "attachment; filename=\"#{fname}.ldexport\""
+        response.write(binary_data)
+      end
+
       r.on 'variable_list' do
         res = interactor.can_preview?(id)
         if res.success
@@ -185,32 +193,51 @@ class LabelDesigner < Roda
         set_last_grid_url('/list/labels', r)
         show_partial_or_page(r) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
       end
-      r.post do        # CREATE
-        res = nil
-        res = if params[:label][:multi_label] == 't'
-                interactor.create_label(params[:label])
-              else
-                interactor.pre_create_label(params[:label])
-              end
+      r.is do
+        r.post do        # CREATE
+          res = nil
+          res = if params[:label][:multi_label] == 't'
+                  interactor.create_label(params[:label])
+                else
+                  interactor.pre_create_label(params[:label])
+                end
 
-        if res.success
-          if params[:label][:multi_label] == 't'
-            load_via_json("/list/sub_labels/multi?key=sub_labels&id=#{res.instance.id}&label_dimension=#{res.instance.label_dimension}")
-          else
-            session[:new_label_attributes] = res.instance
-            qs = params[:label].map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')
-            if fetch?(r)
-              redirect_via_json("/label_designer?#{qs}")
+          if res.success
+            if params[:label][:multi_label] == 't'
+              load_via_json("/list/sub_labels/multi?key=sub_labels&id=#{res.instance.id}&label_dimension=#{res.instance.label_dimension}")
             else
-              r.redirect "/label_designer?#{qs}"
+              session[:new_label_attributes] = res.instance
+              qs = params[:label].map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')
+              if fetch?(r)
+                redirect_via_json("/label_designer?#{qs}")
+              else
+                r.redirect "/label_designer?#{qs}"
+              end
+            end
+          else
+            re_show_form(r, res, url: '/labels/labels/labels/new') do
+              Labels::Labels::Label::New.call(form_values: params[:label],
+                                              form_errors: res.errors,
+                                              remote: fetch?(r))
             end
           end
+        end
+      end
+
+      r.on 'import' do
+        check_auth!('designs', 'export')
+        set_last_grid_url('/list/labels', r)
+        show_partial_or_page(r) { Labels::Labels::Label::Import.call(remote: fetch?(r)) }
+      end
+
+      r.on 'add_import' do
+        res = interactor.import_label(params[:label])
+        if res.success
+          flash[:notice] = res.message
+          r.redirect("/labels/labels/labels/#{res.instance.id}/edit")
         else
-          re_show_form(r, res, url: '/labels/labels/labels/new') do
-            Labels::Labels::Label::New.call(form_values: params[:label],
-                                            form_errors: res.errors,
-                                            remote: fetch?(r))
-          end
+          flash[:error] = res.message
+          r.redirect('/labels/labels/labels/import')
         end
       end
     end
