@@ -8,6 +8,8 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+- Label name is no longer constrained to 16 character length.
+- Label name must be unique.
 ### Fixed
 
 ## [0.2.2] - 2018-08-27
