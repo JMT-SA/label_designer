@@ -31,7 +31,7 @@ class LabelDesigner < Roda
       r.on 'save_reorder' do
         res = interactor.reorder_programs(params[:p_sorted_ids])
         flash[:notice] = res.message
-        redirect_via_json_to_last_grid
+        redirect_to_last_grid(r)
       end
       r.is do
         r.get do       # SHOW
@@ -43,7 +43,7 @@ class LabelDesigner < Roda
           res = interactor.update_functional_area(id, params[:functional_area])
           if res.success
             flash[:notice] = res.message
-            redirect_via_json_to_last_grid
+            redirect_to_last_grid(r)
           else
             content = show_partial { Security::FunctionalAreas::FunctionalArea::Edit.call(id, params[:functional_area], res.errors) }
             update_dialog_content(content: content, error: res.message)
@@ -113,7 +113,7 @@ class LabelDesigner < Roda
           res = interactor.update_program(id, params[:program])
           if res.success
             flash[:notice] = res.message
-            redirect_via_json_to_last_grid
+            redirect_to_last_grid(r)
           else
             content = show_partial { Security::FunctionalAreas::Program::Edit.call(id, params[:program], res.errors) }
             update_dialog_content(content: content, error: res.message)
@@ -135,7 +135,7 @@ class LabelDesigner < Roda
       r.on 'save_reorder' do
         res = interactor.reorder_program_functions(params[:pf_sorted_ids])
         flash[:notice] = res.message
-        redirect_via_json_to_last_grid
+        redirect_to_last_grid(r)
       end
     end
 
@@ -203,7 +203,7 @@ class LabelDesigner < Roda
           res = interactor.update_program_function(id, params[:program_function])
           if res.success
             flash[:notice] = res.message
-            redirect_via_json_to_last_grid
+            redirect_to_last_grid(r)
           else
             content = show_partial { Security::FunctionalAreas::ProgramFunction::Edit.call(id, params[:program_function], res.errors) }
             update_dialog_content(content: content, error: res.message)
@@ -310,8 +310,15 @@ class LabelDesigner < Roda
       r.post do        # CREATE
         res = interactor.create_security_group(params[:security_group])
         if res.success
-          flash[:notice] = res.message
-          redirect_to_last_grid(r)
+          if fetch?(r)
+            return_json_response
+            add_grid_row(attrs: { id: res.instance.id,
+                                  security_group_name: res.instance[:security_group_name] },
+                         notice: res.message)
+          else
+            flash[:notice] = res.message
+            redirect_to_last_grid(r)
+          end
         else
           re_show_form(r, res, url: '/security/functional_areas/security_groups/new') do
             Security::FunctionalAreas::SecurityGroup::New.call(form_values: params[:security_group],

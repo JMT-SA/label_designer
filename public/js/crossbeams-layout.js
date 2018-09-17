@@ -100,7 +100,8 @@
    */
   document.addEventListener('invalid', (e) => {
     window.setTimeout(() => {
-      e.target.form.querySelectorAll('[disabled]').forEach(el => revertDisabledButton(el));
+      const sel = '[data-disable-with][disabled], [data-briefly-disable-with][disabled]';
+      e.target.form.querySelectorAll(sel).forEach(el => revertDisabledButton(el));
     }, 0); // Disable the button with a delay so the form still submits...
   }, true);
 
@@ -194,6 +195,10 @@
             let closeDialog = true;
             if (data.redirect) {
               window.location = data.redirect;
+            } else if (data.reloadPreviousDialog) {
+              crossbeamsUtils.closePopupDialog();
+              closeDialog = false;
+              loadDialogContent(data.reloadPreviousDialog);
             } else if (data.loadNewUrl) {
               closeDialog = false;
               loadDialogContent(data.loadNewUrl); // promise...
@@ -201,6 +206,8 @@
               data.updateGridInPlace.forEach((gridRow) => {
                 crossbeamsGridEvents.updateGridInPlace(gridRow.id, gridRow.changes);
               });
+            } else if (data.addRowToGrid) {
+              crossbeamsGridEvents.addRowToGrid(data.addRowToGrid.changes);
             } else if (data.actions) {
               if (data.keep_dialog_open) {
                 closeDialog = false;

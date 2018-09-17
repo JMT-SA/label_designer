@@ -18,7 +18,7 @@ module LabelApp
       res = validate_master_list_params(params)
       return validation_failed_response(res) unless res.messages.empty?
       id = nil
-      DB.transaction do
+      repo.transaction do
         id = repo.create_master_list(res)
         log_transaction
       end
@@ -32,7 +32,7 @@ module LabelApp
     def update_master_list(id, params)
       res = validate_master_list_params(params)
       return validation_failed_response(res) unless res.messages.empty?
-      DB.transaction do
+      repo.transaction do
         repo.update_master_list(id, res)
         log_transaction
       end
@@ -43,7 +43,7 @@ module LabelApp
 
     def delete_master_list(id)
       name = master_list(id).list_type
-      DB.transaction do
+      repo.transaction do
         repo.delete_master_list(id)
         log_transaction
       end

@@ -171,8 +171,16 @@ module CommonHelpers
     { redirect: url }.to_json
   end
 
-  def load_via_json(url)
-    { loadNewUrl: url }.to_json
+  def reload_previous_dialog_via_json(url, notice: nil)
+    res = { reloadPreviousDialog: url }
+    res[:flash] = { notice: notice } if notice
+    res.to_json
+  end
+
+  def load_via_json(url, notice: nil)
+    res = { loadNewUrl: url }
+    res[:flash] = { notice: notice } if notice
+    res.to_json
   end
 
   def make_id_correct_type(id_in)
@@ -193,6 +201,17 @@ module CommonHelpers
   # @return [JSON] the changes to be applied.
   def update_grid_row(ids, changes:, notice: nil)
     res = { updateGridInPlace: Array(ids).map { |i| { id: make_id_correct_type(i), changes: changes } } }
+    res[:flash] = { notice: notice } if notice
+    res.to_json
+  end
+
+  # Add a row to a grid. created_at and updated_at values are provided automatically.
+  #
+  # @param attrs [Hash] the columns and their values.
+  # @param notice [String/Nil] the flash message to show.
+  # @return [JSON] the changes to be applied.
+  def add_grid_row(attrs:, notice: nil)
+    res = { addRowToGrid: { changes: attrs.merge(created_at: Time.now.to_s, updated_at: Time.now.to_s) } }
     res[:flash] = { notice: notice } if notice
     res.to_json
   end

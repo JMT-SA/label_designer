@@ -10,6 +10,11 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.2.3] - 2018-09-17
+### Changed
+- Label name is no longer constrained to 16 character length.
+- Label name must be unique.
+
 ## [0.2.2] - 2018-08-27
 ### Changed
 - Crossbeams::LabelDesigner upgraded to version 0.1.7 (Canvas scrolling changed, fix bug with undo).
