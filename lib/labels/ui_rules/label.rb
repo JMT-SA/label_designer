@@ -35,7 +35,7 @@ module UiRules
 
     def common_fields
       {
-        label_name: { maxlength: 16, pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces', required: true },
+        label_name: { pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces', required: true },
         label_dimension: { renderer: :select,
                            options: LabelDesigner::LABEL_SIZES.keys.sort, required: true },
         px_per_mm: { renderer: :select,
