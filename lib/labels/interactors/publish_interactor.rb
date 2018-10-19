@@ -84,7 +84,7 @@ module LabelApp
           (label_template_file, mes_peripheral_type_id, mes_peripheral_type_code, created_at, updated_at)
           SELECT '#{key}.nsld', mp.id, mp.code, getdate(), getdate()
           FROM mes_peripheral_types mp
-          WHERE UPPER(mp.code) = '#{vars[:chosen_printer].upcase};'
+          WHERE UPPER(mp.code) = '#{vars[:chosen_printer].upcase}';
         SQL
       end
       '<hr>' + Crossbeams::Layout::Text.new({}, sql.join("\n"), toggle_button: true, toggle_caption: 'Toggle SQL for template insert', syntax: :sql).render
