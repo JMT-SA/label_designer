@@ -6,10 +6,8 @@ module LabelApp
     crud_calls_for :multi_labels, name: :multi_label
 
     def sub_label_list(sub_label_ids)
-      DB[:labels].left_outer_join(:multi_labels, sub_label_id: :id)
-                 .select(:id, :label_name)
+      DB[:labels].select(:id, :label_name)
                  .where(id: sub_label_ids)
-                 .order(:print_sequence, :label_name)
                  .map { |r| [r[:label_name], r[:id]] }
     end
 
