@@ -89,6 +89,17 @@ class LabelDesigner < Roda
         end
       end
 
+      r.on 'refresh_multi_label_variables' do
+        # return_json_response
+        res = interactor.refresh_multi_label_variables(id)
+        if res.success
+          # show_json_notice(res.message)
+          "<br><div class='crossbeams-success-note'><p><strong>Updated:</strong></p><p>#{res.message}</p></div>"
+        else
+          dialog_error(res.message)
+        end
+      end
+
       r.on 'preview' do
         res = interactor.can_preview?(id)
         if res.success

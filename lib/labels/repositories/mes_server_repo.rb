@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module LabelApp
-  class MesServerRepo
+  class MesServerRepo # rubocop:disable Metrics/ClassLength
     include Crossbeams::Responses
 
     BOUNDARY = 'AaB03x'
@@ -85,7 +85,7 @@ module LabelApp
       post_body
     end
 
-    def post_binary(uri, vars, screen_or_print, fname, binary_data)
+    def post_binary(uri, vars, screen_or_print, fname, binary_data) # rubocop:disable Metrics/AbcSize
       post_body = screen_or_print == 'print' ? print_part_of_body(vars) : []
       post_body += shared_part_of_body(fname, binary_data)
 
@@ -104,7 +104,7 @@ module LabelApp
       failed_response("There was an error: #{e.message}")
     end
 
-    def post_package(uri, printer_type, targets, fname, binary_data)
+    def post_package(uri, printer_type, targets, fname, binary_data) # rubocop:disable Metrics/AbcSize
       post_body = publish_part_of_body(printer_type, targets)
       post_body += shared_part_of_body(fname, binary_data)
 
@@ -140,6 +140,8 @@ module LabelApp
     def format_response(response)
       if response.code == '200'
         success_response(response.code, response)
+      elsif response.code == '503' # The printer is unavailable
+        failed_response(response.body, response.code)
       else
         msg = response.code.start_with?('5') ? 'The destination server encountered an error.' : 'The request was not successful.'
         failed_response("#{msg} The response code is #{response.code}", response.code)

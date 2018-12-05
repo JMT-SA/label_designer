@@ -160,7 +160,7 @@ module LabelApp
       repo.update_label(id, sample_data: repo.hash_to_jsonb_str(vars))
 
       fname, binary_data = LabelFiles.new.make_label_zip(instance, vars)
-      File.open('zz.zip', 'w') { |f| f.puts binary_data }
+      # File.open('zz.zip', 'w') { |f| f.puts binary_data }
 
       mes_repo = MesServerRepo.new
       res = mes_repo.preview_label(screen_or_print, vars, fname, binary_data)
@@ -169,6 +169,14 @@ module LabelApp
       else
         failed_response(res.message)
       end
+    end
+
+    def refresh_multi_label_variables(id)
+      repo.transaction do
+        repo.refresh_multi_label_variables(id)
+        log_transaction
+      end
+      success_response('Preview values have been built up from the sub-labels')
     end
   end
 end

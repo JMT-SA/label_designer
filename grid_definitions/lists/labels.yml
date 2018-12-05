@@ -61,10 +61,10 @@
       :program: designs
       :permission: edit
   - :url: /labels/labels/labels/$:id$/download
-    :text: download
+    :text: Download
     :icon: download
   - :url: /labels/labels/labels/$:id$/export
-    :text: export
+    :text: Export
     :icon: save-disk
     :hide_if_true: multi_label
     :auth:
@@ -72,7 +72,7 @@
       :program: designs
       :permission: export
   - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$"
-    :text: select sub-labels
+    :text: Select sub-labels
     :icon: list
     :popup: true
     :hide_if_false: multi_label
@@ -80,6 +80,12 @@
       :function: label designer
       :program: designs
       :permission: edit
+  - :url: /labels/labels/labels/$:id$/refresh_multi_label_variables
+    :text: Refresh preview values from sub-labels
+    :icon: code
+    :popup: true
+    :prompt: Are you sure you want to replace the preview values?
+    :hide_if_false: multi_label
 :page_controls:
   - :control_type: :link
     :url: /labels/labels/labels/new

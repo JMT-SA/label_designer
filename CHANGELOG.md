@@ -7,6 +7,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- Action on labels grid: `Refresh preview values from sub-labels` - combines preview values from a multi-label's sub-labels, replacing sample_data for the mult-label.
 ### Changed
 ### Fixed
 
