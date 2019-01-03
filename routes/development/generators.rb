@@ -10,7 +10,6 @@ class LabelDesigner < Roda
       end
 
       r.on 'save_snippet' do
-        return_json_response
         FileUtils.mkpath(File.join(ENV['ROOT'], File.dirname(params[:snippet][:path])))
         File.open(File.join(ENV['ROOT'], params[:snippet][:path]), 'w') do |file|
           file.puts Base64.decode64(params[:snippet][:value])
@@ -31,6 +30,24 @@ class LabelDesigner < Roda
 
       r.on 'table_changed' do
         json_replace_input_value('scaffold_short_name', params[:changed_value])
+      end
+    end
+
+    # GENERAL
+    # --------------------------------------------------------------------------
+    r.on 'email_test' do
+      r.get do
+        show_page { Development::Generators::General::Email.call }
+      end
+      r.post do
+        opts = {
+          to: params[:mail][:to],
+          subject: params[:mail][:subject],
+          body: params[:mail][:body]
+        }
+        opts[:cc] = params[:mail][:cc] if params[:mail][:cc]
+        DevelopmentApp::SendMailJob.enqueue(opts)
+        show_page_success('Added email-sending job to the queue')
       end
     end
   end

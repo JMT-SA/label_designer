@@ -1,5 +1,3 @@
-// for equiv of $ready() -- place this code at end of <body> or use:
-// document.addEventListener('DOMContentLoaded', fn, false);
 /**
  * Build a crossbeamsLayout page.
  * @namespace {function} crossbeamsLayout
@@ -64,6 +62,13 @@
     }
   }
 
+  /**
+   * loadDialogContent - fetches the given url and calls setDialogContent
+   *                     to replace the dialog's content area.
+   *
+   * @param {string} url - the url to call.
+   * @returns {void}
+   */
   function loadDialogContent(url) {
     fetch(url, {
       method: 'GET',
@@ -71,24 +76,12 @@
       headers: new Headers({
         'X-Custom-Request-Type': 'Fetch',
       }),
-      // body: new FormData(event.target),
     })
-    .then(response => response.text())
+    .then(response => response.json())
     .then((data) => {
-      const dlgContent = document.getElementById(crossbeamsUtils.activeDialogContent());
-      dlgContent.innerHTML = data;
-      crossbeamsUtils.makeMultiSelects();
-      crossbeamsUtils.makeSearchableSelects();
-      const grids = dlgContent.querySelectorAll('[data-grid]');
-      grids.forEach((grid) => {
-        const gridId = grid.getAttribute('id');
-        const gridEvent = new CustomEvent('gridLoad', { detail: gridId });
-        document.dispatchEvent(gridEvent);
-      });
+      crossbeamsUtils.setDialogContent(data.replaceDialog.content);
     }).catch((data) => {
-      Jackbox.error('The action was unsuccessful...');
-      const htmlText = data.responseText ? data.responseText : '';
-      document.getElementById(crossbeamsUtils.activeDialogContent()).innerHTML = htmlText;
+      crossbeamsUtils.fetchErrorHandler(data);
     });
   }
 
@@ -128,6 +121,12 @@
       }
     }, false);
 
+    // Display report parameters if applicable.
+    document.querySelectorAll('[data-report-param-display]').forEach((el) => {
+      const key = el.dataset.reportParamDisplay;
+      el.innerHTML = crossbeamsDataMinerParams.loadSelectedParams(key);
+    });
+
     document.body.addEventListener('click', (event) => {
       // Disable a button on click
       if (event.target.dataset && event.target.dataset.disableWith) {
@@ -137,9 +136,37 @@
       if (event.target.dataset && event.target.dataset.brieflyDisableWith) {
         preventMultipleSubmitsBriefly(event.target);
       }
+      // Open the href in a new window and show a loading animation.
+      if (event.target.dataset && event.target.dataset.loadingWindow) {
+        event.stopPropagation();
+        event.preventDefault();
+        crossbeamsUtils.loadingWindow(event.target.href);
+      }
+      // Prompt for confirmation
+      if (event.target.dataset && event.target.dataset.prompt) {
+        event.stopPropagation();
+        event.preventDefault();
+        crossbeamsUtils.confirm({
+          prompt: event.target.dataset.prompt,
+          okFunc: () => {
+            // console.log('to call HREF', event.target.href); // TODO: is this a fetch/std call?
+            // SHOULD actually be a POST, not a GET?
+            window.location = event.target.href;
+          },
+        });
+      }
       // Open modal dialog
       if (event.target.dataset && event.target.dataset.popupDialog) {
+        if (event.target.dataset.gridId) {
+          crossbeamsUtils.recordGridIdForPopup(event.target.dataset.gridId);
+        }
         crossbeamsUtils.popupDialog(event.target.text, event.target.href);
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      // Replace modal dialog
+      if (event.target.dataset && event.target.dataset.replaceDialog) {
+        loadDialogContent(event.target.href);
         event.stopPropagation();
         event.preventDefault();
       }
@@ -222,11 +249,23 @@
                 if (action.replace_input_value) {
                   crossbeamsUtils.replaceInputValue(action);
                 }
+                if (action.replace_inner_html) {
+                  crossbeamsUtils.replaceInnerHtml(action);
+                }
                 if (action.replace_list_items) {
                   crossbeamsUtils.replaceListItems(action);
                 }
                 if (action.clear_form_validation) {
                   crossbeamsUtils.clearFormValidation(action);
+                }
+                if (action.addRowToGrid) {
+                  crossbeamsUtils.addGridRow(action);
+                }
+                if (action.updateGridInPlace) {
+                  crossbeamsUtils.updateGridRow(action);
+                }
+                if (action.removeGridRowInPlace) {
+                  crossbeamsUtils.deleteGridRow(action);
                 }
               });
             } else if (data.replaceDialog) {
@@ -267,24 +306,7 @@
               crossbeamsUtils.closePopupDialog();
             }
           }).catch((data) => {
-            if (data.response && data.response.status === 500) {
-              data.response.json().then((body) => {
-                if (body.flash.error) {
-                  if (body.exception) {
-                    if (body.backtrace) {
-                      console.log('EXCEPTION:', body.exception, body.flash.error);
-                      console.log('==Backend Backtrace==');
-                      console.info(body.backtrace.join('\n'));
-                    }
-                  } else {
-                    Jackbox.error(body.flash.error);
-                  }
-                } else {
-                  document.getElementById(crossbeamsUtils.activeDialogContent()).innerHTML = body;
-                }
-              });
-            }
-            Jackbox.error(`An error occurred ${data}`, { time: 20 });
+            crossbeamsUtils.fetchErrorHandler(data);
           });
         event.stopPropagation();
         event.preventDefault();

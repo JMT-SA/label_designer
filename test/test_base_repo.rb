@@ -227,21 +227,122 @@ class TestBaseRepo < MiniTestWithHooks
 
   def test_crud_calls_without_wrapper
     klass = Class.new(BaseRepo)
-    klass.crud_calls_for(:tablename)
+    klass.crud_calls_for(:users)
     repo = klass.new
-    assert_respond_to repo, :create_tablename
-    assert_respond_to repo, :update_tablename
-    assert_respond_to repo, :delete_tablename
-    refute_respond_to repo, :find_tablename
+    assert_respond_to repo, :create_users
+    assert_respond_to repo, :update_users
+    assert_respond_to repo, :delete_users
+    refute_respond_to repo, :find_users
+  end
+
+  def test_crud_calls_fails_for_table_that_does_not_exist
+    klass = Class.new(BaseRepo)
+    assert_raises(ArgumentError) { klass.crud_calls_for(:some_table_no_one_would_want_to_create) }
+  end
+
+  def test_crud_calls_with_schema
+    klass = Class.new(BaseRepo)
+    klass.crud_calls_for(:users, schema: :public)
+    repo = klass.new
+    assert_respond_to repo, :create_users
+    assert_respond_to repo, :update_users
+    assert_respond_to repo, :delete_users
+    refute_respond_to repo, :find_users
+  end
+
+  def test_crud_calls_with_exclusion
+    klass = Class.new(BaseRepo)
+    klass.crud_calls_for(:users, exclude: %i[update delete])
+    repo = klass.new
+    assert_respond_to repo, :create_users
+    refute_respond_to repo, :update_users
+    refute_respond_to repo, :delete_users
+    refute_respond_to repo, :find_users
   end
 
   def test_crud_calls
     klass = Class.new(BaseRepo)
-    klass.crud_calls_for(:tablename, wrapper: DevelopmentApp::User)
+    klass.crud_calls_for(:users, wrapper: DevelopmentApp::User)
     repo = klass.new
-    assert_respond_to repo, :create_tablename
-    assert_respond_to repo, :update_tablename
-    assert_respond_to repo, :delete_tablename
-    assert_respond_to repo, :find_tablename
+    assert_respond_to repo, :create_users
+    assert_respond_to repo, :update_users
+    assert_respond_to repo, :delete_users
+    assert_respond_to repo, :find_users
+  end
+
+  def test_find_with_associations
+    repo = BaseRepo.new
+    user1 = repo.where_hash(:users, login_name: "usr_1")
+    user2 = repo.where_hash(:users, login_name: "usr_2")
+    repo.update(:users, user2[:id], active: false)
+    sg_id = DB[:security_groups].insert(security_group_name: 'SG-TEST1')
+    func_id = DB[:functional_areas].insert(functional_area_name: 'F-TEST1')
+    prog_id = DB[:programs].insert(program_name: 'P-TEST1', program_sequence: 1, functional_area_id: func_id)
+    DB[:programs_users].insert(user_id: user1[:id], program_id: prog_id, security_group_id: sg_id)
+    DB[:programs_users].insert(user_id: user2[:id], program_id: prog_id, security_group_id: sg_id)
+    DB[:program_functions].insert(program_function_name: 'PF-TEST1', program_id: prog_id, url: '/some/path')
+
+    # Validation
+    assert_raises(KeyError) { repo.find_with_association(:functional_areas, func_id, sub_tables: [{ miss_spelled_sub_table: :programs }]) }
+    assert_raises(ArgumentError) { repo.find_with_association('functional_areas', func_id, sub_tables: [{ sub_table: :programs }]) }
+    assert_raises(ArgumentError) { repo.find_with_association(:functional_areas, func_id, sub_tables: [{ sub_table: :programs, non_existent_key: 'WRONG' }]) }
+
+    # No association specified - just returns functional_areas Hash.
+    res = repo.find_with_association(:functional_areas, func_id)
+    assert_nil res[:programs]
+    assert_equal 'F-TEST1', res[:functional_area_name]
+
+    # Basic association (belongs_to)
+    res = repo.find_with_association(:functional_areas, func_id, sub_tables: [{ sub_table: :programs }])
+    assert_equal 1, res[:programs].length
+    assert res[:programs].first.length > 2
+
+    # Certain cols only
+    res = repo.find_with_association(:functional_areas, func_id, sub_tables: [{ sub_table: :programs, columns: [:id, :program_name] }])
+    assert_equal 1, res[:programs].length
+    assert_equal 2, res[:programs].first.length
+
+    # Join table association.
+    res = repo.find_with_association(:programs, prog_id, sub_tables: [{ sub_table: :users, uses_join_table: true }])
+    assert_equal 2, res[:users].length
+
+    # Join table association with provided join table.
+    res = repo.find_with_association(:programs, prog_id, sub_tables: [{ sub_table: :users, join_table: :programs_users }])
+    assert_equal 2, res[:users].length
+
+    # Active only
+    res = repo.find_with_association(:programs, prog_id, sub_tables: [{ sub_table: :users, uses_join_table: true, active_only: true }])
+    assert_equal 1, res[:users].length
+    assert_equal 'usr_1', res[:users].first[:login_name]
+
+    # Inactive only
+    res = repo.find_with_association(:programs, prog_id, sub_tables: [{ sub_table: :users, uses_join_table: true, inactive_only: true }])
+    assert_equal 1, res[:inactive_users].length
+    assert_equal 'usr_2', res[:inactive_users].first[:login_name]
+
+    # More than one association
+    res = repo.find_with_association(:programs, prog_id, sub_tables: [{ sub_table: :users, uses_join_table: true },
+                                                                      { sub_table: :program_functions }])
+    assert_equal 2, res[:users].length
+    assert_equal 1, res[:program_functions].length
+
+    # Parent association
+    res = repo.find_with_association(:programs, prog_id, parent_tables: [{ parent_table: :functional_areas, columns: [:functional_area_name] }])
+    assert_equal 'F-TEST1', res[:functional_area][:functional_area_name]
+
+    # Parent association - flattened columns
+    res = repo.find_with_association(:programs, prog_id, parent_tables: [{ parent_table: :functional_areas, columns: [:functional_area_name],
+                                                                           flatten_columns: { functional_area_name: :funcname } }])
+    assert_equal 'F-TEST1', res[:funcname]
+
+    # # Parent association - non-matching foreign key.
+    # res = repo.find_with_association(:programs, dummy_id, parent_tables: [{ parent_table: :security_groups, columns: [:security_group_name],
+    #                                                                         flatten_columns: { security_group_name: :secname },
+    #                                                                         foreign_key: :functional_area_id }])
+    # assert_equal 'SG-TEST1', res[:secname]
+
+    # Function lookup - IGNORE THIS IN LABEL DESIGNER (No Party Roles yet)
+    # res = repo.find_with_association(:programs, prog_id, lookup_functions: [{ function: :fn_party_role_name, args: [:functional_area_id], col_name: :customer_name }])
+    # assert res.keys.include?(:customer_name)
   end
 end

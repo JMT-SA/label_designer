@@ -1,5 +1,8 @@
 # frozen_string_literal: true
 
+# rubocop#:disable Metrics/ClassLength
+# rubocop:disable Metrics/AbcSize
+
 module UiRules
   class UserRule < Base
     def generate_rules
@@ -42,7 +45,7 @@ module UiRules
       fields[:login_name] = { renderer: :label }
       fields[:user_name] = { renderer: :label }
       fields[:email] = { renderer: :label }
-      fields[:active] = { renderer: :label }
+      fields[:active] = { renderer: :label, as_boolean: true }
     end
 
     def common_fields
@@ -78,3 +81,5 @@ module UiRules
     end
   end
 end
+# rubocop#:enable Metrics/ClassLength
+# rubocop:enable Metrics/AbcSize

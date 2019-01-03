@@ -162,7 +162,7 @@ module LabelApp
       fname, binary_data = LabelFiles.new.make_label_zip(instance, vars)
       # File.open('zz.zip', 'w') { |f| f.puts binary_data }
 
-      mes_repo = MesServerRepo.new
+      mes_repo = MesserverApp::MesserverRepo.new
       res = mes_repo.preview_label(screen_or_print, vars, fname, binary_data)
       if res.success
         success_response("Sent preview to #{screen_or_print}.", OpenStruct.new(fname: fname, body: res.instance))

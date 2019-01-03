@@ -13,7 +13,7 @@ module LabelApp
     end
 
     def publishing_server_options
-      res = LabelApp::MesServerRepo.new.publish_target_list
+      res = MesserverApp::MesserverRepo.new.publish_target_list
       return failed_response(res.message) unless res.success
 
       lkps = Hash[res.instance.map { |a| [a['NetworkInterface'], { name: a['Alias'], printers: a['PrinterTypes'] }] }]
@@ -47,7 +47,7 @@ module LabelApp
       fname, binary_data = LabelFiles.new.make_combined_zip(vars[:label_ids])
       # File.open('zz.zip', 'w') { |f| f.puts binary_data }
 
-      mes_repo = MesServerRepo.new
+      mes_repo = MesserverApp::MesserverRepo.new
       res = mes_repo.send_publish_package(vars[:chosen_printer], vars[:chosen_targets], fname, binary_data)
       if res.success
         success_response('Published labels.', OpenStruct.new(fname: fname, body: res.instance))
@@ -58,7 +58,7 @@ module LabelApp
 
     def publishing_status # (vars)
       vars = stepper.read
-      mes_repo = MesServerRepo.new
+      mes_repo = MesserverApp::MesserverRepo.new
       res = mes_repo.send_publish_status(vars[:chosen_printer], LabelFiles.new.combined_zip_filename)
       if res.success
         # TODO: use step wrapper to do formatting

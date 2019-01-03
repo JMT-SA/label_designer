@@ -8,7 +8,19 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - Action on labels grid: `Refresh preview values from sub-labels` - combines preview values from a multi-label's sub-labels, replacing sample_data for the mult-label.
+- Job queues using Que gem.
+- Send email using the `Mail` gem. `config/mail_settings.rb` must be set up and a default sender address must be set up in the `.env.local` file for `SYSTEM_MAIL_SENDER`.
+- Calculated columns for grids.
+- RMD (Registered Mobile Devices) functionality for scanning on Android hardware.
+- Log status functionality.
+- Document sequence rules for creating document serial numbers.
 ### Changed
+- Roda::DataGrid update to the way list grids are defined (using Crossbeams::DataGrid::ListGridDefinition instead of calling layout's grid renderer).
+- All fetch requests expect JSON responses. This mostly affects dialog-building responses which were returning HTML text. All `return_json_response` calls replaced by one in the main route.
+- Grid rows can be coloured simply by providing a class in a column named `colour_rule`.
+- Capture locations.
+- AG Grid upgraded to 1.19.2.
+- AppLoader for bootstrapping (the code was moved from label_designer.rb)
 ### Fixed
 
 ## [0.2.3] - 2018-09-17

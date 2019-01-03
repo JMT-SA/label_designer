@@ -1,6 +1,6 @@
 module LabelApp
   class Label < Dry::Struct
-    attribute :id, Types::Int
+    attribute :id, Types::Integer
     attribute :label_name, Types::String
     attribute :label_json, Types::String
     attribute :label_dimension, Types::String.optional
@@ -14,7 +14,7 @@ module LabelApp
     attribute :category, Types::String.optional
     attribute :sub_category, Types::String.optional
     attribute :multi_label, Types::Bool
-    attribute :sample_data, Types::Json::Hash.optional
+    attribute :sample_data, Types::JSON::Hash.optional
 
     #  label_name character varying(255) NOT NULL,
     #   label_json text,

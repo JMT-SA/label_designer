@@ -42,12 +42,9 @@ const crossbeamsGridStore = {
    */
   listGridIds: function listGridIds() {
     const lst = [];
-    this.gridStore.forEach((gridId) => {
+    Object.keys(this.gridStore).forEach((gridId) => {
       lst.push(gridId);
     });
-    // for (gridId in this.gridStore) {
-    //   lst.push(gridId);
-    // }
     return lst.join(', ');
   },
 };
@@ -162,79 +159,96 @@ const crossbeamsGridEvents = {
             'X-Custom-Request-Type': 'Fetch',
           }),
           body: form,
-        }).then(response => response.json())
-          .then((data) => {
-            let closeDialog = true;
-            if (data.redirect) {
-              window.location = data.redirect;
-            } else if (data.updateGridInPlace) {
-              data.updateGridInPlace.forEach((gridRow) => {
-                this.updateGridInPlace(gridRow.id, gridRow.changes);
-              });
-            } else if (data.addRowToGrid) {
-              this.addRowToGrid(data.addRowToGrid.changes);
-            } else if (data.actions) {
-              if (data.keep_dialog_open) {
-                closeDialog = false;
-              }
-              data.actions.forEach((action) => {
-                if (action.replace_options) {
-                  crossbeamsUtils.replaceSelectrOptions(action);
-                }
-                if (action.replace_multi_options) {
-                  crossbeamsUtils.replaceMultiOptions(action);
-                }
-                if (action.replace_input_value) {
-                  crossbeamsUtils.replaceInputValue(action);
-                }
-                if (action.replace_list_items) {
-                  crossbeamsUtils.replaceListItems(action);
-                }
-                if (action.clear_form_validation) {
-                  crossbeamsUtils.clearFormValidation(action);
-                }
-              });
-            } else if (data.replaceDialog) {
+        }).then((response) => {
+          if (response.status === 404) {
+            Jackbox.error('The requested resource was not found', { time: 20 });
+            return {};
+          }
+          return response.json();
+        }).then((data) => {
+          let closeDialog = true;
+          if (data.redirect) {
+            window.location = data.redirect;
+          } else if (data.updateGridInPlace) {
+            data.updateGridInPlace.forEach((gridRow) => {
+              this.updateGridInPlace(gridRow.id, gridRow.changes);
+            });
+          } else if (data.addRowToGrid) {
+            this.addRowToGrid(data.addRowToGrid.changes);
+          } else if (data.actions) {
+            if (data.keep_dialog_open) {
               closeDialog = false;
-              const dlgContent = document.getElementById(crossbeamsUtils.activeDialogContent());
-              dlgContent.innerHTML = data.replaceDialog.content;
-              crossbeamsUtils.makeMultiSelects();
-              crossbeamsUtils.makeSearchableSelects();
-              const grids = dlgContent.querySelectorAll('[data-grid]');
-              grids.forEach((grid) => {
-                const newGridId = grid.getAttribute('id');
-                const gridEvent = new CustomEvent('gridLoad', { detail: newGridId });
-                document.dispatchEvent(gridEvent);
-              });
-              const sortable = Array.from(dlgContent.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
-              sortable.forEach(elem => crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix,
-                                                       elem.dataset.sortableGroup));
-            } else {
-              console.log('Not sure what to do with this:', data);
             }
-            if (closeDialog) {
-              crossbeamsUtils.closePopupDialog();
-            }
-            // Only if not redirect...
-            if (data.flash) {
-              if (data.flash.notice) {
-                Jackbox.success(data.flash.notice);
+            data.actions.forEach((action) => {
+              if (action.replace_options) {
+                crossbeamsUtils.replaceSelectrOptions(action);
               }
-              if (data.flash.error) {
-                if (data.exception) {
-                  Jackbox.error(data.flash.error, { time: 20 });
-                  if (data.backtrace) {
-                    console.log('==Backend Backtrace==');
-                    console.info(data.backtrace.join('\n'));
-                  }
-                } else {
-                  Jackbox.error(data.flash.error);
+              if (action.replace_multi_options) {
+                crossbeamsUtils.replaceMultiOptions(action);
+              }
+              if (action.replace_input_value) {
+                crossbeamsUtils.replaceInputValue(action);
+              }
+              if (action.replace_inner_html) {
+                crossbeamsUtils.replaceInnerHtml(action);
+              }
+              if (action.replace_list_items) {
+                crossbeamsUtils.replaceListItems(action);
+              }
+              if (action.clear_form_validation) {
+                crossbeamsUtils.clearFormValidation(action);
+              }
+              if (action.addRowToGrid) {
+                crossbeamsUtils.addGridRow(action);
+              }
+              if (action.updateGridInPlace) {
+                crossbeamsUtils.updateGridRow(action);
+              }
+              if (action.removeGridRowInPlace) {
+                crossbeamsUtils.deleteGridRow(action);
+              }
+            });
+          } else if (data.replaceDialog) {
+            closeDialog = false;
+            const dlgContent = document.getElementById(crossbeamsUtils.activeDialogContent());
+            dlgContent.innerHTML = data.replaceDialog.content;
+            crossbeamsUtils.makeMultiSelects();
+            crossbeamsUtils.makeSearchableSelects();
+            const grids = dlgContent.querySelectorAll('[data-grid]');
+            grids.forEach((grid) => {
+              const newGridId = grid.getAttribute('id');
+              const gridEvent = new CustomEvent('gridLoad', { detail: newGridId });
+              document.dispatchEvent(gridEvent);
+            });
+            const sortable = Array.from(dlgContent.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
+            sortable.forEach(elem => crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix,
+                                                     elem.dataset.sortableGroup));
+          } else {
+            console.log('Not sure what to do with this:', data);
+          }
+          if (closeDialog) {
+            crossbeamsUtils.closePopupDialog();
+          }
+          // Only if not redirect...
+          if (data.flash) {
+            if (data.flash.notice) {
+              Jackbox.success(data.flash.notice);
+            }
+            if (data.flash.error) {
+              if (data.exception) {
+                Jackbox.error(data.flash.error, { time: 20 });
+                if (data.backtrace) {
+                  console.log('==Backend Backtrace==');
+                  console.info(data.backtrace.join('\n'));
                 }
+              } else {
+                Jackbox.error(data.flash.error);
               }
             }
-          }).catch((data) => {
-            Jackbox.error(`An error occurred ${data}`, { time: 20 });
-          });
+          }
+        }).catch((data) => {
+          crossbeamsUtils.fetchErrorHandler(data);
+        });
       };
 
       let saveFunc;
@@ -320,24 +334,10 @@ const crossbeamsGridEvents = {
         colKeys.push(col.colId);
       }
     });
-    // for (i = 0, len = visibleCols.length; i < len; i++) {
-    //   if (visibleCols[i].colDef.suppressCsvExport &&
-    //   visibleCols[i].colDef.suppressCsvExport === true) {
-    //   } else {
-    //     colKeys.push(visibleCols[i].colId);
-    //   }
-    // }
 
     params = {
       fileName,
       columnKeys: colKeys, // Visible, non-suppressed columns.
-      // skipHeader: true,
-      // skipFooters: true,
-      // skipGroups: true,
-      // allColumns: true,
-      // suppressQuotes: true,
-      // onlySelected: true,
-      // columnSeparator: ';'
     };
 
     // Ensure long numbers are exported as strings.
@@ -549,6 +549,7 @@ const crossbeamsGridFormatters = {
       title_field: titleValue,
       icon: item.icon,
       popup: item.popup,
+      loading_window: item.loading_window,
     };
   },
 
@@ -1065,6 +1066,29 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
     let treeConfig = {};
     const grid = document.getElementById(gridId);
 
+    const frame = document.getElementById(`${gridId}-frame`);
+    const sideBar = {
+      toolPanels: [
+        {
+          id: 'columns',
+          labelDefault: 'Columns',
+          labelKey: 'columns',
+          iconKey: 'columns',
+          toolPanel: 'agColumnsToolPanel',
+        },
+      ],
+    };
+
+    if ((parseInt(frame.style.height, 10) || '100') > 10) {
+      sideBar.toolPanels.push({
+        id: 'filters',
+        labelDefault: 'Filters',
+        labelKey: 'filters',
+        iconKey: 'filter',
+        toolPanel: 'agFiltersToolPanel',
+      });
+    }
+
     forPrint = grid.dataset.gridPrint;
     multisel = grid.dataset.gridMulti;
     tree = grid.dataset.gridTree !== undefined;
@@ -1081,7 +1105,8 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
         enableSorting: true,
         enableFilter: true,
         enableRangeSelection: true,
-        enableStatusBar: true,
+        // enableStatusBar: true,
+        sideBar,
         suppressAggFuncInHeader: true,
         isFullWidthCell: function isFullWidthCell(rowNode) {
           return rowNode.level === 1;
@@ -1121,8 +1146,41 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
         enableFilter: true,
         rowSelection: 'single',
         enableRangeSelection: true,
-        enableStatusBar: true,
+        // enableStatusBar: true,
+        statusBar: {
+          statusPanels: [
+            // { statusPanel: 'agTotalRowCountComponent', align: 'left' },
+            // { statusPanel: 'agFilteredRowCountComponent' }, - these two include group rows.
+            // { statusPanel: 'agSelectedRowCountComponent' },
+            { statusPanel: 'agAggregationComponent' },
+          ],
+        },
+        sideBar,
         suppressAggFuncInHeader: true,
+        getRowClass(params) {
+          if (params.data) {
+            if (params.data.colour_rule) {
+              switch (params.data.colour_rule) {
+                case 'error':
+                  return 'red';
+                case 'warning':
+                  return 'orange';
+                case 'inactive':
+                  return 'gray i';
+                case 'ok':
+                  return 'green';
+                case 'inprogress':
+                  return 'purple';
+                default:
+                  return params.data.colour_rule;
+              }
+            }
+            if (typeof params.data.active !== 'undefined' && !params.data.active) {
+              return 'gray i';
+            }
+          }
+          return null;
+        },
         onFilterChanged() {
           if (!forPrint) {
             let filterLength = 0;
@@ -1138,7 +1196,7 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
 
     if (forPrint) {
       gridOptions.forPrint = true;
-      gridOptions.enableStatusBar = false;
+      // gridOptions.enableStatusBar = false;
     }
 
     if (tree) {
@@ -1182,7 +1240,7 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
   };
 }).call();
 
-$(() => {
+document.addEventListener('DOMContentLoaded', () => {
   const buildSubMenuItems = function buildSubMenuItems(subs, gridId) {
     const itemSet = {};
     if (subs) {
@@ -1210,12 +1268,7 @@ $(() => {
     return node;
   };
 
-  // $.contextMenu({
-  //   selector: '.grid-tools-menu',
-  //   trigger: 'left',
-  // });
-
-  $.contextMenu({
+  jQuery.contextMenu({
     selector: '.grid-context-menu',
     trigger: 'left',
     build: ($trigger, e) => {
@@ -1242,6 +1295,7 @@ $(() => {
             is_separator: item.is_separator,
             is_submenu: item.is_submenu,
             popup: item.popup,
+            loading_window: item.loading_window,
             domGridId: gridId,
           };
           if (item.is_submenu) {
@@ -1259,6 +1313,8 @@ $(() => {
               if (item.popup) {
                 crossbeamsUtils.recordGridIdForPopup(item.domGridId);
                 crossbeamsUtils.popupDialog(item.title_field, item.url);
+              } else if (item.loading_window) {
+                crossbeamsUtils.loadingWindow(item.url);
               } else {
                 window.location = item.url;
               }
@@ -1279,7 +1335,14 @@ $(() => {
                   'X-Custom-Request-Type': 'Fetch',
                 }),
                 body: form,
-              }).then(response => response.json())
+                // }).then(response => response.json())
+              }).then((response) => {
+                if (response.status === 404) {
+                  Jackbox.error('The requested resource was not found', { time: 20 });
+                  return {};
+                }
+                return response.json();
+              })
                 .then((data) => {
                   if (data.redirect) {
                     window.location = data.redirect;
@@ -1291,6 +1354,36 @@ $(() => {
                     });
                   } else if (data.addRowToGrid) {
                     crossbeamsGridEvents.addRowToGrid(data.addRowToGrid.changes);
+                  } else if (data.actions) {
+                    data.actions.forEach((action) => {
+                      if (action.replace_options) {
+                        crossbeamsUtils.replaceSelectrOptions(action);
+                      }
+                      if (action.replace_multi_options) {
+                        crossbeamsUtils.replaceMultiOptions(action);
+                      }
+                      if (action.replace_input_value) {
+                        crossbeamsUtils.replaceInputValue(action);
+                      }
+                      if (action.replace_inner_html) {
+                        crossbeamsUtils.replaceInnerHtml(action);
+                      }
+                      if (action.replace_list_items) {
+                        crossbeamsUtils.replaceListItems(action);
+                      }
+                      if (action.clear_form_validation) {
+                        crossbeamsUtils.clearFormValidation(action);
+                      }
+                      if (action.addRowToGrid) {
+                        crossbeamsUtils.addGridRow(action);
+                      }
+                      if (action.updateGridInPlace) {
+                        crossbeamsUtils.updateGridRow(action);
+                      }
+                      if (action.removeGridRowInPlace) {
+                        crossbeamsUtils.deleteGridRow(action);
+                      }
+                    });
                   } else {
                     console.log('Not sure what to do with this:', data);
                   }
@@ -1312,7 +1405,7 @@ $(() => {
                     }
                   }
                 }).catch((data) => {
-                  Jackbox.error(`An error occurred ${data}`, { time: 20 });
+                  crossbeamsUtils.fetchErrorHandler(data);
                 });
             } else {
               document.body.innerHTML += `<form id="dynForm" action="${item.url}" method="post">

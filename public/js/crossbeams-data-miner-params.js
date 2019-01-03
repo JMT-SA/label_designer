@@ -34,6 +34,8 @@ const crossbeamsDataMinerParams = {
 
   /**
    * Take a query item and format it in HTML for display as an li tag.
+   * Include an icon to click for removal from the list.
+   *
    * @param {object} item - the query item to be displayed.
    * @return {string} - HTML li tag.
    */
@@ -52,6 +54,29 @@ const crossbeamsDataMinerParams = {
       }
     }
     return `<li style="list-style-type:none;"><svg class="cbl-icon red" style="cursor:pointer" onclick="crossbeamsDataMinerParams.removeQueryParamItem(this.parentNode)" width="1792" height="1792" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1600 736v192q0 40-28 68t-68 28h-1216q-40 0-68-28t-28-68v-192q0-40 28-68t68-28h1216q40 0 68 28t28 68z"/></svg> ${item.caption} ${item.opText} ${val}${valTo}`;
+  },
+
+  /**
+   * Take a query item and format it in HTML for display as an li tag.
+   *
+   * @param {object} item - the query item to be displayed.
+   * @return {string} - HTML li tag.
+   */
+  queryItemForDisplay: function queryItemForDisplay(item) {
+    let val = '';
+    let valTo = '';
+    if (item.op === 'is_null' || item.op === 'not_null') {
+      val = '';
+      valTo = '';
+    } else {
+      val = item.text;
+      if (item.op === 'between') {
+        valTo = ` AND ${item.textTo}`;
+      } else {
+        valTo = '';
+      }
+    }
+    return `<li><strong>${item.caption}</strong> ${item.opText} ${val}${valTo}</li>`;
   },
 
   /**
@@ -75,6 +100,49 @@ const crossbeamsDataMinerParams = {
     //     items.push(crossbeamsDataMinerParams.queryItemAsText(paramValues[i]));
     // }
     return items.join('');
+  },
+
+  /**
+   * Format the query parameters as an HTML list.
+   * Calls queryItemForDisplay to render each item.
+   * @param {object} paramValues - the currently selected parameter values.
+   * @return {string} - HTML li tags.
+   */
+  querySelectionForDisplay: function querySelectionForDisplay(paramValues) {
+    if (paramValues.length === 0) {
+      return '<ul><li>No parameters chosen</li></ul>';
+    }
+    const items = [];
+    const res = { colNames: {} };
+    paramValues.filter(el => el.op === '=').forEach((el) => {
+      res[el.col] = res[el.col] || [];
+      res[el.col].push(el.text);
+      res.colNames[el.col] = el.caption;
+    });
+    const newItems = [];
+    const inKeys = [];
+    Object.keys(res).forEach((el) => {
+      if (el !== 'colNames') {
+        if (res[el].length > 1) {
+          inKeys.push(el);
+          const s = `${res[el].slice(0, res[el].length - 1).join(', ')} or ${res[el].slice(-1)}`;
+          newItems.push({ caption: res.colNames[el], opText: 'is any of', op: 'in', text: s, textTo: '' });
+        }
+      }
+    });
+    paramValues.filter(pv => !inKeys.includes(pv.col)).forEach((pv) => {
+      newItems.push({ caption: pv.caption,
+        opText: pv.opText,
+        op: pv.op,
+        text: pv.text,
+        textTo: pv.textTo,
+      });
+    });
+
+    newItems.forEach((item) => {
+      items.push(crossbeamsDataMinerParams.queryItemForDisplay(item));
+    });
+    return `<ul>${items.join('')}</ul>`;
   },
 
   /**
@@ -215,8 +283,8 @@ const crossbeamsDataMinerParams = {
    * If there, apply them to the page.
    * @returns {void}
    */
-  loadCurrentParams: function loadCurrentParams() {
-    const key = crossbeamsLocalStorage.genStandardKey(this.reportNo);
+  loadCurrentParams: function loadCurrentParams(report) {
+    const key = crossbeamsLocalStorage.genStandardKey(report || this.reportNo);
     let stored = null;
     if (crossbeamsLocalStorage.hasItem(key)) {
       // console.log('LOADING', this.reportNo, key);
@@ -226,6 +294,21 @@ const crossbeamsDataMinerParams = {
       this.current_values = stored.paramValues;
       crossbeamsDataMinerParams.displayParamsAsText();
     }
+  },
+
+  /**
+   * Find the last-saved parameters in local storage for this report.
+   * If there, apply them to the page.
+   * @returns {void}
+   */
+  loadSelectedParams: function loadSelectedParams(reportNo) {
+    const key = crossbeamsLocalStorage.genStandardKey(reportNo).replace(/\/run/, '');
+    let stored = null;
+    if (crossbeamsLocalStorage.hasItem(key)) {
+      stored = crossbeamsLocalStorage.getItem(key);
+      return this.querySelectionForDisplay(stored.paramValues);
+    }
+    return '';
   },
 
   /**

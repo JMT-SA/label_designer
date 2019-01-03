@@ -157,7 +157,27 @@ const crossbeamsUtils = {
     return crossbeamsLocalStorage.getItem(key);
   },
 
-  // Popup a modal dialog.
+  /**
+   * Replace the content of the active dialog window.
+   * @param {string} data - the new content.
+   * @returns {void}
+   */
+  setDialogContent: function setDialogContent(data) {
+    const dlg = document.getElementById(this.activeDialogContent());
+    dlg.innerHTML = data;
+    crossbeamsUtils.makeMultiSelects();
+    crossbeamsUtils.makeSearchableSelects();
+    const grids = dlg.querySelectorAll('[data-grid]');
+    grids.forEach((grid) => {
+      const gridId = grid.getAttribute('id');
+      const gridEvent = new CustomEvent('gridLoad', { detail: gridId });
+      document.dispatchEvent(gridEvent);
+    });
+    const sortable = Array.from(dlg.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
+    sortable.forEach(elem => crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix,
+                                                              elem.dataset.sortableGroup));
+  },
+
   /**
    * Show a popup dialog window and make an AJAX call to populate the dialog.
    * @param {string} title - the title to show in the dialog.
@@ -167,7 +187,7 @@ const crossbeamsUtils = {
   popupDialog: function popupDialog(title, href) {
     document.getElementById(this.nextDialogTitle()).innerHTML = title;
     document.getElementById(this.nextDialogContent()).innerHTML = '';
-    document.getElementById(this.nextDialogError()).style.display = 'none';
+    // document.getElementById(this.nextDialogError()).style.display = 'none';
     fetch(href, {
       method: 'GET',
       headers: new Headers({
@@ -175,41 +195,43 @@ const crossbeamsUtils = {
       }),
       credentials: 'same-origin',
     }).then((response) => {
-      const contentType = response.headers.get('Content-Type'); // -> "text/html; charset=utf-8"
       if (response.status === 404) {
-        const err = document.getElementById(this.activeDialogError());
-        err.innerHTML = '<strong>404</strong><br>The requested URL could not be found.';
-        err.style.display = 'block';
-      }
-      if (/text\/html/i.test(contentType)) {
-        return response.text();
+        // const err = document.getElementById(this.activeDialogError());
+        // err.innerHTML = '<strong>404</strong><br>The requested URL could not be found.';
+        // err.style.display = 'block';
+        document.getElementById(this.activeDialogTitle()).innerHTML = '<span class="light-red">404</span>';
+        crossbeamsUtils.setDialogContent('The requested URL could not be found.');
+        console.log('404', href);
+        return {};
       }
       return response.json();
-    })
-      .then((data) => {
-        if (data.flash) {
-          const err = document.getElementById(this.activeDialogError());
-          err.innerHTML = `<strong>An error occurred:</strong><br>${data.flash.error}`;
-          err.style.display = 'block';
+    }).then((data) => {
+      if (data.flash) {
+        // const err = document.getElementById(this.activeDialogError());
+        // err.innerHTML = `<strong>An error occurred:</strong><br>${data.flash.error}`;
+        // err.style.display = 'block';
+        if (data.flash.type && data.flash.type === 'permission') {
+          document.getElementById(this.activeDialogTitle()).innerHTML = '<span class="light-red">Permission error</span>';
         } else {
-          const dlg = document.getElementById(this.activeDialogContent());
-          dlg.innerHTML = data;
-          crossbeamsUtils.makeMultiSelects();
-          crossbeamsUtils.makeSearchableSelects();
-          const grids = dlg.querySelectorAll('[data-grid]');
-          grids.forEach((grid) => {
-            const gridId = grid.getAttribute('id');
-            const gridEvent = new CustomEvent('gridLoad', { detail: gridId });
-            document.dispatchEvent(gridEvent);
-          });
-          const sortable = Array.from(dlg.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
-          sortable.forEach((elem) => crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix, elem.dataset.sortableGroup))
+          document.getElementById(this.activeDialogTitle()).innerHTML = '<span class="light-red">Error</span>';
         }
-      }).catch((data) => {
-        Jackbox.error('The action was unsuccessful...');
-        const htmlText = data.responseText ? data.responseText : '';
-        document.getElementById(this.activeDialogContent()).innerHTML = htmlText;
-      });
+        crossbeamsUtils.setDialogContent(data.flash.error);
+        if (data.exception) {
+          if (data.backtrace) {
+            console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
+            console.info('==Backend Backtrace==');
+            console.info(data.backtrace.join('\n'));
+            console.groupEnd();
+          }
+        }
+      } else if (data.replaceDialog) {
+        crossbeamsUtils.setDialogContent(data.replaceDialog.content);
+      }
+    }).catch((data) => {
+      crossbeamsUtils.fetchErrorHandler(data);
+      // const htmlText = data.responseText ? data.responseText : '';
+      // document.getElementById(this.activeDialogContent()).innerHTML = htmlText;
+    });
     this.nextDialog().show();
   },
 
@@ -234,8 +256,26 @@ const crossbeamsUtils = {
   },
 
   /**
+   * Load a URL in a new browser window with a "Loading" animation.
+   * @param {string} url - the URL to load.
+   * @returns {void}
+   */
+  loadingWindow: function loadingWindow(url) {
+    crossbeamsLocalStorage.setItem('load_in_new_window', url);
+    const windowReturn = window.open('/loading_window', '_blank', 'titlebar=no,location=no,status');
+    if (windowReturn === null) {
+      crossbeamsUtils.alert({
+        prompt: 'Perhaps the browser is blocking popup windows and you just need to change the setting.',
+        title: 'The window did not seem to load',
+        type: 'warning',
+      });
+    }
+  },
+
+  /**
    * Take selected options from a multiselect and return them in a sequence
    * that matches an array of selected ids.
+   *
    * @param {node} sel - a select DOM node;
    * @param {array} sortedIds - a list of ids in a particular sequence.
    * @returns {array} out - the sorted options.
@@ -269,6 +309,18 @@ const crossbeamsUtils = {
         non_selected_header: 'Options',
         selected_header: 'Selected',
       }); // multi select with two panes...
+
+      // observeChange behaviour - call specified urls on change of selection.
+      if (sel.dataset && sel.dataset.observeChange) {
+        sel.addEventListener('change', () => {
+          const s = sel.dataset.observeChange;
+          const j = JSON.parse(s);
+          const option = Array.from(sel.selectedOptions).map(opt => opt.value).join(',');
+          const urls = j.map(el => this.buildObserveChangeUrl(el, option));
+
+          urls.forEach(url => this.fetchDropdownChanges(url));
+        });
+      }
 
       // observeSelected behaviour - get rules from select element and
       // add selected options to a sortable element.
@@ -381,6 +433,23 @@ const crossbeamsUtils = {
     elem.value = action.replace_input_value.value;
   },
   /**
+   * Replace the contents of a DOM element.
+   * @param {object} action - the action object returned from the backend.
+   * @returns {void}
+   */
+  replaceInnerHtml: function replaceInnerHtml(action) {
+    const elem = document.getElementById(action.replace_inner_html.id);
+    if (elem === null) {
+      this.alert({
+        prompt: `There is no DOM element with id: "${action.replace_inner_html.id}"`,
+        title: 'Replace inner html: id missmatch',
+        type: 'error',
+      });
+      return;
+    }
+    elem.innerHTML = action.replace_inner_html.value;
+  },
+  /**
    * Replace the items of a List element.
    * @param {object} action - the action object returned from the backend.
    * @returns {void}
@@ -428,6 +497,20 @@ const crossbeamsUtils = {
     });
   },
 
+  addGridRow: function addGridRow(action) {
+    crossbeamsGridEvents.addRowToGrid(action.addRowToGrid.changes);
+  },
+
+  updateGridRow: function updateGridRow(action) {
+    action.updateGridInPlace.forEach((gridRow) => {
+      crossbeamsGridEvents.updateGridInPlace(gridRow.id, gridRow.changes);
+    });
+  },
+
+  deleteGridRow: function deleteGridRow(action) {
+    crossbeamsGridEvents.removeGridRowInPlace(action.removeGridRowInPlace.id);
+  },
+
   /**
    * Calls all urls for observeChange behaviour and applies changes to the DOM as required..
    * @param {string} url - the url to be called.
@@ -459,11 +542,23 @@ const crossbeamsUtils = {
           if (action.replace_input_value) {
             this.replaceInputValue(action);
           }
+          if (action.replace_inner_html) {
+            this.replaceInnerHtml(action);
+          }
           if (action.replace_list_items) {
             this.replaceListItems(action);
           }
           if (action.clear_form_validation) {
             this.clearFormValidation(action);
+          }
+          if (action.addRowToGrid) {
+            this.addGridRow(action);
+          }
+          if (action.updateGridInPlace) {
+            this.updateGridRow(action);
+          }
+          if (action.removeGridRowInPlace) {
+            this.deleteGridRow(action);
           }
         });
       }
@@ -475,8 +570,10 @@ const crossbeamsUtils = {
           if (data.exception) {
             Jackbox.error(data.flash.error, { time: 20 });
             if (data.backtrace) {
-              console.log('==Backend Backtrace==');
+              console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
+              console.info('==Backend Backtrace==');
               console.info(data.backtrace.join('\n'));
+              console.groupEnd();
             }
           } else {
             Jackbox.error(data.flash.error);
@@ -484,33 +581,48 @@ const crossbeamsUtils = {
         }
       }
     }).catch((data) => {
-      if (data.response && data.response.status === 500) {
-        data.response.text().then((body) => {
-          document.getElementById(crossbeamsUtils.activeDialogContent()).innerHTML = body;
-        });
-      }
-      Jackbox.error(`An error occurred ${data}`, { time: 20 });
+      crossbeamsUtils.fetchErrorHandler(data);
     });
   },
 
   /**
+   * Build a query string from an object of data
+   * (c) 2018 Chris Ferdinandi, MIT License, https://gomakethings.com
+   * @param  {Object} data The data to turn into a query string
+   * @return {String}      The query string
+   */
+  buildQueryString: function buildQueryString(data) {
+    if (typeof (data) === 'string') return data;
+    const query = [];
+    Object.keys(data).forEach((key) => {
+      query.push(`${encodeURIComponent(key)}=${encodeURIComponent(data[key])}`);
+    });
+    return query.join('&');
+  },
+  /**
    * Creates a url for observeChange behaviour.
+   *
    * @param {element} select - Select that has changed.
    * @param {string} option - the option of the DOM select that has become selected.
    * @returns {string} the url.
    */
   buildObserveChangeUrl: function buildObserveChangeUrl(element, option) {
-    const optVal = option ? option.value : '';
-    let queryParam = `?changed_value=${optVal}`;
+    let optVal;
+    if (option === null || option === undefined) {
+      optVal = '';
+    } else {
+      optVal = typeof option === 'string' ? option : option.value;
+    }
+    const queryParam = { changed_value: optVal };
     element.param_keys.forEach((key) => {
       let val = element.param_values[key];
       if (val === undefined) {
         const e = document.getElementById(key);
         val = e.value;
       }
-      queryParam += `&${key}=${val}`;
+      queryParam[key] = val;
     });
-    return `${element.url}${queryParam}`;
+    return `${element.url}?${crossbeamsUtils.buildQueryString(queryParam)}`;
   },
 
   /**
@@ -673,14 +785,11 @@ const crossbeamsUtils = {
    * @returns {string} - the select tag code.
    */
   makeSelect: function makeSelect(name, arr, attrs) {
-    // var sel = '<select id="' + name + '" name="' + name + '">';
     let sel = `<select id="${name}" name="${name}" ${attrs || ''}>`;
     arr.forEach((item) => {
       if (item.constructor === Array) {
-        // sel += '<option value="' + (item[1] || item[0]) + '">' + item[0] + '</option>';
         sel += `<option value="${(item[1] || item[0])}">${item[0]}</option>`;
       } else {
-        // sel += '<option value="' + item + '">' + item + '</option>';
         sel += `<option value="${item}">${item}</option>`;
       }
     });
@@ -757,6 +866,35 @@ const crossbeamsUtils = {
   },
 
   /**
+   * Handle errors thrown in `fetch` responses.
+   * @param {object} data - the data returned by the fetch call.
+   * @returns {void}
+   */
+  fetchErrorHandler: function fetchErrorHandler(data) {
+    console.log(data);
+    if (data.response && data.response.status === 500) {
+      data.response.json().then((body) => {
+        if (body.flash.error) {
+          if (body.exception) {
+            if (body.backtrace) {
+              console.groupCollapsed('EXCEPTION:', body.exception, body.flash.error);
+              console.info('==Backend Backtrace==');
+              console.info(body.backtrace.join('\n'));
+              console.groupEnd();
+            }
+          } else {
+            Jackbox.error(body.flash.error);
+          }
+        } else {
+          // FIXME: Is this always applicable for all errors?
+          document.getElementById(crossbeamsUtils.activeDialogContent()).innerHTML = body;
+        }
+      });
+    }
+    Jackbox.error(`An error occurred ${data}`, { time: 20 });
+  },
+
+  /**
    * Keep polling a url.
    * @param {DOM} element - the element to be updated.
    * @param {string} url - the url to be fetched.
@@ -801,9 +939,10 @@ const crossbeamsUtils = {
             if (data.exception) {
               Jackbox.error(data.flash.error, { time: 20 });
               if (data.backtrace) {
-                console.log('EXCEPTION:', data.exception, data.flash.error);
-                console.log('==Backend Backtrace==');
+                console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
+                console.info('==Backend Backtrace==');
                 console.info(data.backtrace.join('\n'));
+                console.groupEnd();
               }
             } else {
               Jackbox.error(data.flash.error);
@@ -811,24 +950,7 @@ const crossbeamsUtils = {
           }
         }
       }).catch((data) => {
-        if (data.response && data.response.status === 500) {
-          data.response.json().then((body) => {
-            if (body.flash.error) {
-              if (body.exception) {
-                if (body.backtrace) {
-                  console.log('EXCEPTION:', body.exception, body.flash.error);
-                  console.log('==Backend Backtrace==');
-                  console.info(body.backtrace.join('\n'));
-                }
-              } else {
-                Jackbox.error(body.flash.error);
-              }
-            } else {
-              document.getElementById(crossbeamsUtils.activeDialogContent()).innerHTML = body;
-            }
-          });
-        }
-        Jackbox.error(`An error occurred ${data}`, { time: 20 });
+        crossbeamsUtils.fetchErrorHandler(data);
       });
   },
 
@@ -888,8 +1010,10 @@ const crossbeamsUtils = {
           if (data.exception) {
             Jackbox.error(data.flash.error, { time: 20 });
             if (data.backtrace) {
-              console.log('==Backend Backtrace==');
+              console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
+              console.info('==Backend Backtrace==');
               console.info(data.backtrace.join('\n'));
+              console.groupEnd();
             }
           } else {
             Jackbox.error(data.flash.error);
@@ -897,26 +1021,7 @@ const crossbeamsUtils = {
         }
       }
     }).catch((data) => {
-      if (data.response && data.response.status === 500) {
-        data.response.json().then((body) => {
-          if (body.flash.error) {
-            contentDiv.classList.remove('content-loading');
-            contentDiv.innerHTML = body.flash.error;
-            if (body.exception) {
-              if (body.backtrace) {
-                console.log('EXCEPTION:', body.exception, body.flash.error);
-                console.log('==Backend Backtrace==');
-                console.info(body.backtrace.join('\n'));
-              }
-            } else {
-              Jackbox.error(body.flash.error);
-            }
-          } else {
-            console.log('==ERROR==', body);
-          }
-        });
-      }
-      Jackbox.error(`An error occurred ${data}`, { time: 20 });
+      crossbeamsUtils.fetchErrorHandler(data);
     });
   },
 
