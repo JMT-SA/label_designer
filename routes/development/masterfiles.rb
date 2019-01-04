@@ -61,23 +61,19 @@ class LabelDesigner < Roda
           show_partial { Development::Masterfiles::User::Show.call(id) }
         end
         r.patch do     # UPDATE
-          return_json_response
           res = interactor.update_user(id, params[:user])
           if res.success
             update_grid_row(id,
                             changes: { login_name: res.instance[:login_name],
                                        user_name: res.instance[:user_name],
                                        password_hash: res.instance[:password_hash],
-                                       email: res.instance[:email],
-                                       active: res.instance[:active] },
+                                       email: res.instance[:email] },
                             notice: res.message)
           else
-            content = show_partial { Development::Masterfiles::User::Edit.call(id, params[:user], res.errors) }
-            update_dialog_content(content: content, error: res.message)
+            re_show_form(r, res) { Development::Masterfiles::User::Edit.call(id, params[:user], res.errors) }
           end
         end
         r.delete do    # DELETE
-          return_json_response
           check_auth!('masterfiles', 'delete')
           res = interactor.delete_user(id)
           delete_grid_row(id, notice: res.message)

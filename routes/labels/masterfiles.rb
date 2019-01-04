@@ -24,18 +24,15 @@ class LabelDesigner < Roda
           show_partial { Labels::Masterfiles::MasterList::Show.call(id) }
         end
         r.patch do     # UPDATE
-          return_json_response
           res = interactor.update_master_list(id, params[:master_list])
           if res.success
             update_grid_row(id, changes: { list_type: res.instance[:list_type], description: res.instance[:description] },
                                 notice: res.message)
           else
-            content = show_partial { Labels::Masterfiles::MasterList::Edit.call(id, params[:master_list], res.errors) }
-            update_dialog_content(content: content, error: res.message)
+            re_show_form(r, res) { Labels::Masterfiles::MasterList::Edit.call(id, params[:master_list], res.errors) }
           end
         end
         r.delete do    # DELETE
-          return_json_response
           check_auth!('master lists', 'delete')
           res = interactor.delete_master_list(id)
           delete_grid_row(id, notice: res.message)

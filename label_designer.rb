@@ -3,43 +3,12 @@
 # rubocop:disable Metrics/ClassLength
 # rubocop:disable Metrics/BlockLength
 
-require 'bundler'
-Bundler.require(:default, ENV.fetch('RACK_ENV', 'development'))
-
-require 'base64'
-require 'pstore'
-require 'net/http'
-require 'uri'
-require 'pry' if ENV.fetch('RACK_ENV') == 'development'
-
-require './lib/types_for_dry'
-require './lib/crossbeams_responses'
-require './lib/base_repo'
-require './lib/base_interactor'
-require './lib/base_service'
-require './lib/base_step'
-require './lib/local_store' # Will only work for processes running from one dir.
-require './lib/ui_rules'
-require './lib/library_versions'
-Dir['./helpers/**/*.rb'].each { |f| require f }
-Dir['./lib/applets/*.rb'].each { |f| require f }
-
-ENV['ROOT'] = File.dirname(__FILE__)
-ENV['VERSION'] = File.read('VERSION')
-LABEL_SERVER_URI = ENV.fetch('LABEL_SERVER_URI')
+require './app_loader'
 
 Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration for label designer gem.
   # config.json_load_path = '/load_label'
   # config.json_save_path = '/save_label'
   # config.json_save_path = '/save_label'
-end
-
-module Crossbeams
-  class FrameworkError < StandardError
-  end
-
-  class AuthorizationError < StandardError
-  end
 end
 
 class LabelDesigner < Roda
@@ -84,7 +53,7 @@ class LabelDesigner < Roda
   end
   unless ENV['RACK_ENV'] == 'development' && ENV['NO_ERR_HANDLE']
     plugin :error_handler do |e|
-      show_error(e, request.has_header?('HTTP_X_CUSTOM_REQUEST_TYPE'), @cbr_json_response)
+      show_error(e, request.has_header?('HTTP_X_CUSTOM_REQUEST_TYPE'))
       # = if prod and unexpected exception type, just display "something whent wrong" and log
       # = use an exception library & email...
     end
@@ -116,15 +85,34 @@ class LabelDesigner < Roda
     # Do the same as XML?
     # --------------------------------------------
 
+    r.on 'loading_window' do
+      view(inline: 'Loading...', layout: 'layout_loading')
+    end
+
+    # OVERRIDE RodAuth's Login form:
+    r.get 'login' do
+      if @registered_mobile_device
+        @no_logout = true
+        view(:login, layout: 'layout_rmd')
+      else
+        view(:login)
+      end
+    end
+
     r.rodauth
     rodauth.require_authentication
     r.redirect('/login') if current_user.nil? # Session might have the incorrect user_id
 
     r.root do
       # TODO: Config this, and maybe set it up per user.
-      r.redirect('/list/labels')
+      if @registered_mobile_device
+        r.redirect @rmd_start_page || '/rmd/home'
+      else
+        r.redirect('/list/labels')
+      end
     end
 
+    return_json_response if fetch?(r)
     r.multi_route
 
     r.on 'iframe', Integer do |id|
@@ -177,7 +165,6 @@ class LabelDesigner < Roda
     r.on 'save_label' do
       r.on :id do |id|
         r.post do
-          return_json_response
           repo = LabelApp::LabelRepo.new
           changeset = { label_json: params[:label],
                         variable_xml: params[:XMLString],
@@ -193,7 +180,6 @@ class LabelDesigner < Roda
       end
 
       r.post do
-        return_json_response
         repo = LabelApp::LabelRepo.new
         extra_attributes = session[:new_label_attributes]
         changeset = { label_json: params[:label],

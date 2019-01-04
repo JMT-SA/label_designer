@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class LabelDesigner < Roda
-  route 'logging', 'development' do |r|
+  route 'logging', 'development' do |r| # rubocop:disable Metrics/BlockLength
     #
     # LOGGED ACTION DETAILS
     # --------------------------------------------------------------------------
@@ -22,17 +22,32 @@ class LabelDesigner < Roda
       end
 
       r.on 'grid' do
-        return_json_response
-        begin
-          interactor.logged_actions_grid(id)
-        rescue StandardError => e
-          show_json_exception(e)
-        end
+        interactor.logged_actions_grid(id)
+      rescue StandardError => e
+        show_json_exception(e)
       end
 
       r.on 'diff' do
         left, right = interactor.diff_action(id)
         show_partial { Development::Logging::LoggedAction::Diff.call(id, left, right) }
+      end
+    end
+
+    # QUE JOBS
+    # --------------------------------------------------------------------------
+    r.on 'que_jobs', Integer do |id|
+      r.is do
+        r.get do       # SHOW
+          check_auth!('logging', 'read')
+          show_partial { Development::Logging::QueJob::Show.call(id) }
+        end
+      end
+    end
+
+    r.on 'que_jobs' do
+      r.on 'status' do
+        check_auth!('logging', 'read')
+        show_partial_or_page(r) { Development::Logging::QueJob::Status.call }
       end
     end
   end

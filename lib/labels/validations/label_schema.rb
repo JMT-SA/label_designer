@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module LabelApp
-  LabelSchema = Dry::Validation.Schema do
+  LabelSchema = Dry::Validation.Params do
     optional(:id).filled(:int?)
     required(:label_name).filled(:str?)
     optional(:label_dimension).filled(:str?)

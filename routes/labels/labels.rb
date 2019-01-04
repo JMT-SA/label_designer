@@ -31,12 +31,7 @@ class LabelDesigner < Roda
           session[:new_label_attributes] = res.instance
           redirect_via_json("/labels/labels/labels/#{id}/show_clone")
         else
-          content = show_partial do
-            Labels::Labels::Label::Clone.call(id, form_values: params[:label],
-                                                  form_errors: res.errors,
-                                                  remote: true)
-          end
-          update_dialog_content(content: content, error: res.message)
+          re_show_form(r, res) { Labels::Labels::Label::Clone.call(id, form_values: params[:label], form_errors: res.errors, remote: true) }
         end
       end
 
@@ -54,7 +49,8 @@ class LabelDesigner < Roda
       r.on 'background' do
         res = interactor.background_images(id)
         if res.success
-          res.instance.map { |sub| "<img src='/labels/labels/labels/#{sub}/png' />" }.join("\n<hr>")
+          html = res.instance.map { |sub| "<img src='/labels/labels/labels/#{sub}/png' />" }.join("\n<hr>")
+          update_dialog_content(content: html)
         else
           dialog_warning(res.message)
         end
@@ -90,11 +86,9 @@ class LabelDesigner < Roda
       end
 
       r.on 'refresh_multi_label_variables' do
-        # return_json_response
         res = interactor.refresh_multi_label_variables(id)
         if res.success
-          # show_json_notice(res.message)
-          "<br><div class='crossbeams-success-note'><p><strong>Updated:</strong></p><p>#{res.message}</p></div>"
+          update_dialog_content(content: "<br><div class='crossbeams-success-note'><p><strong>Updated:</strong></p><p>#{res.message}</p></div>")
         else
           dialog_error(res.message)
         end
@@ -119,7 +113,6 @@ class LabelDesigner < Roda
       end
 
       r.on 'send_preview', String do |screen_or_print|
-        return_json_response
         res = interactor.do_preview(id, screen_or_print, params[:label])
         if res.success
           filepath = Tempfile.open([res.instance.fname, '.png'], 'public/tempfiles') do |f|
@@ -127,7 +120,7 @@ class LabelDesigner < Roda
             f.path
           end
           File.chmod(0o644, filepath) # Ensure web app can read the image.
-          { replaceDialog: { content: "<img src='/#{File.join('tempfiles', File.basename(filepath))}'>" } }.to_json
+          update_dialog_content(content: "<img src='/#{File.join('tempfiles', File.basename(filepath))}'>")
         else
           { flash: { error: res.message } }.to_json
         end
@@ -135,8 +128,7 @@ class LabelDesigner < Roda
 
       r.on 'link_sub_labels' do
         r.post do
-          return_json_response
-          content = show_partial { Labels::Labels::Label::SortSubLabels.call(id, multiselect_grid_choices(params)) }
+          content = render_partial { Labels::Labels::Label::SortSubLabels.call(id, multiselect_grid_choices(params)) }
           update_dialog_content(content: content, notice: 'Re-order the sub-labels')
         end
       end
@@ -168,7 +160,6 @@ class LabelDesigner < Roda
           show_partial { Labels::Labels::Label::Show.call(id) }
         end
         r.patch do     # UPDATE
-          return_json_response
           res = interactor.update_label(id, params[:label])
           if res.success
             grid_cols = res.instance.to_h
@@ -184,13 +175,11 @@ class LabelDesigner < Roda
             },
                                 notice: res.message)
           else
-            content = show_partial { Labels::Labels::Label::Properties.call(id, params[:label], res.errors) }
-            update_dialog_content(content: content, error: res.message)
+            re_show_form(r, res) { Labels::Labels::Label::Properties.call(id, params[:label], res.errors) }
           end
         end
 
         r.delete do    # DELETE
-          return_json_response
           check_auth!('designs', 'delete')
           res = interactor.delete_label(id)
           delete_grid_row(id, notice: res.message)

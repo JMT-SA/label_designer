@@ -16,11 +16,10 @@ class LabelDesigner < Roda
       end
 
       r.get 'show_targets' do
-        return_json_response
         res = interactor.publishing_server_options
         # stash....
         if res.success
-          { content: show_partial { Labels::Publish::Batch::SelectTargets.call(res.instance) } }.to_json
+          { content: render_partial { Labels::Publish::Batch::SelectTargets.call(res.instance) } }.to_json
         else
           show_json_error(res.message, status: 200)
         end
@@ -47,13 +46,11 @@ class LabelDesigner < Roda
       end
 
       r.get 'send' do
-        return_json_response
         res = interactor.publish_labels # (store.read(:lbl_publish_steps))
-        { content: show_partial { Labels::Publish::Batch::Send.call(res) } }.to_json
+        { content: render_partial { Labels::Publish::Batch::Send.call(res) } }.to_json
       end
 
       r.get 'feedback' do
-        return_json_response
         res = interactor.publishing_status # (store.read(:lbl_publish_steps))
         # TODO: differentiate between failure and exception - exception should stop polling...
         if res.success

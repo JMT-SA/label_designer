@@ -1,4 +1,4 @@
-module CommonHelpers
+module CommonHelpers # rubocop:disable Metrics/ModuleLength
   # Show a Crossbeams::Layout page
   # - The block must return a Crossbeams::Layout::Page
   def show_page(&block)
@@ -7,10 +7,24 @@ module CommonHelpers
     view('crossbeams_layout_page')
   end
 
-  def show_partial(&block)
+  def show_rmd_page(&block)
+    @layout = block.yield
+    @layout.add_csrf_tag(csrf_tag)
+    view('crossbeams_layout_page', layout: 'layout_rmd')
+  end
+
+  # Render a block of Crossbeams::Layout DSL as string.
+  #
+  # @return [String] HTML layout and content string.
+  def render_partial(&block)
     @layout = block.yield
     @layout.add_csrf_tag(csrf_tag)
     @layout.render
+  end
+
+  def show_partial(notice: nil, error: nil, &block)
+    content = render_partial(&block)
+    update_dialog_content(content: content, notice: notice, error: error)
   end
 
   def show_partial_or_page(route, &block)
@@ -27,7 +41,7 @@ module CommonHelpers
   def re_show_form(route, res, url: nil, &block)
     form = block.yield
     if fetch?(route)
-      content = show_partial { form }
+      content = render_partial { form }
       update_dialog_content(content: content, error: res.message)
     else
       flash[:error] = res.message
@@ -38,7 +52,7 @@ module CommonHelpers
 
   def show_page_or_update_dialog(route, res, &block)
     if fetch?(route)
-      content = show_partial(&block)
+      content = render_partial(&block)
       update_dialog_content(content: content, notice: res.message)
     else
       flash[:notice] = res.message
@@ -52,7 +66,13 @@ module CommonHelpers
   # @param base_messages [String, Array] the new messages to be added to the base of the form.
   # @return [Hash] the expanded validation messages.
   def add_base_validation_errors(messages, base_messages)
-    (messages || {}).merge(base: Array(base_messages))
+    if messages && messages[:base]
+      interim = messages
+      interim[:base] += Array(base_messages)
+      interim
+    else
+      (messages || {}).merge(base: Array(base_messages))
+    end
   end
 
   # Add validation errors that are not linked to a field in a form.
@@ -63,7 +83,38 @@ module CommonHelpers
   # @param fields [Array] the fields in the form to be highlighted.
   # @return [Hash] the expanded validation messages.
   def add_base_validation_errors_with_highlights(messages, base_messages, fields)
-    (messages || {}).merge(base_with_highlights: { messages: Array(base_messages), highlights: fields })
+    if messages && messages[:base_with_highlights]
+      interim = messages
+      interim[:base_with_highlights][:messages] += Array(base_messages)
+      curr = Array(interim[:base_with_highlights][:highlights])
+      interim[:base_with_highlights][:highlights] = curr + Array(fields)
+      interim
+    else
+      (messages || {}).merge(base_with_highlights: { messages: Array(base_messages), highlights: fields })
+    end
+  end
+
+  # Move validation errors that are linked to a specific key up to base.
+  # Optionally also  highlight one or more fields in error.
+  #
+  # @param messages [Hash] the current hash of validation messages.
+  # @param keys [String, Array] the existing message keys to be moved to the base of the form.
+  # @param highlights [Hash] the fields in the form to be highlighted. Specifiy as a Hash of key: [fields].
+  # @return [Hash] the expanded validation messages.
+  def move_validation_errors_to_base(messages, keys, highlights: {}) # rubocop:disable Metrics/AbcSize
+    interim = messages || {}
+    Array(keys).each do |key|
+      raise ArgumentError, "Move validation errors - key not present: #{key}" unless interim.key?(key)
+      if highlights.key?(key)
+        interim[:base_with_highlights] ||= { messages: [], highlights: [] }
+        interim[:base_with_highlights][:messages] +=  Array(interim.delete(key))
+        interim[:base_with_highlights][:highlights] = Array(interim[:base_with_highlights][:highlights]) + Array(highlights.delete(key))
+      else
+        interim[:base] ||= []
+        interim[:base] += Array(interim.delete(key))
+      end
+    end
+    interim
   end
 
   # Selection from a multiselect grid.
@@ -95,29 +146,10 @@ module CommonHelpers
     end.join("\n")
   end
 
-  # Make option tags for a select tag. Optionally pre-select an item and include a blank line.
-  #
-  # @param value [String] the selected option.
-  # @param opts [Array] the option items.
-  # @param with_blank [Boolean] true if the first option tag should be blank.
-  # @return [String] the HTML +option+ tags.
-  def select_options(value, opts, with_blank = true)
-    ar = []
-    ar << "<option value=''></option>" if with_blank
-    opts.each do |opt|
-      if opt.is_a? Array
-        text, val = opt
-      else
-        val  = opt
-        text = opt
-      end
-      is_sel = val.to_s == value.to_s
-      ar << "<option value='#{val}'#{is_sel ? ' selected' : ''}>#{text}</option>"
-    end
-    ar.join("\n")
-  end
-
   # Is this a fetch request?
+  #
+  # @param route [Roda.route] the route.
+  # @return [Boolean] true if this is a FETCH request.
   def fetch?(route)
     route.has_header?('HTTP_X_CUSTOM_REQUEST_TYPE')
   end
@@ -163,6 +195,35 @@ module CommonHelpers
     end
   end
 
+  # Store the referer URL so it can be redirected to using redirect_to_stored_referer later.
+  # The URL is stored in LocalStorage.
+  #
+  # @param key [symbol] a key to identify the stored url.
+  # @return [void]
+  def store_last_referer_url(key)
+    store_locally("last_referer_url_#{key}".to_sym, request.referer)
+  end
+
+  # Redirect to the last_referer_url in local storage.
+  #
+  # @param route [Roda.route] the current route.
+  # @param key [symbol] a key to identify the stored url.
+  # @return [void]
+  def redirect_to_stored_referer(route, key)
+    url = retrieve_from_local_store("last_referer_url_#{key}".to_sym)
+    route.redirect url
+  end
+
+  # Redirect via JSON to the last_referer_url in local storage.
+  #
+  # @param route [Roda.route] the current route.
+  # @param key [symbol] a key to identify the stored url.
+  # @return [void]
+  def redirect_via_json_to_stored_referer(key)
+    url = retrieve_from_local_store("last_referer_url_#{key}".to_sym)
+    redirect_via_json(url)
+  end
+
   def redirect_via_json_to_last_grid
     redirect_via_json(session[:last_grid_url])
   end
@@ -183,6 +244,22 @@ module CommonHelpers
     res.to_json
   end
 
+  # Return a JSON response to change the window location to a new URL.
+  #
+  # Optionally provide a log_url to log to console.
+  # - this is useful if urlA builds a report and then the window location
+  # is changed to display the output file. The console can be checked to see
+  # which url did the work when debugging.
+  #
+  # @param new_location [string] - the new url.
+  # @param log_url [string] - the url to log in the console.
+  # @return [JSON] a JSON response.
+  def change_window_location_via_json(new_location, log_url = nil)
+    res = { location: new_location }
+    res[:log_url] = log_url unless log_url.nil?
+    res.to_json
+  end
+
   def make_id_correct_type(id_in)
     if id_in.is_a?(String)
       id_in.scan(/\D/).empty? ? id_in.to_i : id_in
@@ -200,9 +277,22 @@ module CommonHelpers
   # @param notice [String/Nil] the flash message to show.
   # @return [JSON] the changes to be applied.
   def update_grid_row(ids, changes:, notice: nil)
-    res = { updateGridInPlace: Array(ids).map { |i| { id: make_id_correct_type(i), changes: changes } } }
+    # res = { updateGridInPlace: Array(ids).map { |i| { id: make_id_correct_type(i), changes: changes } } }
+    res = action_update_grid_row(ids, changes: changes)
     res[:flash] = { notice: notice } if notice
     res.to_json
+  end
+
+  def action_add_grid_row(attrs:)
+    { addRowToGrid: { changes: attrs.merge(created_at: Time.now.to_s, updated_at: Time.now.to_s) } }
+  end
+
+  def action_update_grid_row(ids, changes:)
+    { updateGridInPlace: Array(ids).map { |i| { id: make_id_correct_type(i), changes: changes } } }
+  end
+
+  def action_delete_grid_row(id)
+    { removeGridRowInPlace: { id: make_id_correct_type(id) } }
   end
 
   # Add a row to a grid. created_at and updated_at values are provided automatically.
@@ -211,12 +301,13 @@ module CommonHelpers
   # @param notice [String/Nil] the flash message to show.
   # @return [JSON] the changes to be applied.
   def add_grid_row(attrs:, notice: nil)
-    res = { addRowToGrid: { changes: attrs.merge(created_at: Time.now.to_s, updated_at: Time.now.to_s) } }
+    # res = { addRowToGrid: { changes: attrs.merge(created_at: Time.now.to_s, updated_at: Time.now.to_s) } }
+    res = action_add_grid_row(attrs: attrs)
     res[:flash] = { notice: notice } if notice
     res.to_json
   end
 
-  # Create a list of attributes for passing to the +update_grid_row+ method.
+  # Create a list of attributes for passing to the +update_grid_row+ and +add_grid_row+ methods.
   #
   # @param instance [Hash/Dry-type] the instance.
   # @param row_keys [Array] the keys to attributes of the instance.
@@ -227,7 +318,8 @@ module CommonHelpers
   end
 
   def delete_grid_row(id, notice: nil)
-    res = { removeGridRowInPlace: { id: make_id_correct_type(id) } }
+    # res = { removeGridRowInPlace: { id: make_id_correct_type(id) } }
+    res = action_delete_grid_row(id)
     res[:flash] = { notice: notice } if notice
     res.to_json
   end
@@ -251,6 +343,10 @@ module CommonHelpers
     json_actions(OpenStruct.new(type: :replace_input_value, dom_id: dom_id, value: value), message, keep_dialog_open: keep_dialog_open)
   end
 
+  def json_replace_inner_html(dom_id, value, message: nil, keep_dialog_open: false)
+    json_actions(OpenStruct.new(type: :replace_inner_html, dom_id: dom_id, value: value), message, keep_dialog_open: keep_dialog_open)
+  end
+
   def json_replace_list_items(dom_id, items, message: nil, keep_dialog_open: false)
     json_actions(OpenStruct.new(type: :replace_list_items, dom_id: dom_id, items: Array(items)), message, keep_dialog_open: keep_dialog_open)
   end
@@ -259,13 +355,18 @@ module CommonHelpers
     json_actions(OpenStruct.new(type: :clear_form_validation, dom_id: dom_id), message, keep_dialog_open: keep_dialog_open)
   end
 
-  # This could be built in a class and receive send messages....
-  def build_json_action(action)
-    return action_replace_input_value(action) if action.type == :replace_input_value
-    return action_replace_select_options(action) if action.type == :replace_select_options
-    return action_replace_multi_options(action) if action.type == :replace_multi_options
-    return action_replace_list_items(action) if action.type == :replace_list_items
-    return action_clear_form_validation(action) if action.type == :clear_form_validation
+  def build_json_action(action) # rubocop:disable Metrics/AbcSize
+    {
+      replace_input_value:    ->(act) { action_replace_input_value(act) },
+      replace_inner_html:     ->(act) { action_replace_inner_html(act) },
+      replace_select_options: ->(act) { action_replace_select_options(act) },
+      replace_multi_options:  ->(act) { action_replace_multi_options(act) },
+      replace_list_items:     ->(act) { action_replace_list_items(act) },
+      add_grid_row:           ->(act) { action_add_grid_row(attrs: act.attrs) },
+      update_grid_row:        ->(act) { action_update_grid_row(act.ids, changes: act.changes) },
+      delete_grid_row:        ->(act) { action_delete_grid_row(act.id) },
+      clear_form_validation:  ->(act) { action_clear_form_validation(act) }
+    }[action.type].call(action)
   end
 
   def action_replace_select_options(action)
@@ -278,6 +379,10 @@ module CommonHelpers
 
   def action_replace_input_value(action)
     { replace_input_value: { id: action.dom_id, value: action.value } }
+  end
+
+  def action_replace_inner_html(action)
+    { replace_inner_html: { id: action.dom_id, value: action.value } }
   end
 
   def action_replace_list_items(action)
@@ -295,24 +400,65 @@ module CommonHelpers
     res.to_json
   end
 
+  # Redirect to "Not found" page or return 404 status.
+  #
+  # @param route [Roda.route] the route.
+  # @return [void]
   def handle_not_found(route)
-    if request.xhr?
-      "<div class='crossbeams-error-note'><strong>Error</strong><br>The requested resource was not found.</div>"
+    if fetch?(route)
+      response.status = 404
+      response.write({}.to_json)
+      route.halt
     else
       route.redirect '/not_found'
     end
   end
 
+  # Store a value in local storage for fetching later.
+  # Used for storing something per user in one action and retrieving in another action.
+  #
+  # @param key [Symbol] the key to be used for later retrieval.
+  # @param value [Object] the value to stash (use simple Objects)
+  # @return [void]
+  def store_locally(key, value)
+    raise ArgumentError, 'store_locally: key must be a Symbol' unless key.is_a? Symbol
+    store = LocalStore.new(current_user.id)
+    store.write(key, value)
+  end
+
+  # Return a stored value for the current user from local storage (and remove it - read once).
+  #
+  # @param key [Symbol] the key that was used when stored.
+  # @return [Object] the retrieved value.
+  def retrieve_from_local_store(key)
+    raise ArgumentError, 'store_locally: key must be a Symbol' unless key.is_a? Symbol
+    store = LocalStore.new(current_user.id)
+    store.read_once(key)
+  end
+
+  # Stash a page in local storage for fetching later.
+  # Only one page per user can be stashed at a time.
+  # Used for storing a page after it has failed validation.
+  #
+  # @param value [String] the page HTML.
+  # @return [void]
   def stash_page(value)
-    store = LocalStore.new(current_user.id)
-    store.write(:stashed_page, value)
+    store_locally(:stashed_page, value)
   end
 
+  # Return the stashed page from local storage.
+  # Used to display a page with invalid state instead of the usual new/edit etc. page after a redirect.
+  #
+  # @return [String] the HTML page.
   def stashed_page
-    store = LocalStore.new(current_user.id)
-    store.read_once(:stashed_page)
+    retrieve_from_local_store(:stashed_page)
   end
 
+  # Create a URL for a report so that it can be called
+  # from a spreadsheet app's webquery.
+  #
+  # @param report_id [Integer] the id of the prepared report.
+  # @return [String] the URL.
   def webquery_url_for(report_id)
     port = request.port == '80' || request.port.nil? ? '' : ":#{request.port}"
     "http://#{request.host}#{port}/webquery/#{report_id}"

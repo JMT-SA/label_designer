@@ -89,9 +89,15 @@ class GenerateNewScaffold < BaseService
   def call
     sources = { opts: opts, paths: @opts.filenames }
 
-    report               = QueryMaker.call(opts)
-    sources[:query]      = wrapped_sql_from_report(report)
-    sources[:dm_query]   = DmQueryMaker.call(report, opts)
+    begin
+      qm                   = QueryMaker.new(opts)
+      report               = qm.call
+      sources[:query]      = wrapped_sql_from_report(report)
+      sources[:dm_query]   = DmQueryMaker.call(report, opts)
+    rescue StandardError => e
+      sources[:query]      = "-- Error building report - needs tuning: #{e.message}\n\n #{wrapped_sql(qm.base_sql)}"
+      sources[:dm_query]   = "Error building report: #{e.message}"
+    end
     sources[:list]       = ListMaker.call(opts)
     sources[:search]     = SearchMaker.call(opts)
     sources[:repo]       = RepoMaker.call(opts)
@@ -111,8 +117,12 @@ class GenerateNewScaffold < BaseService
   private
 
   def wrapped_sql_from_report(report)
+    wrapped_sql(report.runnable_sql)
+  end
+
+  def wrapped_sql(sql)
     width = 120
-    ar = report.runnable_sql.gsub(/from /i, "\nFROM ").gsub(/where /i, "\nWHERE ").gsub(/(left outer join |left join |inner join |join )/i, "\n\\1").split("\n")
+    ar = sql.gsub(/from /i, "\nFROM ").gsub(/where /i, "\nWHERE ").gsub(/(left outer join |left join |inner join |join )/i, "\n\\1").split("\n")
     ar.map { |a| a.scan(/\S.{0,#{width - 2}}\S(?=\s|$)|\S+/).join("\n") }.join("\n")
   end
 
@@ -120,7 +130,7 @@ class GenerateNewScaffold < BaseService
     attr_reader :columns, :column_names, :foreigns, :col_lookup, :fk_lookup, :indexed_columns
 
     DRY_TYPE_LOOKUP = {
-      integer: 'Types::Int',
+      integer: 'Types::Integer',
       string: 'Types::String',
       boolean: 'Types::Bool',
       float: 'Types::Float',
@@ -142,12 +152,12 @@ class GenerateNewScaffold < BaseService
       float: '(:float?)',
       decimal: '(:decimal?)',
       jsonb: '(:hash?)',
-      integer_array: nil, # ' { each(:int?) }',
-      string_array: nil # ' { each(:str?) }'
+      integer_array: '(:array?)', # nil, # ' { each(:int?) }',
+      string_array: '(:array?)' # nil # ' { each(:str?) }'
     }.freeze
 
     VALIDATION_TYPE_LOOKUP = {
-      integer: ':int',
+      integer: ':integer',
       string: 'Types::StrippedString',
       boolean: ':bool',
       datetime: ':date_time',
@@ -243,6 +253,7 @@ class GenerateNewScaffold < BaseService
               id = nil
               repo.transaction do
                 id = repo.create_#{opts.singlename}(res)
+                log_status('#{opts.table}', id, 'CREATED')
                 log_transaction
               end
               instance = #{opts.singlename}(id)
@@ -268,6 +279,7 @@ class GenerateNewScaffold < BaseService
               name = #{opts.singlename}(id).#{opts.label_field}
               repo.transaction do
                 repo.delete_#{opts.singlename}(id)
+                log_status('#{opts.table}', id, 'DELETED')
                 log_transaction
               end
               success_response("Deleted #{opts.classnames[:text_name].downcase} \#{name}")
@@ -379,7 +391,7 @@ class GenerateNewScaffold < BaseService
         # frozen_string_literal: true
 
         module #{opts.classnames[:module]}
-          #{opts.classnames[:schema]} = Dry::Validation.Form do
+          #{opts.classnames[:schema]} = Dry::Validation.Params do
             configure { config.type_specs = true }
 
             #{attr.join("\n    ")}
@@ -397,6 +409,7 @@ class GenerateNewScaffold < BaseService
         fill_opt = detail[:allow_null] ? 'maybe' : 'filled'
         max = detail[:max_length] && detail[:max_length] < 200 ? "max_size?: #{detail[:max_length]}" : nil
         rules = [opts.table_meta.column_dry_validation_expect_type(col), max, opts.table_meta.column_dry_validation_array_extra(col)].compact.join(', ')
+        rules = rules.sub(/,\s+{/, ' {')
         attr << if col == :id
                   "optional(:#{col}, #{opts.table_meta.column_dry_validation_type(col)}).#{fill_opt}#{rules}"
                 else
@@ -475,7 +488,7 @@ class GenerateNewScaffold < BaseService
     end
   end
 
-  class RouteMaker < BaseService
+  class RouteMaker < BaseService # rubocop:disable Metrics/ClassLength
     attr_reader :opts
     def initialize(opts)
       @opts = opts
@@ -510,20 +523,21 @@ class GenerateNewScaffold < BaseService
                   show_partial { #{opts.classnames[:view_prefix]}::Show.call(id) }
                 end
                 r.patch do     # UPDATE
-                  return_json_response
                   res = interactor.update_#{opts.singlename}(id, params[:#{opts.singlename}])
                   if res.success
                     #{update_grid_row.gsub("\n", "\n            ").sub(/            \Z/, '').sub(/\n\Z/, '')}
                   else
-                    content = show_partial { #{opts.classnames[:view_prefix]}::Edit.call(id, form_values: params[:#{opts.singlename}], form_errors: res.errors) }
-                    update_dialog_content(content: content, error: res.message)
+                    re_show_form(r, res) { #{opts.classnames[:view_prefix]}::Edit.call(id, form_values: params[:#{opts.singlename}], form_errors: res.errors) }
                   end
                 end
                 r.delete do    # DELETE
-                  return_json_response
                   check_auth!('#{opts.program_text}', 'delete')
                   res = interactor.delete_#{opts.singlename}(id)
-                  delete_grid_row(id, notice: res.message)
+                  if res.success
+                    delete_grid_row(id, notice: res.message)
+                  else
+                    show_json_error(res.message, status: 200)
+                  end
                 end
               end
             end
@@ -575,16 +589,13 @@ class GenerateNewScaffold < BaseService
           r.on '#{opts.table}' do
             interactor = #{opts.classnames[:namespaced_interactor]}.new(current_user, {}, { route_url: request.path }, {})
             r.on 'new' do    # NEW
-              check_auth!('#{opts.program_text}', 'new')
-              # FIXME: --- UNCOMMENT next line if this is called directly from a menu item
-              # set_last_grid_url('/list/#{opts.table}', r)
+              check_auth!('#{opts.program_text}', 'new')#{on_new_lastgrid.chomp}
               show_partial_or_page(r) { #{opts.classnames[:view_prefix]}::New.call(id, remote: fetch?(r)) }
             end
             r.post do        # CREATE
               res = interactor.create_#{opts.singlename}(id, params[:#{opts.singlename}])
               if res.success
-                flash[:notice] = res.message
-                redirect_to_last_grid(r)
+                #{create_success.chomp.gsub("\n", "\n      ")}
               else
                 re_show_form(r, res, url: "/#{opts.applet}/#{opts.program}/#{opts.nested_route}/\#{id}/#{opts.table}/new") do
                   #{opts.classnames[:view_prefix]}::New.call(id,
@@ -640,11 +651,10 @@ class GenerateNewScaffold < BaseService
         row_keys = opts.table_meta.columns_without(%i[created_at updated_at active]).map(&:to_s).join("\n    ")
         <<~RUBY
           if fetch?(r)
-            return_json_response
             row_keys = %i[
               #{row_keys}
             ]
-            add_grid_row(attrs: { select_attributes(res.instance, row_keys) },
+            add_grid_row(attrs: select_attributes(res.instance, row_keys),
                          notice: res.message)
           else
             flash[:notice] = res.message
@@ -654,18 +664,17 @@ class GenerateNewScaffold < BaseService
       else
         row_keys = opts.table_meta.columns_without(%i[created_at updated_at active]).map(&:to_s).join("\n  ")
         <<~RUBY
-          return_json_response
           row_keys = %i[
             #{row_keys}
           ]
-          add_grid_row(attrs: { select_attributes(res.instance, row_keys) },
+          add_grid_row(attrs: select_attributes(res.instance, row_keys),
                        notice: res.message)
         RUBY
       end
     end
   end
 
-  class UiRuleMaker < BaseService
+  class UiRuleMaker < BaseService # rubocop:disable Metrics/ClassLength
     attr_reader :opts
     def initialize(opts)
       @opts = opts
@@ -715,13 +724,18 @@ class GenerateNewScaffold < BaseService
 
     private
 
-    def fields_to_use
-      opts.table_meta.columns_without(%i[id created_at updated_at active])
+    def fields_to_use(for_show = false)
+      cols = if for_show
+               %i[id created_at updated_at]
+             else
+               %i[id created_at updated_at active]
+             end
+      opts.table_meta.columns_without(cols)
     end
 
     def show_fields
       flds = []
-      fields_to_use.each do |f|
+      fields_to_use(true).each do |f|
         fk = opts.table_meta.fk_lookup[f]
         next unless fk
         tm = TableMeta.new(fk[:table])
@@ -733,7 +747,7 @@ class GenerateNewScaffold < BaseService
         flds << "#{f}_label = @repo.find(:#{fk[:table]}, #{opts.classnames[:module]}::#{klassname}, @form_object.#{f})&.#{code}"
       end
 
-      flds + fields_to_use.map do |f|
+      flds + fields_to_use(true).map do |f|
         fk = opts.table_meta.fk_lookup[f]
         if fk.nil?
           this_col = opts.table_meta.col_lookup[f]
@@ -798,7 +812,7 @@ class GenerateNewScaffold < BaseService
     end
   end
 
-  class TestMaker < BaseService
+  class TestMaker < BaseService # rubocop:disable Metrics/ClassLength
     attr_reader :opts
     def initialize(opts)
       @opts = opts
@@ -831,10 +845,7 @@ class GenerateNewScaffold < BaseService
             end
 
             def test_crud_calls
-              assert_respond_to repo, :find_#{opts.singlename}
-              assert_respond_to repo, :create_#{opts.singlename}
-              assert_respond_to repo, :update_#{opts.singlename}
-              assert_respond_to repo, :delete_#{opts.singlename}
+              test_crud_calls_for :#{opts.table}, name: :#{opts.singlename}, wrapper: #{opts.classnames[:class]}
             end
 
             private
@@ -918,25 +929,24 @@ class GenerateNewScaffold < BaseService
             authorise_fail!
             ensure_exists!(INTERACTOR)
             get '#{base_route}#{opts.table}/1', {}, 'rack.session' => { user_id: 1 }
-            refute last_response.ok?
-            assert_match(/permission/i, last_response.body)
+            expect_permission_error
           end
 
           def test_update
             authorise_pass!
             ensure_exists!(INTERACTOR)
             row_vals = Hash.new(1)
-            #{opts.classnames[:namespaced_interactor]}.any_instance.stubs(:update_#{opts.singlename}).returns(ok_response(instance: row_vals))
-            patch '#{base_route}#{opts.table}/1', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
+            INTERACTOR.any_instance.stubs(:update_#{opts.singlename}).returns(ok_response(instance: row_vals))
+            patch_as_fetch '#{base_route}#{opts.table}/1', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
             expect_json_update_grid
           end
 
           def test_update_fail
             authorise_pass!
             ensure_exists!(INTERACTOR)
-            #{opts.classnames[:namespaced_interactor]}.any_instance.stubs(:update_#{opts.singlename}).returns(bad_response)
+            INTERACTOR.any_instance.stubs(:update_#{opts.singlename}).returns(bad_response)
             #{opts.classnames[:view_prefix]}::Edit.stub(:call, bland_page) do
-              patch '#{base_route}#{opts.table}/1', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
+              patch_as_fetch '#{base_route}#{opts.table}/1', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
             end
             expect_json_replace_dialog(has_error: true)
           end
@@ -944,18 +954,18 @@ class GenerateNewScaffold < BaseService
           def test_delete
             authorise_pass!
             ensure_exists!(INTERACTOR)
-            #{opts.classnames[:namespaced_interactor]}.any_instance.stubs(:delete_#{opts.singlename}).returns(ok_response)
-            delete '#{base_route}#{opts.table}/1', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
+            INTERACTOR.any_instance.stubs(:delete_#{opts.singlename}).returns(ok_response)
+            delete_as_fetch '#{base_route}#{opts.table}/1', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
             expect_json_delete_from_grid
           end
-          #
-          # def test_delete_fail
-          #   authorise_pass!
-          #   ensure_exists!(INTERACTOR)
-          #   #{opts.classnames[:namespaced_interactor]}.any_instance.stubs(:delete_#{opts.singlename}).returns(bad_response)
-          #   delete '#{base_route}#{opts.table}/1', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
-          #   expect_bad_redirect
-          # end
+
+          def test_delete_fail
+            authorise_pass!
+            ensure_exists!(INTERACTOR)
+            INTERACTOR.any_instance.stubs(:delete_#{opts.singlename}).returns(bad_response)
+            delete_as_fetch '#{base_route}#{opts.table}/1', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
+            expect_json_error
+          end
 
           def test_new
             authorise_pass!
@@ -970,56 +980,63 @@ class GenerateNewScaffold < BaseService
             authorise_fail!
             ensure_exists!(INTERACTOR)
             get '#{base_route}#{opts.table}/new', {}, 'rack.session' => { user_id: 1 }
-            refute last_response.ok?
-            assert_match(/permission/i, last_response.body)
-          end
-
-          def test_create
-            authorise_pass!
-            ensure_exists!(INTERACTOR)
-            #{opts.classnames[:namespaced_interactor]}.any_instance.stubs(:create_#{opts.singlename}).returns(ok_response)
-            post '#{base_route}#{opts.table}', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
-            expect_ok_redirect
+            expect_permission_error
           end
 
           def test_create_remotely
             authorise_pass!
             ensure_exists!(INTERACTOR)
-            #{opts.classnames[:namespaced_interactor]}.any_instance.stubs(:create_#{opts.singlename}).returns(ok_response)
+            row_vals = Hash.new(1)
+            INTERACTOR.any_instance.stubs(:create_#{opts.singlename}).returns(ok_response(instance: row_vals))
             post_as_fetch '#{base_route}#{opts.table}', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
-            expect_ok_json_redirect
-          end
-
-          def test_create_fail
-            authorise_pass!
-            ensure_exists!(INTERACTOR)
-            #{opts.classnames[:namespaced_interactor]}.any_instance.stubs(:create_#{opts.singlename}).returns(bad_response)
-            #{opts.classnames[:view_prefix]}::New.stub(:call, bland_page) do
-              post_as_fetch '#{base_route}#{opts.table}', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
-            end
-            expect_bad_page
-
-            #{opts.classnames[:view_prefix]}::New.stub(:call, bland_page) do
-              post '#{base_route}#{opts.table}', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
-            end
-            expect_bad_redirect(url: '/#{base_route}#{opts.table}/new')
+            expect_json_add_to_grid(has_notice: true)
           end
 
           def test_create_remotely_fail
             authorise_pass!
             ensure_exists!(INTERACTOR)
-            #{opts.classnames[:namespaced_interactor]}.any_instance.stubs(:create_#{opts.singlename}).returns(bad_response)
+            INTERACTOR.any_instance.stubs(:create_#{opts.singlename}).returns(bad_response)
             #{opts.classnames[:view_prefix]}::New.stub(:call, bland_page) do
               post_as_fetch '#{base_route}#{opts.table}', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
             end
             expect_json_replace_dialog
+          end#{non_fetch_new(base_route).chomp.gsub("\n", "\n  ")}
+        end
+      RUBY
+    end
+
+    def non_fetch_new(base_route)
+      return '' unless opts.new_from_menu
+      <<~RUBY
+
+
+        def test_create
+          authorise_pass!
+          ensure_exists!(INTERACTOR)
+          INTERACTOR.any_instance.stubs(:create_#{opts.singlename}).returns(ok_response)
+          post '#{base_route}#{opts.table}', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
+          expect_ok_redirect
+        end
+
+        def test_create_fail
+          authorise_pass!
+          ensure_exists!(INTERACTOR)
+          INTERACTOR.any_instance.stubs(:create_#{opts.singlename}).returns(bad_response)
+          #{opts.classnames[:view_prefix]}::New.stub(:call, bland_page) do
+            post_as_fetch '#{base_route}#{opts.table}', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
           end
+          expect_bad_page
+
+          #{opts.classnames[:view_prefix]}::New.stub(:call, bland_page) do
+            post '#{base_route}#{opts.table}', {}, 'rack.session' => { user_id: 1, last_grid_url: DEFAULT_LAST_GRID_URL }
+          end
+          expect_bad_redirect(url: '/#{base_route}#{opts.table}/new')
         end
       RUBY
     end
   end
 
-  class ViewMaker < BaseService
+  class ViewMaker < BaseService # rubocop:disable Metrics/ClassLength
     attr_reader :opts
     def initialize(opts)
       @opts = opts
@@ -1035,12 +1052,17 @@ class GenerateNewScaffold < BaseService
 
     private
 
-    def fields_to_use
-      opts.table_meta.columns_without(%i[id created_at updated_at active])
+    def fields_to_use(for_show = false)
+      cols = if for_show
+               %i[id created_at updated_at]
+             else
+               %i[id created_at updated_at active]
+             end
+      opts.table_meta.columns_without(cols)
     end
 
-    def form_fields
-      fields_to_use.map { |f| "form.add_field :#{f}" }.join(UtilityFunctions.newline_and_spaces(14))
+    def form_fields(for_show = false)
+      fields_to_use(for_show).map { |f| "form.add_field :#{f}" }.join(UtilityFunctions.newline_and_spaces(14))
     end
 
     def needs_id
@@ -1136,7 +1158,7 @@ class GenerateNewScaffold < BaseService
                     page.form_object ui_rule.form_object
                     page.form do |form|
                       form.view_only!
-                      #{form_fields}
+                      #{form_fields(true)}
                     end
                   end
 
@@ -1151,39 +1173,52 @@ class GenerateNewScaffold < BaseService
   end
 
   class QueryMaker < BaseService
-    attr_reader :opts
+    attr_reader :opts, :base_sql
     def initialize(opts)
       @opts = opts
+      @base_sql = nil
       @repo = DevelopmentApp::DevelopmentRepo.new
     end
 
     def call
-      base_sql = <<~SQL
+      @base_sql = <<~SQL
         SELECT #{columns}
         FROM #{opts.table}
         #{make_joins}
       SQL
       report = Crossbeams::Dataminer::Report.new(opts.table.split('_').map(&:capitalize).join(' '))
-      report.sql = base_sql
+      report.sql = @base_sql
       report
     end
 
     private
 
-    def columns
+    def columns # rubocop:disable Metrics/PerceivedComplexity
       tab_cols = opts.table_meta.column_names.map { |col| "#{opts.table}.#{col}" }
       fk_cols  = []
+      used_tables = Hash.new(0)
       opts.table_meta.foreigns.each do |fk|
         if fk[:table] == :party_roles # Special treatment for party_role lookups to get party name
           fk[:columns].each do |fk_col|
-            fk_cols << "fn_party_role_name(#{opts.table}.#{fk_col}) AS #{fk_col.sub(/_id$/, '')}"
+            fk_cols << "fn_party_role_name(#{opts.table}.#{fk_col}) AS #{fk_col.to_s.sub(/_id$/, '')}"
           end
         else
+          tab_alias = fk[:table]
+          cnt       = used_tables[fk[:table]] += 1
+          tab_alias = "#{tab_alias}#{cnt}" if cnt > 1
           fk_col = get_representative_col_from_table(fk[:table])
+          pre = if fk[:table].to_s.start_with?(fk[:columns].first.to_s.sub(/_id$/, ''))
+                  ''
+                else
+                  "#{fk[:columns].first.to_s.sub(/_id$/, '')}_"
+                end
+
           fk_cols << if opts.table_meta.column_names.include?(fk_col.to_sym)
-                       "#{fk[:table]}.#{fk_col} AS #{fk[:table]}_#{fk_col}"
+                       "#{tab_alias}.#{fk_col} AS #{fk[:table]}_#{fk_col}"
+                     elsif pre == ''
+                       "#{tab_alias}.#{fk_col}"
                      else
-                       "#{fk[:table]}.#{fk_col}"
+                       "#{tab_alias}.#{fk_col} AS #{pre}#{fk_col}"
                      end
         end
       end
@@ -1302,6 +1337,7 @@ class GenerateNewScaffold < BaseService
         root_dir = File.expand_path('..', __dir__)
         Dir["\#{root_dir}/#{opts.applet}/entities/*.rb"].each { |f| require f }
         Dir["\#{root_dir}/#{opts.applet}/interactors/*.rb"].each { |f| require f }
+        # Dir["\#{root_dir}/#{opts.applet}/jobs/*.rb"].each { |f| require f }
         Dir["\#{root_dir}/#{opts.applet}/repositories/*.rb"].each { |f| require f }
         # Dir["\#{root_dir}/#{opts.applet}/services/*.rb"].each { |f| require f }
         Dir["\#{root_dir}/#{opts.applet}/ui_rules/*.rb"].each { |f| require f }
