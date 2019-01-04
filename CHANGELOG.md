@@ -7,6 +7,11 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+### Changed
+### Fixed
+
+## [0.3.0] - 2019-01-04
+### Added
 - Action on labels grid: `Refresh preview values from sub-labels` - combines preview values from a multi-label's sub-labels, replacing sample_data for the mult-label.
 - Job queues using Que gem.
 - Send email using the `Mail` gem. `config/mail_settings.rb` must be set up and a default sender address must be set up in the `.env.local` file for `SYSTEM_MAIL_SENDER`.
@@ -21,7 +26,6 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 - Capture locations.
 - AG Grid upgraded to 1.19.2.
 - AppLoader for bootstrapping (the code was moved from label_designer.rb)
-### Fixed
 
 ## [0.2.3] - 2018-09-17
 ### Changed
