@@ -181,7 +181,7 @@ class LabelDesigner < Roda
           end
 
           flash[:notice] = 'Updated'
-          { redirect: session[:last_grid_url] }.to_json
+          redirect_via_json "/labels/labels/labels/#{id}/edit"
         end
       end
 
@@ -201,13 +201,15 @@ class LabelDesigner < Roda
                       variable_set: extra_attributes[:variable_set],
                       variable_xml: params[:XMLString],
                       png_image: Sequel.blob(interactor.image_from_param(params[:imageString])) }
+
+        id = nil
         DB.transaction do
-          repo.create_label(changeset)
+          id = repo.create_label(changeset)
           repo.log_action(user_name: current_user.user_name, context: 'create label', route_url: request.path)
         end
         session[:new_label_attributes] = nil
         flash[:notice] = 'Created'
-        { redirect: session[:last_grid_url] }.to_json
+        redirect_via_json "/labels/labels/labels/#{id}/edit"
       end
     end
   end
