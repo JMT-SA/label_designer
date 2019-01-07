@@ -188,6 +188,7 @@ class LabelDesigner < Roda
       r.post do
         repo = LabelApp::LabelRepo.new
         extra_attributes = session[:new_label_attributes]
+        from_id = extra_attributes[:cloned_from_id]
         changeset = { label_json: params[:label],
                       label_name: params[:labelName],
                       label_dimension: params[:labelDimension],
@@ -205,6 +206,12 @@ class LabelDesigner < Roda
         id = nil
         DB.transaction do
           id = repo.create_label(changeset)
+          if from_id.nil?
+            repo.log_status('labels', id, 'CREATED', user_name: current_user.user_name)
+          else
+            from_lbl = repo.find_label(from_id)
+            repo.log_status('labels', id, 'CLONED', comment: "from #{from_lbl.label_name}", user_name: current_user.user_name)
+          end
           repo.log_action(user_name: current_user.user_name, context: 'create label', route_url: request.path)
         end
         session[:new_label_attributes] = nil

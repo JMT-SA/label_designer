@@ -86,6 +86,11 @@
     :popup: true
     :prompt: Are you sure you want to replace the preview values?
     :hide_if_false: multi_label
+  - :url: /development/statuses/show/labels/$:id$
+    :text: status
+    :icon: information-solid
+    :title: Status
+    :popup: true
 :page_controls:
   - :control_type: :link
     :url: /labels/labels/labels/new

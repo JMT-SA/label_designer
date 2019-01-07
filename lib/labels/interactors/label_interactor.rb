@@ -66,13 +66,17 @@ module LabelApp
         else
           repo.delete_label(id)
         end
+        log_status('labels', id, 'DELETED')
         log_transaction
       end
       success_response("Deleted label #{instance.label_name}")
     end
 
     def link_multi_label(id, sub_label_ids)
-      repo.link_multi_label(id, sub_label_ids)
+      repo.transaction do
+        repo.link_multi_label(id, sub_label_ids)
+        log_status('labels', id, 'SUB_LABELS_LINKED')
+      end
       success_response('Linked sub-labels for a multi-label')
     end
 
@@ -100,7 +104,8 @@ module LabelApp
         language: instance.language,
         category: instance.category,
         variable_set: instance.variable_set,
-        sub_category: instance.sub_category
+        sub_category: instance.sub_category,
+        cloned_from_id: id
       }
       success_response('Ok', attrs)
     end
