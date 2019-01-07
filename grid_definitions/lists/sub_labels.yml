@@ -19,3 +19,6 @@
     - :col: multi_label
       :op: <>
       :val: true
+    - :col: variable_set
+      :op: =
+      :val: $:variable_set$

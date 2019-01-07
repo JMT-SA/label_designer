@@ -15,6 +15,7 @@ module LabelApp
     attribute :sub_category, Types::String.optional
     attribute :multi_label, Types::Bool
     attribute :sample_data, Types::JSON::Hash.optional
+    attribute :variable_set, Types::String
 
     #  label_name character varying(255) NOT NULL,
     #   label_json text,

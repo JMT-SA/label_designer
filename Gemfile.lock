@@ -7,9 +7,9 @@ GIT
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-label_designer.git
-  revision: e7e8cb28079a265c25f38e9b4170b14e00045f13
+  revision: 05aab88e1fef29d9386d115ab209c23ca35a0990
   specs:
-    crossbeams-label_designer (0.1.7)
+    crossbeams-label_designer (0.1.8)
       dry-configurable
       erubi
       json
@@ -94,7 +94,7 @@ GEM
       dry-equalizer (~> 0.2)
       dry-logic (~> 0.4, >= 0.4.0)
       dry-types (~> 0.13.1)
-    erubi (1.7.1)
+    erubi (1.8.0)
     faker (1.9.1)
       i18n (>= 0.7)
     ffi (1.9.23)

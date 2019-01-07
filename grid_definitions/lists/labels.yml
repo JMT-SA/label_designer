@@ -71,7 +71,7 @@
       :function: label designer
       :program: designs
       :permission: export
-  - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$"
+  - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$&variable_set=$:variable_set$"
     :text: Select sub-labels
     :icon: list
     :popup: true

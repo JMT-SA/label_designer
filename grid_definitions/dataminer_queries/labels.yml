@@ -1,7 +1,7 @@
 ---
 :caption: Labels
 :sql: "  SELECT id, label_name, label_dimension, px_per_mm, container_type, \r\n       commodity,
-  market, language, category, sub_category, multi_label,\r\n       (SELECT string_agg(label_name,
+  market, language, category, sub_category, multi_label, variable_set,\r\n       (SELECT string_agg(label_name,
   '; ')\r\n        FROM (SELECT l.label_name FROM multi_labels m\r\n              JOIN
   labels l ON l.id = m.sub_label_id\r\n              WHERE m.label_id = labels.id
   ORDER BY m.print_sequence) subq) AS sub_labels,\r\n       created_at, updated_at,\r\n
@@ -198,7 +198,22 @@
     :data_type: :datetime
     :width: 
     :format: 
-    :hide: true
+    :hide: false
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  variable_set:
+    :name: variable_set
+    :sequence_no: 19
+    :caption: Variable set
+    :namespaced_name: labels.variable_set
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -316,3 +331,11 @@
   :ordered_list: 
   :ui_priority: 1
   :list_def: 
+- :column: variable_set
+  :caption: Variable set
+  :data_type: :string
+  :control_type: :list
+  :default_value: 
+  :ordered_list: true
+  :ui_priority: 1
+  :list_def: SELECT DISTINCT variable_set FROM labels ORDER BY variable_set

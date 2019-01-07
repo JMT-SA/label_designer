@@ -18,7 +18,7 @@ class LabelDesigner < Roda
       r.on 'edit' do   # EDIT
         check_auth!('designs', 'edit')
         @label_edit_page = true
-        view(inline: label_designer_page(id: id))
+        view(inline: interactor.label_designer_page(id: id))
       end
 
       r.on 'clone' do
@@ -37,9 +37,9 @@ class LabelDesigner < Roda
 
       r.on 'show_clone' do
         @label_edit_page = true
-        view(inline: label_designer_page(label_name: session[:new_label_attributes][:label_name],
-                                         id: id,
-                                         cloned: true))
+        view(inline: interactor.label_designer_page(label_name: session[:new_label_attributes][:label_name],
+                                                    id: id,
+                                                    cloned: true))
       end
 
       r.on 'properties' do
@@ -204,7 +204,7 @@ class LabelDesigner < Roda
 
           if res.success
             if params[:label][:multi_label] == 't'
-              load_via_json("/list/sub_labels/multi?key=sub_labels&id=#{res.instance.id}&label_dimension=#{res.instance.label_dimension}")
+              load_via_json("/list/sub_labels/multi?key=sub_labels&id=#{res.instance.id}&label_dimension=#{res.instance.label_dimension}&variable_set=#{res.instance.variable_set}")
             else
               session[:new_label_attributes] = res.instance
               qs = params[:label].map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')
