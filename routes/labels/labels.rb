@@ -21,6 +21,26 @@ class LabelDesigner < Roda
         view(inline: interactor.label_designer_page(id: id))
       end
 
+      r.on 'archive' do
+        r.post do
+          interactor.archive_label(id)
+          flash[:notice] = 'Label has been archived'
+          redirect_to_last_grid(r)
+        end
+
+        show_partial { Labels::Labels::Label::Archive.call(id, false) }
+      end
+
+      r.on 'un_archive' do
+        r.post do
+          interactor.un_archive_label(id)
+          flash[:notice] = 'Label has been un-archived'
+          redirect_to_last_grid(r)
+        end
+
+        show_partial { Labels::Labels::Label::Archive.call(id, true) }
+      end
+
       r.on 'clone' do
         show_partial { Labels::Labels::Label::Clone.call(id) }
       end

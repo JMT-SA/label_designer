@@ -6,7 +6,7 @@
   labels l ON l.id = m.sub_label_id\r\n              WHERE m.label_id = labels.id
   ORDER BY m.print_sequence) subq) AS sub_labels,\r\n       created_at, created_by, updated_at, updated_by,\r\n
   \      EXISTS(SELECT label_id FROM multi_labels WHERE sub_label_id = labels.id)
-  AS part_of_multi_label\r\n  FROM labels\r\n ORDER BY label_name, id;\r\n\r\n  "
+  AS part_of_multi_label, active\r\n  FROM labels\r\n ORDER BY label_name, id;\r\n\r\n  "
 :limit: 
 :offset: 
 :columns:
@@ -291,6 +291,21 @@
     :format: 
     :hide: true
     :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  active:
+    :name: active
+    :sequence_no: 23
+    :caption: Active
+    :namespaced_name: active
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: true
+    :groupable: true
     :group_by_seq: 
     :group_sum: false
     :group_avg: false

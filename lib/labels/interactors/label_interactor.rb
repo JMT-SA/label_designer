@@ -72,6 +72,26 @@ module LabelApp
       success_response("Deleted label #{instance.label_name}")
     end
 
+    def archive_label(id)
+      repo.transaction do
+        repo.update_label(id, active: false)
+        log_status('labels', id, 'ARCHIVED')
+        log_transaction
+      end
+      instance = label(id)
+      success_response("Archived label #{instance.label_name}", instance)
+    end
+
+    def un_archive_label(id)
+      repo.transaction do
+        repo.update_label(id, active: true)
+        log_status('labels', id, 'UN-ARCHIVED')
+        log_transaction
+      end
+      instance = label(id)
+      success_response("Un-Archived label #{instance.label_name}", instance)
+    end
+
     def link_multi_label(id, sub_label_ids)
       repo.transaction do
         repo.link_multi_label(id, sub_label_ids)

@@ -2,7 +2,7 @@
 
 module UiRules
   class LabelRule < Base
-    def generate_rules
+    def generate_rules # rubocop:disable Metrics/AbcSize
       @this_repo = LabelApp::LabelRepo.new
       @print_repo = LabelApp::PrinterRepo.new
       @master_repo = LabelApp::MasterListRepo.new
@@ -12,7 +12,7 @@ module UiRules
       common_values_for_fields common_fields
 
       set_properties_fields if @mode == :properties
-      set_show_fields if @mode == :show
+      set_show_fields if @mode == :show || @mode == :archive
       set_import_fields if @mode == :import
 
       form_name 'label'
