@@ -97,3 +97,8 @@
     :text: New label
     :style: :button
     :behaviour: :popup
+:conditions:
+  :active:
+    - :col: labels.active
+      :op: =
+      :val: true

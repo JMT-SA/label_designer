@@ -4,7 +4,7 @@
   market, language, category, sub_category, multi_label, variable_set,\r\n       (SELECT string_agg(label_name,
   '; ')\r\n        FROM (SELECT l.label_name FROM multi_labels m\r\n              JOIN
   labels l ON l.id = m.sub_label_id\r\n              WHERE m.label_id = labels.id
-  ORDER BY m.print_sequence) subq) AS sub_labels,\r\n       created_at, updated_at,\r\n
+  ORDER BY m.print_sequence) subq) AS sub_labels,\r\n       created_at, created_by, updated_at, updated_by,\r\n
   \      EXISTS(SELECT label_id FROM multi_labels WHERE sub_label_id = labels.id)
   AS part_of_multi_label\r\n  FROM labels\r\n ORDER BY label_name, id;\r\n\r\n  "
 :limit: 
@@ -40,6 +40,7 @@
     :group_avg: false
     :group_min: false
     :group_max: false
+    :pinned: left
   status:
     :name: status
     :sequence_no: 2
@@ -220,9 +221,24 @@
     :group_avg: false
     :group_min: false
     :group_max: false
+  created_by:
+    :name: created_by
+    :sequence_no: 15
+    :caption: Created by
+    :namespaced_name: created_by
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
   variable_set:
     :name: variable_set
-    :sequence_no: 20
+    :sequence_no: 22
     :caption: Variable set
     :namespaced_name: labels.variable_set
     :data_type: :string
@@ -237,7 +253,7 @@
     :group_max: false
   updated_at:
     :name: updated_at
-    :sequence_no: 15
+    :sequence_no: 16
     :caption: Updated at
     :namespaced_name: updated_at
     :data_type: :datetime
@@ -250,9 +266,24 @@
     :group_avg: false
     :group_min: false
     :group_max: false
+  updated_by:
+    :name: updated_by
+    :sequence_no: 17
+    :caption: Updated by
+    :namespaced_name: updated_by
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
   part_of_multi_label:
     :name: part_of_multi_label
-    :sequence_no: 16
+    :sequence_no: 18
     :caption: Part of multi label
     :namespaced_name: 
     :data_type: :boolean
@@ -354,3 +385,11 @@
   :ordered_list: true
   :ui_priority: 1
   :list_def: SELECT DISTINCT variable_set FROM labels ORDER BY variable_set
+- :column: labels.active
+  :caption: Active
+  :data_type: :boolean
+  :control_type: :text
+  :default_value: 
+  :ordered_list: 
+  :ui_priority: 1
+  :list_def: 

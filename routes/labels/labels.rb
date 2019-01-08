@@ -171,6 +171,7 @@ class LabelDesigner < Roda
               market: grid_cols[:market],
               language: grid_cols[:language],
               category: grid_cols[:category],
+              updated_by: grid_cols[:updated_by],
               sub_category:  grid_cols[:sub_category]
             },
                                 notice: res.message)

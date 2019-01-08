@@ -16,6 +16,8 @@ module LabelApp
     attribute :multi_label, Types::Bool
     attribute :sample_data, Types::JSON::Hash.optional
     attribute :variable_set, Types::String
+    attribute :created_by, Types::String
+    attribute :updated_by, Types::String
 
     #  label_name character varying(255) NOT NULL,
     #   label_json text,

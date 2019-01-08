@@ -176,7 +176,7 @@ class LabelDesigner < Roda
                         variable_xml: params[:XMLString],
                         png_image: Sequel.blob(interactor.image_from_param(params[:imageString])) }
           DB.transaction do
-            repo.update_label(id, changeset)
+            repo.update_label(id, interactor.include_updated_by_in_changeset(changeset))
             repo.log_action(user_name: current_user.user_name, context: 'update label', route_url: request.path)
           end
 
@@ -205,7 +205,7 @@ class LabelDesigner < Roda
 
         id = nil
         DB.transaction do
-          id = repo.create_label(changeset)
+          id = repo.create_label(interactor.include_created_by_in_changeset(changeset))
           if from_id.nil?
             repo.log_status('labels', id, 'CREATED', user_name: current_user.user_name)
           else

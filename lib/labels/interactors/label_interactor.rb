@@ -31,12 +31,12 @@ module LabelApp
       success_response('Ok', attrs)
     end
 
-    def create_label(params)
+    def create_label(params) # rubocop:disable Metrics/AbcSize
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
       id = nil
       repo.transaction do
-        id = repo.create_label(res)
+        id = repo.create_label(include_created_by_in_changeset(res))
         log_transaction
       end
       instance = label(id)
@@ -50,7 +50,7 @@ module LabelApp
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
       repo.transaction do
-        repo.update_label(id, res)
+        repo.update_label(id, include_updated_by_in_changeset(res))
         log_transaction
       end
       instance = label(id)
