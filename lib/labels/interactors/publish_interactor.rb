@@ -14,7 +14,7 @@ module LabelApp
 
     def publishing_server_options
       res = MesserverApp::MesserverRepo.new.publish_target_list
-      return failed_response(res.message) unless res.success
+      return failed_response(res.message, res.instance) unless res.success
 
       lkps = Hash[res.instance.map { |a| [a['NetworkInterface'], { name: a['Alias'], printers: a['PrinterTypes'] }] }]
       printer_types = res.instance.map { |i| i['PrinterTypes'] }.flatten.uniq.sort
@@ -36,7 +36,7 @@ module LabelApp
       success_response('ok', stepper)
     end
 
-    def publish_labels # (vars)
+    def publish_labels
       vars = stepper.read
       # {:printer_type=>"Datamax", :targets=>["192.168.50.201", "192.168.50.200"], :label_ids=>[5, 6, 23]}
       # instance = label(id)
@@ -50,13 +50,19 @@ module LabelApp
       mes_repo = MesserverApp::MesserverRepo.new
       res = mes_repo.send_publish_package(vars[:chosen_printer], vars[:chosen_targets], fname, binary_data)
       if res.success
+        # Sent, but might not have succeeded...
+        log_multiple_statuses(:labels, vars[:label_ids], 'PUBLISHED', comment: "to #{vars[:chosen_targets].join(',')}")
+        # Create a log entry for each lbl/server.
+        # Change state below as each label is published.
+        # ids in step...
+        # When all done, set status on label.
         success_response('Published labels.', OpenStruct.new(fname: fname, body: res.instance))
       else
         failed_response(res.message)
       end
     end
 
-    def publishing_status # (vars)
+    def publishing_status
       vars = stepper.read
       mes_repo = MesserverApp::MesserverRepo.new
       res = mes_repo.send_publish_status(vars[:chosen_printer], LabelFiles.new.combined_zip_filename)

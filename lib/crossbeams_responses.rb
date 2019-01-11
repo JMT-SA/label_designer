@@ -35,7 +35,7 @@ module Crossbeams
     # @return [OpenStruct] the response object.
     def failed_response(message, instance = nil)
       OpenStruct.new(success: false,
-                     instance: instance,
+                     instance: instance || {},
                      errors: {},
                      message: message)
     end
@@ -53,7 +53,7 @@ module Crossbeams
     # @return [OpenStruct] the response object.
     def success_response(message, instance = nil)
       OpenStruct.new(success: true,
-                     instance: instance,
+                     instance: instance || {},
                      errors: {},
                      message: message)
     end
