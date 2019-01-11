@@ -19,7 +19,15 @@ class LabelDesigner < Roda
         res = interactor.publishing_server_options
         # stash....
         if res.success
-          { content: render_partial { Labels::Publish::Batch::SelectTargets.call(res.instance) } }.to_json
+          show_in_callback { Labels::Publish::Batch::SelectTargets.call(res.instance) }
+        elsif res.instance[:timeout]
+          show_in_callback(content: 'Unable to get information - the server took too long to respond.',
+                           content_style: :error,
+                           error: res.message)
+        elsif res.instance[:refused]
+          show_in_callback(content: 'Unable to get information - the server might not be running.',
+                           content_style: :error,
+                           error: res.message)
         else
           show_json_error(res.message, status: 200)
         end
