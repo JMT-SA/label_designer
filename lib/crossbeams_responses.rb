@@ -25,7 +25,7 @@ module Crossbeams
     # Create a failed response object.
     # Returns:
     #   - success: false.
-    #   - instance: the passed-in instance. Can be nil.
+    #   - instance: the passed-in instance. Can be an empty Hash.
     #   - errors: an empty hash.
     #   - message: the passed-in message.
     #
@@ -40,10 +40,10 @@ module Crossbeams
                      message: message)
     end
 
-    # Create a failed response object.
+    # Create a success response object.
     # Returns:
     #   - success: true.
-    #   - instance: the passed-in instance. Can be nil.
+    #   - instance: the passed-in instance. Can be an empty Hash.
     #   - errors: an empty hash.
     #   - message: the passed-in message.
     #
