@@ -15,7 +15,7 @@ class LabelDesigner < Roda
         # (If coming from "BACK" button, show plain section using cached list of targets
       end
 
-      r.get 'show_targets' do
+      r.get 'callback_for_targets' do
         res = interactor.publishing_server_options
         # stash....
         if res.success
@@ -49,11 +49,25 @@ class LabelDesigner < Roda
       end
 
       r.post 'publish' do
+        # Validate: cannot publish multi without sub-labels...
         res = interactor.save_label_selections(multiselect_grid_choices(params))
         show_page { Labels::Publish::Batch::Publish.call(res.instance) }
       end
 
-      r.get 'send' do
+      # 1) Call messerver with zip
+      # 2) Create job - check in x sec
+      # 3) Return to page
+      #
+      #
+      # 4) Job gets list of publish_status ids
+      #    - call messerver, compare response to publish_status recs & update as required.
+      #    - if taken too long, update all outstanding to ABANDONED.
+      #    - If some still not updated, kick off the same job from within itself.
+      #
+      # 5) Periodic check reads publish status for feedback in page.
+      #    - stops once all done/timed out.
+
+      r.get 'callback_for_send' do
         res = interactor.publish_labels # (store.read(:lbl_publish_steps))
         { content: render_partial { Labels::Publish::Batch::Send.call(res) } }.to_json
       end

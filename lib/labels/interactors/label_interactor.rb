@@ -211,7 +211,7 @@ module LabelApp
       variable_set = find_variable_set(opts)
 
       Crossbeams::LabelDesigner::Config.configure do |config|
-        config.label_variable_types = label_variables(variable_set) unless variable_set.nil?
+        config.label_variable_types = label_variables(variable_set)
         config.label_config = label_config(opts).to_json
         config.label_sizes = AppConst::LABEL_SIZES.to_json
       end
@@ -261,10 +261,9 @@ module LabelApp
     private
 
     def find_variable_set(opts)
-      return nil if AppConst::LABEL_VARIABLE_SETS.length == 1 && AppConst::LABEL_VARIABLE_SETS.first == 'CMS'
       key = opts[:variable_set]
       key = variable_set_from_label(opts[:id]) if key.nil?
-      key == 'CMS' ? nil : key
+      key || 'CMS'
     end
 
     def variable_set_from_label(id)

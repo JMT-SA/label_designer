@@ -121,6 +121,10 @@ module MesserverApp
       request.body = post_body.join
       request['Content-Type'] = "multipart/form-data, boundary=#{AppConst::POST_FORM_BOUNDARY}"
 
+      # p '------------------------------------------------------------'
+      # p request.body[0,250]
+      # p '------------------------------------------------------------'
+
       response = http.request(request)
       format_response(response)
     rescue Timeout::Error

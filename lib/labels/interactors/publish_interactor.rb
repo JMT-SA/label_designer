@@ -12,7 +12,7 @@ module LabelApp
       @stepper ||= PublishStep.new(@user)
     end
 
-    def publishing_server_options
+    def publishing_server_options # rubocop:disable Metrics/AbcSize
       res = MesserverApp::MesserverRepo.new.publish_target_list
       return failed_response(res.message, res.instance) unless res.success
 
@@ -44,8 +44,14 @@ module LabelApp
       # repo.update_label(id, sample_data: repo.hash_to_jsonb_str(vars))
       # TODO: store history of publishing...
 
-      fname, binary_data = LabelFiles.new.make_combined_zip(vars[:label_ids])
+      begin
+        fname, binary_data = LabelFiles.new.make_combined_zip(vars[:label_ids])
+      rescue Crossbeams::FrameworkError => e
+        return failed_response(e.message)
+      end
       # File.open('zz.zip', 'w') { |f| f.puts binary_data }
+
+      # JS: create publish header & publish_label_logs
 
       mes_repo = MesserverApp::MesserverRepo.new
       res = mes_repo.send_publish_package(vars[:chosen_printer], vars[:chosen_targets], fname, binary_data)

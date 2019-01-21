@@ -43,4 +43,3 @@ INSERT INTO security_groups_security_permissions (security_group_id, security_pe
 SELECT g.id,
 (SELECT id FROM security_permissions WHERE security_permission = 'edit')
 FROM security_groups g WHERE g.security_group_name = 'edit';
-

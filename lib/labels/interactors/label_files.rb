@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module LabelApp
-  class LabelFiles
+  class LabelFiles # rubocop:disable Metrics/ClassLength
     def repo
       @repo ||= LabelRepo.new
     end
@@ -53,8 +53,10 @@ module LabelApp
       attrs
     end
 
-    def make_combined_xml(label, fname)
+    def make_combined_xml(label, fname) # rubocop:disable Metrics/AbcSize
       sub_label_ids = repo.sub_label_ids(label.id)
+      raise Crossbeams::FrameworkError, "Multi-label \"#{label.label_name}\" has no sub-labels" if sub_label_ids.empty?
+
       first = repo.find_label(sub_label_ids.shift)
       doc = Nokogiri::XML(first.variable_xml)
       rename_image_in_xml(doc, fname, 1)
