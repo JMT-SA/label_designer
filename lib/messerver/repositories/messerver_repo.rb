@@ -74,11 +74,11 @@ module MesserverApp
       post_body
     end
 
-    def shared_part_of_body(fname, binary_data)
+    def shared_part_of_body(fname, binary_data, unitfolder: 'ldesign')
       post_body = []
       post_body << "--#{AppConst::POST_FORM_BOUNDARY}\r\n"
       post_body << "Content-Disposition: form-data; name=\"unitfolder\"\r\n"
-      post_body << "\r\nldesign"
+      post_body << "\r\n#{unitfolder}"
       post_body << "\r\n--#{AppConst::POST_FORM_BOUNDARY}--\r\n"
       post_body << "--#{AppConst::POST_FORM_BOUNDARY}\r\n"
       post_body << "Content-Disposition: form-data; name=\"datafile\"; filename=\"#{fname}.zip\"\r\n"
@@ -112,7 +112,7 @@ module MesserverApp
 
     def post_package(uri, printer_type, targets, fname, binary_data) # rubocop:disable Metrics/AbcSize
       post_body = publish_part_of_body(printer_type, targets)
-      post_body += shared_part_of_body(fname, binary_data)
+      post_body += shared_part_of_body(fname, binary_data, unitfolder: 'production')
 
       http = Net::HTTP.new(uri.host, uri.port)
       http.open_timeout = 5
