@@ -7,6 +7,11 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+### Changed
+### Fixed
+
+## [0.3.5] - 2019-01-24
+### Added
 - Dataminer module included.
 - Created by and Updated by on labels.
 - Labels can be archived and un-archived (active/inactive).
@@ -14,7 +19,6 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 - Status logging for create, link and delete of labels.
 - List of variables for a label can be configured via the variable set and shared_config.
-### Fixed
 
 ## [0.3.0] - 2019-01-04
 ### Added
