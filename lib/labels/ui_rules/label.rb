@@ -2,7 +2,7 @@
 
 module UiRules
   class LabelRule < Base
-    def generate_rules
+    def generate_rules # rubocop:disable Metrics/AbcSize
       @this_repo = LabelApp::LabelRepo.new
       @print_repo = LabelApp::PrinterRepo.new
       @master_repo = LabelApp::MasterListRepo.new
@@ -11,13 +11,18 @@ module UiRules
 
       common_values_for_fields common_fields
 
-      set_show_fields if @mode == :show
+      set_properties_fields if @mode == :properties
+      set_show_fields if @mode == :show || @mode == :archive
       set_import_fields if @mode == :import
 
       form_name 'label'
     end
 
-    def set_show_fields
+    def set_properties_fields
+      fields[:variable_set] = AppConst::LABEL_VARIABLE_SETS.length == 1 ? { renderer: :hidden } : { renderer: :label }
+    end
+
+    def set_show_fields # rubocop:disable Metrics/AbcSize
       fields[:label_name] = { renderer: :label }
       fields[:label_dimension] = { renderer: :label }
       fields[:px_per_mm] = { renderer: :label }
@@ -27,6 +32,7 @@ module UiRules
       fields[:language] = { renderer: :label }
       fields[:category] = { renderer: :label }
       fields[:sub_category] = { renderer: :label }
+      fields[:variable_set] = AppConst::LABEL_VARIABLE_SETS.length == 1 ? { renderer: :hidden } : { renderer: :label }
     end
 
     def set_import_fields
@@ -34,10 +40,18 @@ module UiRules
     end
 
     def common_fields
+      variable_set_rule = if AppConst::LABEL_VARIABLE_SETS.length == 1
+                            { renderer: :hidden }
+                          else
+                            { renderer: :select,
+                              options: AppConst::LABEL_VARIABLE_SETS,
+                              required: true }
+                          end
+
       {
         label_name: { pattern: :no_spaces, pattern_msg: 'Label name cannot include spaces', required: true },
         label_dimension: { renderer: :select,
-                           options: LabelDesigner::LABEL_SIZES.keys.sort, required: true },
+                           options: AppConst::LABEL_SIZES.keys.sort, required: true },
         px_per_mm: { renderer: :select,
                      options: @print_repo.distinct_px_mm,
                      caption: 'Resolution (px/mm)', required: true },
@@ -47,7 +61,8 @@ module UiRules
         language: { renderer: :select, options: @master_repo.for_select_master_lists(where: { list_type: 'language' }), required: true },
         category: { renderer: :select, options: @master_repo.for_select_master_lists(where: { list_type: 'category' }) },
         sub_category: { renderer: :select, options: @master_repo.for_select_master_lists(where: { list_type: 'sub_category' }) },
-        multi_label: { renderer: :checkbox }
+        multi_label: { renderer: :checkbox },
+        variable_set: variable_set_rule
       }
     end
 
@@ -67,7 +82,8 @@ module UiRules
                                     language: nil,
                                     category: nil,
                                     sub_category: nil,
-                                    multi_label: false)
+                                    multi_label: false,
+                                    variable_set: AppConst::LABEL_VARIABLE_SETS.first)
     end
   end
 end

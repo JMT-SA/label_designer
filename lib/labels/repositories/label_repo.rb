@@ -4,6 +4,8 @@ module LabelApp
   class LabelRepo < BaseRepo
     crud_calls_for :labels, name: :label, wrapper: Label
     crud_calls_for :multi_labels, name: :multi_label
+    crud_calls_for :label_publish_logs, name: :label_publish_log, wrapper: LabelPublishLog
+    crud_calls_for :label_publish_log_details, name: :label_publish_log_detail, wrapper: LabelPublishLogDetail
 
     def sub_label_list(sub_label_ids)
       DB[:labels].select(:id, :label_name)
@@ -46,6 +48,47 @@ module LabelApp
                                   .select(:sample_data)
                                   .map { |a| a[:sample_data] || {} }
       update_label(id, sample_data: hash_to_jsonb_str(new_sample(datalist)))
+    end
+
+    def label_publish_states(label_publish_log_id)
+      query = <<~SQL
+        SELECT l.label_name, d.server_ip, d.destination, d.status, d.errors, d.complete, d.failed
+          FROM label_publish_log_details d
+          JOIN labels l ON l.id = d.label_id
+          WHERE d.label_publish_log_id = ?
+          ORDER BY d.destination, l.label_name
+      SQL
+      DB[query, label_publish_log_id].all
+    end
+
+    def published_label_lookup(label_publish_log_id)
+      query = <<~SQL
+        SELECT DISTINCT l.id, l.label_name
+        FROM label_publish_log_details p
+        JOIN labels l ON l.id = p.label_id
+        WHERE p.label_publish_log_id = ?
+      SQL
+      Hash[DB[query, label_publish_log_id].map { |r| [r[:label_name], r[:id]] }]
+    end
+
+    def published_label_conditions(label_publish_log_id)
+      complete_query = <<~SQL
+        SELECT COUNT(id)
+          FROM public.label_publish_log_details
+          WHERE label_publish_log_id = ?
+            AND NOT complete
+      SQL
+
+      fail_query = <<~SQL
+        SELECT COUNT(id)
+          FROM public.label_publish_log_details
+          WHERE label_publish_log_id = ?
+            AND failed
+      SQL
+
+      complete = DB[complete_query, label_publish_log_id].get.zero?
+      failed = DB[fail_query, label_publish_log_id].get.positive?
+      [complete, failed]
     end
 
     private

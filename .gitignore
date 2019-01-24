@@ -25,3 +25,8 @@ tags
 
 # Assets plugin metadata file
 prestyle.css
+
+# Client-specific config.
+config/mail_settings.rb
+config/dataminer_connections.yml
+prepared_reports/*.yml

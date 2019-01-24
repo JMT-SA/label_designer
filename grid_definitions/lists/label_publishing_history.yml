@@ -1,0 +1,7 @@
+---
+:dataminer_definition: label_publishing_history
+:conditions:
+  :standard:
+    - :col: d.label_id
+      :op: =
+      :val: $:id$

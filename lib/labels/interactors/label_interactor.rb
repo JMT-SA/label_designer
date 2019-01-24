@@ -25,17 +25,18 @@ module LabelApp
         market: params[:market],
         language: params[:language],
         category: params[:category],
+        variable_set: params[:variable_set],
         sub_category: params[:sub_category]
       }
       success_response('Ok', attrs)
     end
 
-    def create_label(params)
+    def create_label(params) # rubocop:disable Metrics/AbcSize
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
       id = nil
       repo.transaction do
-        id = repo.create_label(res)
+        id = repo.create_label(include_created_by_in_changeset(res))
         log_transaction
       end
       instance = label(id)
@@ -49,7 +50,7 @@ module LabelApp
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
       repo.transaction do
-        repo.update_label(id, res)
+        repo.update_label(id, include_updated_by_in_changeset(res))
         log_transaction
       end
       instance = label(id)
@@ -65,13 +66,37 @@ module LabelApp
         else
           repo.delete_label(id)
         end
+        log_status('labels', id, 'DELETED')
         log_transaction
       end
       success_response("Deleted label #{instance.label_name}")
     end
 
+    def archive_label(id)
+      repo.transaction do
+        repo.update_label(id, active: false)
+        log_status('labels', id, 'ARCHIVED')
+        log_transaction
+      end
+      instance = label(id)
+      success_response("Archived label #{instance.label_name}", instance)
+    end
+
+    def un_archive_label(id)
+      repo.transaction do
+        repo.update_label(id, active: true)
+        log_status('labels', id, 'UN-ARCHIVED')
+        log_transaction
+      end
+      instance = label(id)
+      success_response("Un-Archived label #{instance.label_name}", instance)
+    end
+
     def link_multi_label(id, sub_label_ids)
-      repo.link_multi_label(id, sub_label_ids)
+      repo.transaction do
+        repo.link_multi_label(id, sub_label_ids)
+        log_status('labels', id, 'SUB_LABELS_LINKED')
+      end
       success_response('Linked sub-labels for a multi-label')
     end
 
@@ -98,7 +123,9 @@ module LabelApp
         market: instance.market,
         language: instance.language,
         category: instance.category,
-        sub_category: instance.sub_category
+        variable_set: instance.variable_set,
+        sub_category: instance.sub_category,
+        cloned_from_id: id
       }
       success_response('Ok', attrs)
     end
@@ -139,6 +166,7 @@ module LabelApp
         market: params[:market],
         language: params[:language],
         category: params[:category],
+        variable_set: params[:variable_set],
         sub_category: params[:sub_category]
       }
       attrs = LabelFiles.new.import_file(tempfile, attrs)
@@ -177,6 +205,96 @@ module LabelApp
         log_transaction
       end
       success_response('Preview values have been built up from the sub-labels')
+    end
+
+    def label_designer_page(opts = {})
+      variable_set = find_variable_set(opts)
+
+      Crossbeams::LabelDesigner::Config.configure do |config|
+        config.label_variable_types = label_variables(variable_set)
+        config.label_config = label_config(opts).to_json
+        config.label_sizes = AppConst::LABEL_SIZES.to_json
+      end
+
+      page = Crossbeams::LabelDesigner::Page.new(opts[:id])
+      # page.json_load_path = '/load_label_via_json' # Override config just before use.
+      # page.json_save_path =  opts[:id].nil? ? '/save_label' : "/save_label/#{opts[:id]}"
+      html = page.render      # --> ASCII-8BIT
+      css  = page.css         # --> ASCII-8BIT
+      js   = page.javascript  # --> UTF-8
+
+      # ">>> HTML enc"
+      # #<Encoding:ASCII-8BIT>
+      # ">>> CSS enc"
+      # #<Encoding:ASCII-8BIT>
+      # ">>> JS enc"
+      # #<Encoding:UTF-8>
+
+      # TODO: include csrf headers in the page....
+
+      <<-HTML # --> UTF-8
+      #{html}
+      <% content_for :late_style do %>
+        #{css}
+      <% end %>
+      <% content_for :late_javascript do %>
+        #{js}
+      <% end %>
+      HTML
+    end
+
+    PNG_REGEXP = %r{\Adata:([-\w]+/[-\w\+\.]+)?;base64,(.*)}m
+    def image_from_param(param)
+      data_uri_parts = param.match(PNG_REGEXP) || []
+      # extension = MIME::Types[data_uri_parts[1]].first.preferred_extension
+      # file_name = "testpng.#{extension}"
+      Base64.decode64(data_uri_parts[2])
+    end
+
+    private
+
+    def find_variable_set(opts)
+      key = opts[:variable_set]
+      key = variable_set_from_label(opts[:id]) if key.nil?
+      key || 'CMS'
+    end
+
+    def variable_set_from_label(id)
+      return nil if id.nil?
+      repo = LabelApp::LabelRepo.new
+      repo.find_label(id).variable_set
+    end
+
+    def label_variables(variable_set)
+      LabelApp::SharedConfigRepo.new.remote_object_variable_groups(variable_set)
+    end
+
+    def label_instance_for_config(opts)
+      if opts[:id]
+        repo = LabelApp::LabelRepo.new
+        label = repo.find_label(opts[:id])
+        if opts[:cloned]
+          label = LabelApp::Label.new(label.to_h.merge(id: nil, label_name: opts[:label_name]))
+        end
+        label
+      else
+        OpenStruct.new(opts)
+      end
+    end
+
+    def label_config(opts)
+      label = label_instance_for_config(opts)
+
+      config = {
+        labelState: opts[:id].nil? ? 'new' : 'edit',
+        labelName:  label.label_name,
+        savePath: label.id.nil? ? '/save_label' : "/save_label/#{label.id}",
+        labelDimension: label.label_dimension,
+        id: label.id,
+        pixelPerMM: label.px_per_mm,
+        labelJSON: label.label_json
+      }
+      config
     end
   end
 end

@@ -9,6 +9,7 @@
       :function: label designer
       :program: designs
       :permission: edit
+    :hide_if_false: active
   - :url: /labels/labels/labels/$:id$/clone
     :text: Clone
     :icon: copy
@@ -18,6 +19,7 @@
       :function: label designer
       :program: designs
       :permission: edit
+    :hide_if_false: active
   - :separator: true
   - :url: /labels/labels/labels/$:id$/properties
     :text: Edit properties
@@ -28,6 +30,7 @@
       :function: label designer
       :program: designs
       :permission: edit
+    :hide_if_false: active
   - :url: /labels/labels/labels/$:id$/background
     :text: Background image
     :icon: photo
@@ -60,6 +63,7 @@
       :function: label designer
       :program: designs
       :permission: edit
+    :hide_if_false: active
   - :url: /labels/labels/labels/$:id$/download
     :text: Download
     :icon: download
@@ -71,11 +75,11 @@
       :function: label designer
       :program: designs
       :permission: export
-  - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$"
+  - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$&variable_set=$:variable_set$"
     :text: Select sub-labels
     :icon: list
     :popup: true
-    :hide_if_false: multi_label
+    :hide_if_false: multi_label,active
     :auth:
       :function: label designer
       :program: designs
@@ -85,10 +89,47 @@
     :icon: code
     :popup: true
     :prompt: Are you sure you want to replace the preview values?
-    :hide_if_false: multi_label
+    :hide_if_false: multi_label,active
+  - :url: /development/statuses/show/labels/$:id$
+    :text: status
+    :icon: information-solid
+    :title: Status
+    :popup: true
+  - :url: "/list/label_publishing_history/with_params?key=standard&id=$:id$"
+    :text: Publishing history
+    :icon: list
+    :popup: true
+  - :separator: true
+  - :url: /labels/labels/labels/$:id$/archive
+    :text: Archive
+    :icon: lock-closed
+    :popup: true
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: edit
+    :hide_if_false: active
+  - :url: /labels/labels/labels/$:id$/un_archive
+    :text: Un-Archive
+    :icon: add
+    :popup: true
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: edit
+    :hide_if_true: active
 :page_controls:
   - :control_type: :link
     :url: /labels/labels/labels/new
     :text: New label
     :style: :button
     :behaviour: :popup
+:conditions:
+  :active:
+    - :col: labels.active
+      :op: =
+      :val: true
+  :inactive:
+    - :col: labels.active
+      :op: =
+      :val: false

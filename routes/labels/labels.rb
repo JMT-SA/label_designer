@@ -18,7 +18,27 @@ class LabelDesigner < Roda
       r.on 'edit' do   # EDIT
         check_auth!('designs', 'edit')
         @label_edit_page = true
-        view(inline: label_designer_page(id: id))
+        view(inline: interactor.label_designer_page(id: id))
+      end
+
+      r.on 'archive' do
+        r.post do
+          interactor.archive_label(id)
+          flash[:notice] = 'Label has been archived'
+          redirect_to_last_grid(r)
+        end
+
+        show_partial { Labels::Labels::Label::Archive.call(id, false) }
+      end
+
+      r.on 'un_archive' do
+        r.post do
+          interactor.un_archive_label(id)
+          flash[:notice] = 'Label has been un-archived'
+          redirect_to_last_grid(r)
+        end
+
+        show_partial { Labels::Labels::Label::Archive.call(id, true) }
       end
 
       r.on 'clone' do
@@ -37,9 +57,9 @@ class LabelDesigner < Roda
 
       r.on 'show_clone' do
         @label_edit_page = true
-        view(inline: label_designer_page(label_name: session[:new_label_attributes][:label_name],
-                                         id: id,
-                                         cloned: true))
+        view(inline: interactor.label_designer_page(label_name: session[:new_label_attributes][:label_name],
+                                                    id: id,
+                                                    cloned: true))
       end
 
       r.on 'properties' do
@@ -171,6 +191,7 @@ class LabelDesigner < Roda
               market: grid_cols[:market],
               language: grid_cols[:language],
               category: grid_cols[:category],
+              updated_by: grid_cols[:updated_by],
               sub_category:  grid_cols[:sub_category]
             },
                                 notice: res.message)
@@ -204,7 +225,7 @@ class LabelDesigner < Roda
 
           if res.success
             if params[:label][:multi_label] == 't'
-              load_via_json("/list/sub_labels/multi?key=sub_labels&id=#{res.instance.id}&label_dimension=#{res.instance.label_dimension}")
+              load_via_json("/list/sub_labels/multi?key=sub_labels&id=#{res.instance.id}&label_dimension=#{res.instance.label_dimension}&variable_set=#{res.instance.variable_set}")
             else
               session[:new_label_attributes] = res.instance
               qs = params[:label].map { |k, v| [CGI.escape(k.to_s), '=', CGI.escape(v.to_s)] }.map(&:join).join('&')

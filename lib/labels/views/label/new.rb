@@ -18,6 +18,7 @@ module Labels
               form.add_field :label_name
               form.add_field :label_dimension
               form.add_field :px_per_mm
+              form.add_field :variable_set
               form.add_field :container_type
               form.add_field :commodity
               form.add_field :market

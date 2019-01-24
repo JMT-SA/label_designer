@@ -34,7 +34,7 @@ require './lib/document_sequence'
 require './lib/local_store' # Will only work for processes running from one dir.
 require './lib/ui_rules'
 require './lib/library_versions'
-# require './lib/dataminer_connections'
+require './lib/dataminer_connections'
 Dir['./helpers/**/*.rb'].each { |f| require f }
 Dir['./lib/applets/*.rb'].each { |f| require f }
 
@@ -42,7 +42,7 @@ ENV['ROOT'] = File.dirname(__FILE__)
 ENV['VERSION'] = File.read('VERSION')
 ENV['GRID_QUERIES_LOCATION'] ||= File.expand_path('grid_definitions/dataminer_queries', __dir__)
 
-# DM_CONNECTIONS = DataminerConnections.new
+DM_CONNECTIONS = DataminerConnections.new
 
 module Crossbeams
   class FrameworkError < StandardError

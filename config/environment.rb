@@ -12,7 +12,6 @@ db_name = if ENV.fetch('RACK_ENV') == 'test'
           else
             ENV.fetch('DATABASE_URL')
           end
-p db_name
 require 'sequel'
 require 'logger'
 DB = Sequel.connect(db_name)

@@ -14,7 +14,7 @@ module Labels
             end
             page.callback_section do |section|
               section.caption = 'Assemble and send to publishing server'
-              section.url = '/labels/publish/batch/send'
+              section.url = '/labels/publish/batch/callback_for_send'
             end
           end
 

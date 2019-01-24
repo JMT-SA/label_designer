@@ -15,7 +15,7 @@ module Labels
             end
             page.callback_section do |section|
               section.caption = 'Select target destinations'
-              section.url = '/labels/publish/batch/show_targets'
+              section.url = '/labels/publish/batch/callback_for_targets'
             end
           end
 
