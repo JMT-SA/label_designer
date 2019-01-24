@@ -95,6 +95,10 @@
     :icon: information-solid
     :title: Status
     :popup: true
+  - :url: "/list/label_publishing_history/with_params?key=standard&id=$:id$"
+    :text: Publishing history
+    :icon: list
+    :popup: true
   - :separator: true
   - :url: /labels/labels/labels/$:id$/archive
     :text: Archive

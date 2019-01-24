@@ -10,6 +10,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 - Dataminer module included.
 - Created by and Updated by on labels.
 - Labels can be archived and un-archived (active/inactive).
+- Publishing of labels is logged and uses the job queue to do the work.
 ### Changed
 - Status logging for create, link and delete of labels.
 - List of variables for a label can be configured via the variable set and shared_config.

@@ -1,0 +1,150 @@
+---
+:caption: Label publishing History
+:sql: "SELECT CONCAT(d.destination, ' (', d.server_ip, ')') AS published_to, \r\nCASE
+  WHEN l.failed AND NOT d.failed THEN l.status ELSE d.status END AS status,\r\n date(d.updated_at)
+  AS published_on, \r\nto_char(d.updated_at, 'HH24:MI:SS') AS published_at,\r\nl.user_name
+  AS published_by,\r\nCOALESCE(l.errors, d.errors) AS errors, d.id,\r\nCASE WHEN d.failed
+  OR l.failed THEN 'error' ELSE NULL END AS colour_rule\r\nFROM label_publish_log_details
+  d\r\nJOIN label_publish_logs l ON l.id = d.label_publish_log_id\r\nORDER BY d.created_at
+  DESC, d.label_id"
+:limit: 
+:offset: 
+:external_settings: {}
+:columns:
+  published_to:
+    :name: published_to
+    :sequence_no: 1
+    :caption: Published to
+    :namespaced_name: 
+    :data_type: :string
+    :width: 250
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  status:
+    :name: status
+    :sequence_no: 2
+    :caption: Status
+    :namespaced_name: 
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  published_on:
+    :name: published_on
+    :sequence_no: 3
+    :caption: Published on
+    :namespaced_name: 
+    :data_type: :string
+    :width: 120
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  published_at:
+    :name: published_at
+    :sequence_no: 4
+    :caption: Published at
+    :namespaced_name: 
+    :data_type: :string
+    :width: 120
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  published_by:
+    :name: published_by
+    :sequence_no: 5
+    :caption: Published by
+    :namespaced_name: l.user_name
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  errors:
+    :name: errors
+    :sequence_no: 6
+    :caption: Errors
+    :namespaced_name: 
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  id:
+    :name: id
+    :sequence_no: 7
+    :caption: Id
+    :namespaced_name: d.id
+    :data_type: :integer
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  colour_rule:
+    :name: colour_rule
+    :sequence_no: 8
+    :caption: Colour rule
+    :namespaced_name: 
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+:query_parameter_definitions:
+- :column: d.label_id
+  :caption: Label name
+  :data_type: :string
+  :control_type: :list
+  :default_value: 
+  :ordered_list: true
+  :ui_priority: 1
+  :list_def: SELECT label_name, id FROM labels ORDER BY label_name

@@ -223,13 +223,6 @@ module LabelApp
       css  = page.css         # --> ASCII-8BIT
       js   = page.javascript  # --> UTF-8
 
-      # p '>>> HTML enc'
-      # p html.encoding
-      # p '>>> CSS enc'
-      # p css.encoding
-      # p '>>> JS enc'
-      # p js.encoding
-
       # ">>> HTML enc"
       # #<Encoding:ASCII-8BIT>
       # ">>> CSS enc"

@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-# rubocop:disable Metrics/ClassLength
-
 module LabelApp
   class PublishInteractor < BaseInteractor
     def repo
@@ -36,13 +34,9 @@ module LabelApp
       success_response('ok', stepper)
     end
 
-    def publish_labels
+    def publish_labels # rubocop:disable Metrics/AbcSize
       vars = stepper.read
       # {:printer_type=>"Datamax", :targets=>["192.168.50.201", "192.168.50.200"], :label_ids=>[5, 6, 23]}
-      # instance = label(id)
-      # Store the input variables:
-      # repo.update_label(id, sample_data: repo.hash_to_jsonb_str(vars))
-      # TODO: store history of publishing...
 
       begin
         fname, binary_data = LabelFiles.new.make_combined_zip(vars[:label_ids])
@@ -52,94 +46,55 @@ module LabelApp
       # File.open('zz.zip', 'w') { |f| f.puts binary_data }
 
       # JS: create publish header & publish_label_logs
+      create_publish_logs(fname, vars)
 
       mes_repo = MesserverApp::MesserverRepo.new
       res = mes_repo.send_publish_package(vars[:chosen_printer], vars[:chosen_targets], fname, binary_data)
       if res.success
-        # Sent, but might not have succeeded...
-        log_multiple_statuses(:labels, vars[:label_ids], 'PUBLISHED', comment: "to #{vars[:chosen_targets].join(',')}")
-        # Create a log entry for each lbl/server.
-        # Change state below as each label is published.
-        # ids in step...
-        # When all done, set status on label.
         success_response('Published labels.', OpenStruct.new(fname: fname, body: res.instance))
       else
         failed_response(res.message)
       end
     end
 
+    def create_publish_logs(fname, vars) # rubocop:disable Metrics/AbcSize
+      printer = vars[:chosen_printer]
+      targets = vars[:targets].select { |t| vars[:chosen_targets].include?(t.last) }
+
+      # read labels & create for each...
+      repo.transaction do
+        id = repo.create(:label_publish_logs,
+                         user_name: @user.user_name,
+                         printer_type: printer,
+                         publish_name: fname,
+                         status: 'PUBLISHING')
+
+        targets.each do |dest, ip|
+          vars[:label_ids].each do |label_id|
+            repo.create(:label_publish_log_details,
+                        label_publish_log_id: id,
+                        label_id: label_id,
+                        server_ip: ip,
+                        destination: dest,
+                        status: 'PUBLISHING')
+          end
+        end
+
+        stepper.merge(label_publish_log_id: id)
+
+        LabelApp::CheckPublishStatusJob.enqueue(@user.id, id)
+      end
+    end
+
     def publishing_status
       vars = stepper.read
-      mes_repo = MesserverApp::MesserverRepo.new
-      res = mes_repo.send_publish_status(vars[:chosen_printer], LabelFiles.new.combined_zip_filename)
-      if res.success
-        # TODO: use step wrapper to do formatting
-        success_response('Published labels.', OpenStruct.new(done: all_published?(vars, res.instance), body: publishing_table(vars, res.instance) + sql_display(vars, res.instance))) # decide on done...
-      elsif res.instance == '404' # Nothing sent yet...
-        success_response('Published labels.', OpenStruct.new(done: false, body: publishing_table(vars, [])))
-      else
-        failed_response(res.message, res.instance) # instance is response code
-      end
-    end
-
-    def all_published?(vars, response_body)
-      expected = vars[:chosen_targets].length * vars[:label_ids].length
-      response_body.length == expected && response_body.all? { |item| !item['Status'].nil? }
-    end
-
-    def sql_display(vars, response_body)
-      return '' unless all_published?(vars, response_body)
-      lkp = publishing_table_lookup(response_body)
-      sql = lkp.keys.map do |key|
-        <<~SQL
-          INSERT INTO dbo.mes_label_template_files
-          (label_template_file, mes_peripheral_type_id, mes_peripheral_type_code, created_at, updated_at)
-          SELECT '#{key}.nsld', mp.id, mp.code, getdate(), getdate()
-          FROM mes_peripheral_types mp
-          WHERE UPPER(mp.code) = '#{vars[:chosen_printer].upcase}';
-        SQL
-      end
-      '<hr>' + Crossbeams::Layout::Text.new({}, sql.join("\n"), toggle_button: true, toggle_caption: 'Toggle SQL for template insert', syntax: :sql).render
-    end
-
-    def publishing_table(vars, response_body)
-      lkp = publishing_table_lookup(response_body)
-      # cols = vars[:targets].map { |t| vars[:lookup][t][:name] }.sort.unshift('Label')
-      cols = vars[:chosen_targets].sort.unshift('Label')
-      rows = publishing_table_rows(lkp)
-      # Placeholders for not-sent labels...
-      publishing_table_add_missing_rows(rows, vars, lkp)
-      Crossbeams::Layout::Table.new({}, rows, cols, cell_classes: publishing_table_classes(vars[:chosen_targets])).render
-    end
-
-    def publishing_table_add_missing_rows(rows, vars, lkp)
-      # ((vars[:label_ids].length + 1) - lkp.keys.length).times { rows << { 'Label' => '...', '192.168.50.200' => '500 Dummy err' } }
-      (vars[:label_ids].length - lkp.keys.length).times { rows << { 'Label' => '...', '192.168.50.200' => '500 Dummy err' } }
-    end
-
-    def publishing_table_classes(targets)
-      rules = {}
-      targets.each do |target|
-        rules[target] = ->(status) { status.to_s.include?('200') ? 'green' : 'red' }
-      end
-      rules
-    end
-
-    def publishing_table_rows(lkp)
-      lkp.keys.map do |key|
-        { 'Label' => key }.merge(lkp[key])
-      end
-    end
-
-    def publishing_table_lookup(response_body)
-      lkp = {}
-      response_body.each do |item|
-        key = item['File'].sub('.zip', '')
-        lkp[key] ||= {}
-        lkp[key][item['To']] = item['Status']
-      end
-      lkp
+      log = repo.find_label_publish_log(vars[:label_publish_log_id])
+      label_states = repo.label_publish_states(log.id)
+      success_response('Published labels', OpenStruct.new(done: log.complete,
+                                                          failed: log.failed,
+                                                          errors: log.errors,
+                                                          chosen_printer: vars[:chosen_printer],
+                                                          body: label_states))
     end
   end
 end
-# rubocop:enable Metrics/ClassLength

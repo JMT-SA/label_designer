@@ -35,14 +35,7 @@ class LabelDesigner < Roda
 
       r.post 'select_labels' do
         res = interactor.select_targets(params[:batch]) #=> validate resolution
-        # if res.success
         show_page { Labels::Publish::Batch::SelectLabels.call(res.instance) }
-        # else
-        #   re_show_form(r, res, url: '/labels/publish/batch') do
-        #     Labels::Publish::Batch::Targets.call(form_values: params[:batch],
-        #                                          form_errors: res.errors)
-        #   end
-        # end
         # VALIDATE: 1) printer chosen; 2) Server chosen, 3) Chosen server is configured for the chosen printer.
         # Store params in step (selected targets)
         # Get list of ELIGIBLE labels (approved) with publish history (Show date updated - max published date as days since published)
@@ -54,29 +47,16 @@ class LabelDesigner < Roda
         show_page { Labels::Publish::Batch::Publish.call(res.instance) }
       end
 
-      # 1) Call messerver with zip
-      # 2) Create job - check in x sec
-      # 3) Return to page
-      #
-      #
-      # 4) Job gets list of publish_status ids
-      #    - call messerver, compare response to publish_status recs & update as required.
-      #    - if taken too long, update all outstanding to ABANDONED.
-      #    - If some still not updated, kick off the same job from within itself.
-      #
-      # 5) Periodic check reads publish status for feedback in page.
-      #    - stops once all done/timed out.
-
       r.get 'callback_for_send' do
         res = interactor.publish_labels # (store.read(:lbl_publish_steps))
         { content: render_partial { Labels::Publish::Batch::Send.call(res) } }.to_json
       end
 
       r.get 'feedback' do
-        res = interactor.publishing_status # (store.read(:lbl_publish_steps))
-        # TODO: differentiate between failure and exception - exception should stop polling...
+        res = interactor.publishing_status
         if res.success
-          payload = { content: res.instance.body.to_s, continuePolling: !res.instance.done }
+          content = render_partial { Labels::Publish::Batch::PublishState.call(res.instance) }
+          payload = { content: content, continuePolling: !res.instance.done }
           payload[:finaliseProgressStep] = 'cbl-current-step' if res.instance.done
           { updateMessage: payload }.to_json
         else

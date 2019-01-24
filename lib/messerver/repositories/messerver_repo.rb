@@ -121,10 +121,6 @@ module MesserverApp
       request.body = post_body.join
       request['Content-Type'] = "multipart/form-data, boundary=#{AppConst::POST_FORM_BOUNDARY}"
 
-      # p '------------------------------------------------------------'
-      # p request.body[0,250]
-      # p '------------------------------------------------------------'
-
       response = http.request(request)
       format_response(response)
     rescue Timeout::Error
@@ -163,23 +159,6 @@ module MesserverApp
       post_body << "Content-Disposition: form-data; name=\"eof\"\r\n"
       post_body << "\r\neof"
       post_body << "\r\n--#{AppConst::POST_FORM_BOUNDARY}--\r\n"
-      # p post_body
-
-      # # <input type="hidden" name="printdata"
-      # #               value="printername=PRN-01 & labeltemplate=KRM_Carton_Lbl_PU & labeltype=nsld & quantity=1 & F1=Fred&F2=Piet&F3=Hans" >
-      # # f_vars = vars.each_with_index.map { |v, i| "F#{i + 1}=#{v}" }.join('&')
-      # f_vars = vars.map { |k, v| "#{k}=#{v}" }.join('&')
-      # print_string = "printername=#{printer} & labeltemplate=#{label_template_name} & labeltype=nsld & quantity=#{quantity} & #{f_vars}"
-      # p print_string
-      # post_body = []
-      # post_body << "--#{AppConst::POST_FORM_BOUNDARY}\r\n"
-      # post_body << "Content-Disposition: form-data; name=\"printdata\"\r\n"
-      # post_body << "\r\n#{print_string}"
-      # post_body << "\r\n--#{AppConst::POST_FORM_BOUNDARY}--\r\n"
-      # post_body << "--#{AppConst::POST_FORM_BOUNDARY}\r\n"
-      # post_body << "Content-Disposition: form-data; name=\"eof\"\r\n"
-      # post_body << "\r\neof"
-      # post_body << "\r\n--#{AppConst::POST_FORM_BOUNDARY}--\r\n"
 
       http = Net::HTTP.new(uri.host, uri.port)
       request = Net::HTTP::Post.new(uri.request_uri)
@@ -239,7 +218,7 @@ module MesserverApp
     end
 
     def publish_status_uri(printer_type, filename)
-      URI.parse("#{AppConst::LABEL_SERVER_URI}?Type=GetPublishFileStatus&ListType=yaml&Name=#{filename}&PrinterType=#{printer_type}")
+      URI.parse("#{AppConst::LABEL_SERVER_URI}?Type=GetPublishFileStatus&ListType=yaml&Name=#{filename}&PrinterType=#{printer_type}&Unit=production")
     end
 
     def preview_uri
