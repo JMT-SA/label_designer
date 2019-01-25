@@ -12,8 +12,11 @@ module Labels
 
           layout = Crossbeams::Layout::Page.build({}) do |page|
             if res.done
-              page.add_text 'Publish action is complete'
-              page.add_text("Action failed #{res.errors}", wrapper: :b) if res.failed
+              if res.failed
+                page.add_notice("Action failed #{res.errors}", notice_type: :error)
+              else
+                page.add_notice('Publish action is complete', notice_type: :success)
+              end
             else
               page.add_text '<div class="content-target content-loading"><div></div><div></div><div></div> Publishing in progress...'
             end
