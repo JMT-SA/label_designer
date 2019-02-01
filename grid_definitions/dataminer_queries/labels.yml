@@ -1,24 +1,28 @@
 ---
 :caption: Labels
-:sql: "  SELECT id, label_name, fn_current_status('labels', id) AS status, label_dimension, px_per_mm, container_type, \r\n       commodity,
-  market, language, category, sub_category, multi_label, variable_set,\r\n       (SELECT string_agg(label_name,
+:sql: "SELECT id, label_name, fn_current_status('labels', id) AS status, label_dimension,
+  px_per_mm, completed,\r\napproved, container_type, commodity, market, language,
+  category, sub_category, multi_label, variable_set,\r\n       (SELECT string_agg(label_name,
   '; ')\r\n        FROM (SELECT l.label_name FROM multi_labels m\r\n              JOIN
   labels l ON l.id = m.sub_label_id\r\n              WHERE m.label_id = labels.id
-  ORDER BY m.print_sequence) subq) AS sub_labels,\r\n       created_at, created_by, updated_at, updated_by,\r\n
-  \      EXISTS(SELECT label_id FROM multi_labels WHERE sub_label_id = labels.id)
-  AS part_of_multi_label, active\r\n  FROM labels\r\n ORDER BY label_name, id;\r\n\r\n  "
+  ORDER BY m.print_sequence) subq) AS sub_labels,\r\n       created_at, created_by,
+  updated_at, updated_by,\r\n       EXISTS(SELECT label_id FROM multi_labels WHERE
+  sub_label_id = labels.id) AS part_of_multi_label, active\r\n  FROM labels\r\n ORDER
+  BY label_name, id;\r\n\r\n  "
 :limit: 
 :offset: 
+:external_settings: {}
 :columns:
   id:
     :name: id
-    :sequence_no: 13
+    :sequence_no: 1
     :caption: Id
     :namespaced_name: id
     :data_type: :integer
     :width: 
     :format: 
     :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -27,29 +31,30 @@
     :group_max: false
   label_name:
     :name: label_name
-    :sequence_no: 1
+    :sequence_no: 2
     :caption: Label name
     :namespaced_name: label_name
     :data_type: :string
     :width: 
     :format: 
     :hide: false
+    :pinned: left
     :groupable: true
     :group_by_seq: 
     :group_sum: false
     :group_avg: false
     :group_min: false
     :group_max: false
-    :pinned: left
   status:
     :name: status
-    :sequence_no: 2
+    :sequence_no: 3
     :caption: Status
-    :namespaced_name: status
+    :namespaced_name: 
     :data_type: :string
     :width: 
     :format: 
     :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -58,13 +63,14 @@
     :group_max: false
   label_dimension:
     :name: label_dimension
-    :sequence_no: 9
+    :sequence_no: 4
     :caption: Label dimension
     :namespaced_name: label_dimension
     :data_type: :string
     :width: 150
     :format: 
     :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -73,13 +79,46 @@
     :group_max: false
   px_per_mm:
     :name: px_per_mm
-    :sequence_no: 10
+    :sequence_no: 5
     :caption: Printer Resolution
     :namespaced_name: px_per_mm
     :data_type: :string
     :width: 150
     :format: 
     :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  completed:
+    :name: completed
+    :sequence_no: 6
+    :caption: Completed
+    :namespaced_name: completed
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  approved:
+    :name: approved
+    :sequence_no: 7
+    :caption: Approved
+    :namespaced_name: approved
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -88,13 +127,14 @@
     :group_max: false
   container_type:
     :name: container_type
-    :sequence_no: 3
+    :sequence_no: 8
     :caption: Container type
     :namespaced_name: container_type
     :data_type: :string
     :width: 120
     :format: 
     :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -103,13 +143,14 @@
     :group_max: false
   commodity:
     :name: commodity
-    :sequence_no: 4
+    :sequence_no: 9
     :caption: Commodity
     :namespaced_name: commodity
     :data_type: :string
     :width: 100
     :format: 
     :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -118,13 +159,14 @@
     :group_max: false
   market:
     :name: market
-    :sequence_no: 5
+    :sequence_no: 10
     :caption: Market
     :namespaced_name: market
     :data_type: :string
     :width: 100
     :format: 
     :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -133,13 +175,14 @@
     :group_max: false
   language:
     :name: language
-    :sequence_no: 6
+    :sequence_no: 11
     :caption: Language
     :namespaced_name: language
     :data_type: :string
     :width: 100
     :format: 
     :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -148,13 +191,14 @@
     :group_max: false
   category:
     :name: category
-    :sequence_no: 7
+    :sequence_no: 12
     :caption: Category
     :namespaced_name: category
     :data_type: :string
     :width: 
     :format: 
     :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -163,13 +207,14 @@
     :group_max: false
   sub_category:
     :name: sub_category
-    :sequence_no: 8
+    :sequence_no: 13
     :caption: Sub category
     :namespaced_name: sub_category
     :data_type: :string
     :width: 
     :format: 
     :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -178,58 +223,14 @@
     :group_max: false
   multi_label:
     :name: multi_label
-    :sequence_no: 11
+    :sequence_no: 14
     :caption: Multi label
     :namespaced_name: multi_label
     :data_type: :boolean
     :width: 
     :format: 
     :hide: false
-    :groupable: true
-    :group_by_seq: 
-    :group_sum: false
-    :group_avg: false
-    :group_min: false
-    :group_max: false
-  sub_labels:
-    :name: sub_labels
-    :sequence_no: 12
-    :caption: Sub labels
-    :namespaced_name: 
-    :data_type: :string
-    :width: 
-    :format: 
-    :hide: false
-    :groupable: false
-    :group_by_seq: 
-    :group_sum: false
-    :group_avg: false
-    :group_min: false
-    :group_max: false
-  created_at:
-    :name: created_at
-    :sequence_no: 14
-    :caption: Created at
-    :namespaced_name: created_at
-    :data_type: :datetime
-    :width: 
-    :format: 
-    :hide: false
-    :groupable: true
-    :group_by_seq: 
-    :group_sum: false
-    :group_avg: false
-    :group_min: false
-    :group_max: false
-  created_by:
-    :name: created_by
-    :sequence_no: 15
-    :caption: Created by
-    :namespaced_name: created_by
-    :data_type: :string
-    :width: 
-    :format: 
-    :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -238,13 +239,62 @@
     :group_max: false
   variable_set:
     :name: variable_set
-    :sequence_no: 22
+    :sequence_no: 15
     :caption: Variable set
-    :namespaced_name: labels.variable_set
+    :namespaced_name: variable_set
     :data_type: :string
     :width: 
     :format: 
     :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  sub_labels:
+    :name: sub_labels
+    :sequence_no: 16
+    :caption: Sub labels
+    :namespaced_name: 
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  created_at:
+    :name: created_at
+    :sequence_no: 17
+    :caption: Created at
+    :namespaced_name: created_at
+    :data_type: :datetime
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  created_by:
+    :name: created_by
+    :sequence_no: 18
+    :caption: Created by
+    :namespaced_name: created_by
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -253,13 +303,14 @@
     :group_max: false
   updated_at:
     :name: updated_at
-    :sequence_no: 16
+    :sequence_no: 19
     :caption: Updated at
     :namespaced_name: updated_at
     :data_type: :datetime
     :width: 
     :format: 
     :hide: true
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -268,13 +319,14 @@
     :group_max: false
   updated_by:
     :name: updated_by
-    :sequence_no: 17
+    :sequence_no: 20
     :caption: Updated by
     :namespaced_name: updated_by
     :data_type: :string
     :width: 
     :format: 
     :hide: false
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -283,13 +335,14 @@
     :group_max: false
   part_of_multi_label:
     :name: part_of_multi_label
-    :sequence_no: 18
+    :sequence_no: 21
     :caption: Part of multi label
     :namespaced_name: 
     :data_type: :boolean
     :width: 
     :format: 
     :hide: true
+    :pinned: 
     :groupable: false
     :group_by_seq: 
     :group_sum: false
@@ -298,13 +351,14 @@
     :group_max: false
   active:
     :name: active
-    :sequence_no: 23
+    :sequence_no: 22
     :caption: Active
     :namespaced_name: active
     :data_type: :boolean
     :width: 
     :format: 
     :hide: true
+    :pinned: 
     :groupable: true
     :group_by_seq: 
     :group_sum: false
@@ -375,13 +429,13 @@
   :default_value: 
   :ordered_list: true
   :ui_priority: 1
-  :list_def: SELECT DISTINCT label_dimension FROM master_lists ORDER BY label_dimension
+  :list_def: SELECT DISTINCT label_dimension FROM labels ORDER BY label_dimension
 - :column: id
   :caption: ID
   :data_type: :integer
   :control_type: :text
   :default_value: 
-  :ordered_list: 
+  :ordered_list: false
   :ui_priority: 1
   :list_def: 
 - :column: multi_label
@@ -389,7 +443,7 @@
   :data_type: :boolean
   :control_type: :text
   :default_value: 
-  :ordered_list: 
+  :ordered_list: false
   :ui_priority: 1
   :list_def: 
 - :column: variable_set
@@ -405,6 +459,30 @@
   :data_type: :boolean
   :control_type: :text
   :default_value: 
-  :ordered_list: 
+  :ordered_list: false
   :ui_priority: 1
   :list_def: 
+- :column: completed
+  :caption: Completed
+  :data_type: :boolean
+  :control_type: :list
+  :default_value: 
+  :ordered_list: false
+  :ui_priority: 1
+  :list_def:
+  - - 'True'
+    - 'true'
+  - - 'False'
+    - 'false'
+- :column: approved
+  :caption: Approved
+  :data_type: :boolean
+  :control_type: :list
+  :default_value: 
+  :ordered_list: false
+  :ui_priority: 1
+  :list_def:
+  - - 'True'
+    - 'true'
+  - - 'False'
+    - 'false'

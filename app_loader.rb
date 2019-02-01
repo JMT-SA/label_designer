@@ -22,6 +22,8 @@ require 'pry' if ENV.fetch('RACK_ENV') == 'development'
 
 require './config/app_const'
 require './config/mail_settings'
+require './config/observers_list'
+require './config/status_header_definitions'
 require './lib/types_for_dry'
 require './lib/crossbeams_responses'
 require './lib/base_que_job'
