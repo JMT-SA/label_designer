@@ -178,6 +178,23 @@ class LabelDesigner < Roda
         end
       end
 
+      r.on 'reopen' do
+        r.get do
+          check_auth!('designs', 'edit')
+          show_partial { Labels::Labels::Label::Reopen.call(id) }
+        end
+
+        r.post do
+          res = interactor.reopen_a_label(id, params[:label])
+          if res.success
+            flash[:notice] = res.message
+            redirect_via_json('/list/labels')
+          else
+            re_show_form(r, res) { Labels::Labels::Label::Reopen.call(id, params[:label], res.errors) }
+          end
+        end
+      end
+
       r.on 'approve' do
         r.get do
           check_auth!('designs', 'approve')

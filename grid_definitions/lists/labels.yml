@@ -116,7 +116,7 @@
     :auth:
       :function: label designer
       :program: designs
-      :permission: edit
+      :permission: approve
     :hide_if_false: completed
     :hide_if_true: approved
   - :url: /labels/labels/labels/$:id$/reopen
@@ -152,6 +152,7 @@
     :text: New label
     :style: :button
     :behaviour: :popup
+    :hide_for_key: inactive
 :conditions:
   :active:
     - :col: labels.active
