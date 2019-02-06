@@ -64,4 +64,6 @@ class AppConst
 
   # Mail
   SYSTEM_MAIL_SENDER = ENV.fetch('SYSTEM_MAIL_SENDER')
+  EMAIL_GROUP_LABEL_APPROVERS = 'label_approvers'
+  USER_EMAIL_GROUPS = [EMAIL_GROUP_LABEL_APPROVERS].freeze
 end

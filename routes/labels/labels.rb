@@ -160,6 +160,42 @@ class LabelDesigner < Roda
           redirect_via_json('/list/labels')
         end
       end
+
+      r.on 'complete' do
+        r.get do
+          check_auth!('designs', 'edit')
+          show_partial { Labels::Labels::Label::Complete.call(id) }
+        end
+
+        r.post do
+          res = interactor.complete_a_label(id, params[:label])
+          if res.success
+            flash[:notice] = res.message
+            redirect_via_json('/list/labels')
+          else
+            re_show_form(r, res) { Labels::Labels::Label::Complete.call(id, params[:label], res.errors) }
+          end
+        end
+      end
+
+      r.on 'approve' do
+        r.get do
+          check_auth!('designs', 'approve')
+          show_partial { Labels::Labels::Label::Approve.call(id) }
+        end
+
+        r.post do
+          res = interactor.approve_or_reject_a_label(id, params[:label])
+          # If reject, send email to person who completed, but who was that... [completed_by, approved_by] (although this is in the status log)
+          if res.success
+            flash[:notice] = res.message
+            redirect_via_json('/list/labels')
+          else
+            re_show_form(r, res) { Labels::Labels::Label::Approve.call(id, params[:label], res.errors) }
+          end
+        end
+      end
+
       # r.on 'send_preview' do
       #   r.on String do |screen_or_print|
       #     interactor.do_preview(id, screen_or_print)

@@ -6,13 +6,14 @@ module UiRules
       @this_repo = LabelApp::LabelRepo.new
       @print_repo = LabelApp::PrinterRepo.new
       @master_repo = LabelApp::MasterListRepo.new
+      @user_repo = DevelopmentApp::UserRepo.new
       make_form_object
       apply_form_values
 
       common_values_for_fields common_fields
 
       set_properties_fields if @mode == :properties
-      set_show_fields if @mode == :show || @mode == :archive
+      set_show_fields if @mode == :show || @mode == :archive || @mode == :complete
       set_import_fields if @mode == :import
 
       form_name 'label'
@@ -33,6 +34,7 @@ module UiRules
       fields[:category] = { renderer: :label }
       fields[:sub_category] = { renderer: :label }
       fields[:variable_set] = AppConst::LABEL_VARIABLE_SETS.length == 1 ? { renderer: :hidden } : { renderer: :label }
+      fields[:to] = { renderer: :select, options: @user_repo.email_addresses(user_email_group: AppConst::EMAIL_GROUP_LABEL_APPROVERS), caption: 'Email address of person to notify', required: true } if @mode == :complete
     end
 
     def set_import_fields
@@ -70,6 +72,7 @@ module UiRules
       make_new_form_object && return if @mode == :new || @mode == :import
 
       @form_object = @this_repo.find_label(@options[:id])
+      @form_object = OpenStruct.new(@form_object.to_h.merge(to: nil)) if @mode == :complete
     end
 
     def make_new_form_object
