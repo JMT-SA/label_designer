@@ -10,6 +10,17 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.4.0] - 2019-02-07
+### Added
+- User email groups.
+- Labels can be completed, approved, rejected and reopened.
+### Changed
+- Upgrade framework: DRY gems.
+- Upgrade jQuery ContextMenu.
+- Modified status display.
+- Services are observable.
+- Simple page layout for login.
+
 ## [0.3.5] - 2019-01-24
 ### Added
 - Dataminer module included.
