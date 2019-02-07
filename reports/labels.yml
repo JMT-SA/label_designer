@@ -1,13 +1,14 @@
 ---
 :caption: Labels
 :sql: "SELECT \"id\", \"label_name\", fn_current_status('labels', \"id\") AS status,
-  \"label_dimension\", \"px_per_mm\",\r\n\"container_type\", \"commodity\", \"market\",
-  \"language\", \"category\", \"sub_category\", \"multi_label\", \"variable_set\",\r\n(SELECT
-  string_agg(\"label_name\", '; ')\r\n  FROM (SELECT \"l\".\"label_name\"\r\n    FROM
-  \"multi_labels\" m\r\n    JOIN \"labels\" l ON \"l\".\"id\" = \"m\".\"sub_label_id\"\r\n
-  \   WHERE \"m\".\"label_id\" = \"labels\".\"id\"\r\n    ORDER BY \"m\".\"print_sequence\")
-  subq) AS sub_labels,\r\n\"created_at\", \"created_by\", \"updated_at\", \"updated_by\"\r\nFROM
-  \"labels\"\r\nWHERE active\r\nORDER BY \"label_name\", \"id\""
+  \"label_dimension\", \"px_per_mm\",\r\ncompleted, approved,\r\n\"container_type\",
+  \"commodity\", \"market\", \"language\", \"category\", \"sub_category\", \"multi_label\",
+  \"variable_set\",\r\n(SELECT string_agg(\"label_name\", '; ')\r\n  FROM (SELECT
+  \"l\".\"label_name\"\r\n    FROM \"multi_labels\" m\r\n    JOIN \"labels\" l ON
+  \"l\".\"id\" = \"m\".\"sub_label_id\"\r\n    WHERE \"m\".\"label_id\" = \"labels\".\"id\"\r\n
+  \   ORDER BY \"m\".\"print_sequence\") subq) AS sub_labels,\r\n\"created_at\", \"created_by\",
+  \"updated_at\", \"updated_by\"\r\nFROM \"labels\"\r\nWHERE active\r\nORDER BY \"label_name\",
+  \"id\""
 :limit: 
 :offset: 
 :external_settings: {}
@@ -92,9 +93,41 @@
     :group_avg: false
     :group_min: false
     :group_max: false
+  completed:
+    :name: completed
+    :sequence_no: 6
+    :caption: Completed
+    :namespaced_name: completed
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  approved:
+    :name: approved
+    :sequence_no: 7
+    :caption: Approved
+    :namespaced_name: approved
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
   container_type:
     :name: container_type
-    :sequence_no: 6
+    :sequence_no: 8
     :caption: Container type
     :namespaced_name: container_type
     :data_type: :string
@@ -110,7 +143,7 @@
     :group_max: false
   commodity:
     :name: commodity
-    :sequence_no: 7
+    :sequence_no: 9
     :caption: Commodity
     :namespaced_name: commodity
     :data_type: :string
@@ -126,7 +159,7 @@
     :group_max: false
   market:
     :name: market
-    :sequence_no: 8
+    :sequence_no: 10
     :caption: Market
     :namespaced_name: market
     :data_type: :string
@@ -142,7 +175,7 @@
     :group_max: false
   language:
     :name: language
-    :sequence_no: 9
+    :sequence_no: 11
     :caption: Language
     :namespaced_name: language
     :data_type: :string
@@ -158,7 +191,7 @@
     :group_max: false
   category:
     :name: category
-    :sequence_no: 10
+    :sequence_no: 12
     :caption: Category
     :namespaced_name: category
     :data_type: :string
@@ -174,7 +207,7 @@
     :group_max: false
   sub_category:
     :name: sub_category
-    :sequence_no: 11
+    :sequence_no: 13
     :caption: Sub category
     :namespaced_name: sub_category
     :data_type: :string
@@ -190,7 +223,7 @@
     :group_max: false
   multi_label:
     :name: multi_label
-    :sequence_no: 12
+    :sequence_no: 14
     :caption: Multi label
     :namespaced_name: multi_label
     :data_type: :boolean
@@ -206,7 +239,7 @@
     :group_max: false
   variable_set:
     :name: variable_set
-    :sequence_no: 13
+    :sequence_no: 15
     :caption: Variable set
     :namespaced_name: variable_set
     :data_type: :string
@@ -222,7 +255,7 @@
     :group_max: false
   sub_labels:
     :name: sub_labels
-    :sequence_no: 14
+    :sequence_no: 16
     :caption: Sub labels
     :namespaced_name: 
     :data_type: :string
@@ -238,7 +271,7 @@
     :group_max: false
   created_at:
     :name: created_at
-    :sequence_no: 15
+    :sequence_no: 17
     :caption: Created at
     :namespaced_name: created_at
     :data_type: :datetime
@@ -254,7 +287,7 @@
     :group_max: false
   created_by:
     :name: created_by
-    :sequence_no: 16
+    :sequence_no: 18
     :caption: Created by
     :namespaced_name: created_by
     :data_type: :string
@@ -270,7 +303,7 @@
     :group_max: false
   updated_at:
     :name: updated_at
-    :sequence_no: 17
+    :sequence_no: 19
     :caption: Updated at
     :namespaced_name: updated_at
     :data_type: :datetime
@@ -286,7 +319,7 @@
     :group_max: false
   updated_by:
     :name: updated_by
-    :sequence_no: 18
+    :sequence_no: 20
     :caption: Updated by
     :namespaced_name: updated_by
     :data_type: :string

@@ -110,7 +110,7 @@ class LabelDesigner < Roda
       if @registered_mobile_device
         r.redirect @rmd_start_page || '/rmd/home'
       else
-        r.redirect('/list/labels')
+        r.redirect('/list/labels/with_params?key=active')
       end
     end
 

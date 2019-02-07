@@ -16,7 +16,7 @@ module Crossbeams
         #   caption: 'Delivery'
         # },
         labels: {
-          query: 'SELECT label_name FROM labels WHERE id = ?'
+          query: 'SELECT label_name, created_by FROM labels WHERE id = ?'
         },
         security_groups: {
           query: 'SELECT security_group_name FROM security_groups WHERE id = ?'

@@ -4,9 +4,12 @@
   :standard:
     :url: "/labels/publish/batch/publish"
     :section_caption: "Choose labels for publishing"
-    :conditions: active
+    :conditions: approved
 :conditions:
-  :active:
+  :approved:
+    - :col: approved
+      :op: =
+      :val: true
     - :col: labels.active
       :op: =
       :val: true

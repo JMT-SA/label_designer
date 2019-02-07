@@ -64,9 +64,9 @@
       :program: designs
       :permission: edit
     :hide_if_false: active
-  - :url: /labels/labels/labels/$:id$/download
-    :text: Download
-    :icon: download
+  # - :url: /labels/labels/labels/$:id$/download
+  #   :text: Download
+  #   :icon: download
   - :url: /labels/labels/labels/$:id$/export
     :text: Export
     :icon: save-disk

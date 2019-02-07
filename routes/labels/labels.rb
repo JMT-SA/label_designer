@@ -157,7 +157,7 @@ class LabelDesigner < Roda
         r.post do
           res = interactor.link_multi_label(id, params[:sublbl_sorted_ids])
           flash[:notice] = res.message # 'Linked sub-labels for a multi-label'
-          redirect_via_json('/list/labels')
+          redirect_via_json('/list/labels/with_params?key=active')
         end
       end
 
@@ -171,7 +171,7 @@ class LabelDesigner < Roda
           res = interactor.complete_a_label(id, params[:label])
           if res.success
             flash[:notice] = res.message
-            redirect_via_json('/list/labels')
+            redirect_via_json('/list/labels/with_params?key=active')
           else
             re_show_form(r, res) { Labels::Labels::Label::Complete.call(id, params[:label], res.errors) }
           end
@@ -188,7 +188,7 @@ class LabelDesigner < Roda
           res = interactor.reopen_a_label(id, params[:label])
           if res.success
             flash[:notice] = res.message
-            redirect_via_json('/list/labels')
+            redirect_via_json('/list/labels/with_params?key=active')
           else
             re_show_form(r, res) { Labels::Labels::Label::Reopen.call(id, params[:label], res.errors) }
           end
@@ -206,7 +206,7 @@ class LabelDesigner < Roda
           # If reject, send email to person who completed, but who was that... [completed_by, approved_by] (although this is in the status log)
           if res.success
             flash[:notice] = res.message
-            redirect_via_json('/list/labels')
+            redirect_via_json('/list/labels/with_params?key=active')
           else
             re_show_form(r, res) { Labels::Labels::Label::Approve.call(id, params[:label], res.errors) }
           end
@@ -264,7 +264,7 @@ class LabelDesigner < Roda
       interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
       r.on 'new' do    # NEW
         check_auth!('designs', 'new')
-        set_last_grid_url('/list/labels', r)
+        set_last_grid_url('/list/labels/with_params?key=active', r)
         show_partial_or_page(r) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
       end
       r.is do
@@ -300,7 +300,7 @@ class LabelDesigner < Roda
 
       r.on 'import' do
         check_auth!('designs', 'export')
-        set_last_grid_url('/list/labels', r)
+        set_last_grid_url('/list/labels/with_params?key=active', r)
         show_partial_or_page(r) { Labels::Labels::Label::Import.call(remote: fetch?(r)) }
       end
 
