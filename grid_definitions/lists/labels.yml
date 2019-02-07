@@ -90,7 +90,7 @@
     :popup: true
     :prompt: Are you sure you want to replace the preview values?
     :hide_if_false: multi_label,active
-  - :url: /development/statuses/show/labels/$:id$
+  - :url: /development/statuses/list/labels/$:id$
     :text: status
     :icon: information-solid
     :title: Status
@@ -100,6 +100,34 @@
     :icon: list
     :popup: true
   - :separator: true
+  - :url: /labels/labels/labels/$:id$/complete
+    :text: Complete
+    :icon: toggle-on
+    :popup: true
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: edit
+    :hide_if_true: completed
+  - :url: /labels/labels/labels/$:id$/approve
+    :text: Approve/Reject
+    :icon: gavel
+    :popup: true
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: approve
+    :hide_if_false: completed
+    :hide_if_true: approved
+  - :url: /labels/labels/labels/$:id$/reopen
+    :text: Re-open for editing
+    :icon: toggle-off
+    :popup: true
+    :auth:
+      :function: label designer
+      :program: designs
+      :permission: edit
+    :hide_if_false: approved
   - :url: /labels/labels/labels/$:id$/archive
     :text: Archive
     :icon: lock-closed
@@ -124,6 +152,7 @@
     :text: New label
     :style: :button
     :behaviour: :popup
+    :hide_for_key: inactive
 :conditions:
   :active:
     - :col: labels.active

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 class LabelDesigner < Roda
-  route 'generators', 'development' do |r|
+  route 'generators', 'development' do |r| # rubocop:disable Metrics/BlockLength
     # SCAFFOLDS
     # --------------------------------------------------------------------------
     r.on 'scaffolds' do
@@ -21,7 +21,7 @@ class LabelDesigner < Roda
         res = DevelopmentApp::ScaffoldNewSchema.call(params[:scaffold] || {})
         errors = res.messages
         if errors.empty?
-          result = GenerateNewScaffold.call(res.to_h, request.roda_class)
+          result = DevelopmentApp::GenerateNewScaffold.call(res.to_h, request.roda_class)
           show_page { Development::Generators::Scaffolds::Show.call(result) }
         else
           show_page { Development::Generators::Scaffolds::New.call(params[:scaffold], errors) }

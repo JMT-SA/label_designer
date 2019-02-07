@@ -99,6 +99,7 @@ module MesserverApp
       request = Net::HTTP::Post.new(uri.request_uri)
       request.body = post_body.join
       request['Content-Type'] = "multipart/form-data, boundary=#{AppConst::POST_FORM_BOUNDARY}"
+      log_request(request)
 
       response = http.request(request)
       format_response(response)
@@ -120,6 +121,7 @@ module MesserverApp
       request = Net::HTTP::Post.new(uri.request_uri)
       request.body = post_body.join
       request['Content-Type'] = "multipart/form-data, boundary=#{AppConst::POST_FORM_BOUNDARY}"
+      log_request(request)
 
       response = http.request(request)
       format_response(response)
@@ -165,7 +167,8 @@ module MesserverApp
       http.open_timeout = 5
       http.read_timeout = 10
       request.body = post_body.join
-      request['Content-Type'] = "multipart/form-data, boundary=#{AppConst::POST_FORM_BOUNDARY}"
+      request['Content-Type'] = "boundary=#{AppConst::POST_FORM_BOUNDARY}"
+      log_request(request)
 
       response = http.request(request)
       format_response(response)
@@ -183,6 +186,7 @@ module MesserverApp
       http.open_timeout = 5
       http.read_timeout = 10
       request = Net::HTTP::Get.new(uri.request_uri)
+      log_request(request)
       response = http.request(request)
 
       format_response(response)
@@ -227,6 +231,14 @@ module MesserverApp
 
     def print_label_uri
       URI.parse("#{AppConst::LABEL_SERVER_URI}LabelPrint")
+    end
+
+    def log_request(request)
+      if request.method == 'GET'
+        puts ">>> MesServer call: #{request.method} >> #{request.path}"
+      else
+        puts ">>> MesServer call: #{request.method} >> #{request.path} > #{request.body[0, 300]}"
+      end
     end
   end
 end

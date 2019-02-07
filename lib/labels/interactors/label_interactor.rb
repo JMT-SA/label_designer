@@ -251,6 +251,40 @@ module LabelApp
       Base64.decode64(data_uri_parts[2])
     end
 
+    def complete_a_label(id, params)
+      res = complete_a_record(:labels, id, params.merge(enqueue_job: false))
+      # Use params to trigger alert...
+      if res.success
+        success_response(res.message, label(id))
+      else
+        failed_response(res.message, label(id))
+      end
+    end
+
+    def reopen_a_label(id, params)
+      res = reopen_a_record(:labels, id, params.merge(enqueue_job: false))
+      # Use params to trigger alert...
+      if res.success
+        success_response(res.message, label(id))
+      else
+        failed_response(res.message, label(id))
+      end
+    end
+
+    def approve_or_reject_a_label(id, params)
+      res = if params[:approve_action] == 'a'
+              approve_a_record(:labels, id, params.merge(enqueue_job: false))
+            else
+              reject_a_record(:labels, id, params.merge(enqueue_job: false))
+            end
+      # Use params to trigger alert...
+      if res.success
+        success_response(res.message, label(id))
+      else
+        failed_response(res.message, label(id))
+      end
+    end
+
     private
 
     def find_variable_set(opts)

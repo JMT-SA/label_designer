@@ -14,11 +14,13 @@ INSERT INTO programs_webapps (program_id, webapp)
 VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'LabelDesigner');
 
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
-VALUES ((SELECT id FROM programs WHERE program_name = 'Designs' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'List labels', '/list/labels', 1);
+VALUES ((SELECT id FROM programs WHERE program_name = 'Designs' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'List labels', '/list/labels/with_params?key=active', 1);
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
 VALUES ((SELECT id FROM programs WHERE program_name = 'Designs' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'New label', '/labels/labels/labels/new', 2);
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
 VALUES ((SELECT id FROM programs WHERE program_name = 'Designs' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Available printers', '/list/printers', 3);
+INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
+VALUES ((SELECT id FROM programs WHERE program_name = 'Designs' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Archived labels', '/list/labels/with_params?key=inactive', 4);
 
 INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
 VALUES ((SELECT id FROM programs WHERE program_name = 'Master Lists' AND functional_area_id = (SELECT id FROM functional_areas WHERE functional_area_name = 'Label Designer')), 'Container Types', '/list/master_lists/with_params?key=container_type', 1);

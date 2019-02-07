@@ -192,6 +192,12 @@ const crossbeamsGridEvents = {
               if (action.replace_inner_html) {
                 crossbeamsUtils.replaceInnerHtml(action);
               }
+              if (action.hide_element) {
+                crossbeamsUtils.hideElement(action);
+              }
+              if (action.show_element) {
+                crossbeamsUtils.showElement(action);
+              }
               if (action.replace_list_items) {
                 crossbeamsUtils.replaceListItems(action);
               }
@@ -1188,6 +1194,8 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
                   return 'orange';
                 case 'inactive':
                   return 'gray i';
+                case 'ready':
+                  return 'blue';
                 case 'ok':
                   return 'green';
                 case 'inprogress':
@@ -1391,6 +1399,12 @@ document.addEventListener('DOMContentLoaded', () => {
                       }
                       if (action.replace_list_items) {
                         crossbeamsUtils.replaceListItems(action);
+                      }
+                      if (action.hide_element) {
+                        crossbeamsUtils.hideElement(action);
+                      }
+                      if (action.show_element) {
+                        crossbeamsUtils.showElement(action);
                       }
                       if (action.clear_form_validation) {
                         crossbeamsUtils.clearFormValidation(action);

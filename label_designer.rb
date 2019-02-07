@@ -50,6 +50,7 @@ class LabelDesigner < Roda
     login_column :login_name
     accounts_table :vw_active_users # Only active users can login.
     account_password_hash_column :password_hash
+    template_opts(layout_opts: { path: 'views/layout_auth.erb' })
   end
   unless ENV['RACK_ENV'] == 'development' && ENV['NO_ERR_HANDLE']
     plugin :error_handler do |e|
@@ -61,11 +62,12 @@ class LabelDesigner < Roda
   Dir['./routes/*.rb'].each { |f| require f }
 
   route do |r|
-    initialize_route_instance_vars
-
     r.assets unless ENV['RACK_ENV'] == 'production'
     r.public
 
+    initialize_route_instance_vars
+
+    ### p request.ip
     # Routes that must work without authentication
     # --------------------------------------------
     r.on 'webquery', String do |id|
@@ -90,14 +92,14 @@ class LabelDesigner < Roda
     end
 
     # OVERRIDE RodAuth's Login form:
-    r.get 'login' do
-      if @registered_mobile_device
-        @no_logout = true
-        view(:login, layout: 'layout_rmd')
-      else
-        view(:login)
-      end
-    end
+    # r.get 'login' do
+    #   if @registered_mobile_device
+    #     @no_logout = true
+    #     view(:login, layout: 'layout_rmd')
+    #   else
+    #     view(:login)
+    #   end
+    # end
 
     r.rodauth
     rodauth.require_authentication

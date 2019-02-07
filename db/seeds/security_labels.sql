@@ -1,6 +1,8 @@
 -- LABEL ADMIN GROUP AND PERMISSIONS
 INSERT INTO security_permissions (security_permission)
 VALUES ('export');
+INSERT INTO security_permissions (security_permission)
+VALUES ('approve');
 
 
 INSERT INTO security_groups (security_group_name)
@@ -26,3 +28,7 @@ INSERT INTO security_groups_security_permissions (security_group_id, security_pe
 SELECT g.id,
 (SELECT id FROM security_permissions WHERE security_permission = 'export')
 FROM security_groups g WHERE g.security_group_name = 'label_admin';
+INSERT INTO security_groups_security_permissions (security_group_id, security_permission_id)
+SELECT g.id,
+(SELECT id FROM security_permissions WHERE security_permission = 'export')
+FROM security_groups g WHERE g.security_group_name = 'approve';

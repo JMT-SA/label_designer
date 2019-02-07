@@ -6,20 +6,36 @@ module UiRules
       @this_repo = LabelApp::LabelRepo.new
       @print_repo = LabelApp::PrinterRepo.new
       @master_repo = LabelApp::MasterListRepo.new
+      @user_repo = DevelopmentApp::UserRepo.new
       make_form_object
       apply_form_values
 
       common_values_for_fields common_fields
 
       set_properties_fields if @mode == :properties
-      set_show_fields if @mode == :show || @mode == :archive
+      set_show_fields if %i[show archive reopen].include? @mode
+      set_complete_fields if @mode == :complete
+      set_approve_fields if @mode == :approve
       set_import_fields if @mode == :import
+
+      add_approve_behaviours if @mode == :approve
 
       form_name 'label'
     end
 
     def set_properties_fields
       fields[:variable_set] = AppConst::LABEL_VARIABLE_SETS.length == 1 ? { renderer: :hidden } : { renderer: :label }
+    end
+
+    def set_approve_fields
+      set_show_fields
+      fields[:approve_action] = { renderer: :select, options: [%w[Approve a], %w[Reject r]], required: true }
+      fields[:reject_reason] = { renderer: :textarea, disabled: true }
+    end
+
+    def set_complete_fields
+      set_show_fields
+      fields[:to] = { renderer: :select, options: @user_repo.email_addresses(user_email_group: AppConst::EMAIL_GROUP_LABEL_APPROVERS), caption: 'Email address of person to notify', required: true }
     end
 
     def set_show_fields # rubocop:disable Metrics/AbcSize
@@ -70,6 +86,8 @@ module UiRules
       make_new_form_object && return if @mode == :new || @mode == :import
 
       @form_object = @this_repo.find_label(@options[:id])
+      @form_object = OpenStruct.new(@form_object.to_h.merge(to: nil)) if @mode == :complete
+      @form_object = OpenStruct.new(@form_object.to_h.merge(approve_action: nil, reject_reason: nil)) if @mode == :approve
     end
 
     def make_new_form_object
@@ -84,6 +102,14 @@ module UiRules
                                     sub_category: nil,
                                     multi_label: false,
                                     variable_set: AppConst::LABEL_VARIABLE_SETS.first)
+    end
+
+    private
+
+    def add_approve_behaviours
+      behaviours do |behaviour|
+        behaviour.enable :reject_reason, when: :approve_action, changes_to: ['r']
+      end
     end
   end
 end
