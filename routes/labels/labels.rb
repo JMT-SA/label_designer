@@ -146,6 +146,26 @@ class LabelDesigner < Roda
         end
       end
 
+      r.on 'batch_print' do
+        r.get do
+          res = interactor.can_preview?(id)
+          if res.success
+            show_partial { Labels::Labels::Label::BatchPrint.call(id) }
+          else
+            dialog_warning(res.message)
+          end
+        end
+
+        r.patch do
+          res = interactor.batch_print(id, params[:label])
+          if res.success
+            show_json_notice(res.message)
+          else
+            re_show_form(r, res) { Labels::Labels::Label::BatchPrint.call(id, form_values: params[:label], form_errors: res.errors) }
+          end
+        end
+      end
+
       r.on 'link_sub_labels' do
         r.post do
           content = render_partial { Labels::Labels::Label::SortSubLabels.call(id, multiselect_grid_choices(params)) }

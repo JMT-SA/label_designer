@@ -42,16 +42,24 @@
     :icon: information-solid
     :title: Variables for $:label_name$
     :popup: true
-  - :url: /labels/labels/labels/$:id$/preview
-    :text: Preview
-    :icon: view-show
-    :title: Preview - fill in variables
-    :popup: true
-  - :url: /labels/labels/labels/$:id$/print_preview
-    :text: Print Test Preview
-    :icon: printer
-    :title: Print preview - fill in variables
-    :popup: true
+  - :submenu:
+      :text: Preview and print
+      :items:
+      - :url: /labels/labels/labels/$:id$/preview
+        :text: Preview
+        :icon: view-show
+        :title: Preview - fill in variables
+        :popup: true
+      - :url: /labels/labels/labels/$:id$/print_preview
+        :text: Print Test Preview
+        :icon: printer
+        :title: Print preview - fill in variables
+        :popup: true
+      - :url: /labels/labels/labels/$:id$/batch_print
+        :text: Batch Print
+        :icon: play
+        :title: Batch Print - fill in variables
+        :popup: true
   - :separator: true
   - :url: /labels/labels/labels/$:id$
     :text: Delete

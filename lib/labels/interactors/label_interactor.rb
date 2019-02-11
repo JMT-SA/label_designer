@@ -199,6 +199,18 @@ module LabelApp
       end
     end
 
+    def batch_print(id, params)
+      instance = label(id)
+      quantity = params.delete(:no_of_labels)
+      printer_code = params.delete(:printer)
+
+      repo.update_label(id, sample_data: repo.hash_to_jsonb_str(params))
+      vars = variables_and_sample_data_from_label(instance, params)
+
+      mes_repo = MesserverApp::MesserverRepo.new
+      mes_repo.print_label(instance.label_name, vars, quantity, printer_code)
+    end
+
     def refresh_multi_label_variables(id)
       repo.transaction do
         repo.refresh_multi_label_variables(id)
@@ -329,6 +341,47 @@ module LabelApp
         labelJSON: label.label_json
       }
       config
+    end
+
+    def variables_and_sample_data_from_label(instance, params)
+      if instance.multi_label
+        variables_and_sample_data_from_single(instance, params)
+      else
+        variables_and_sample_data_from_multi(instance, params)
+      end
+    end
+
+    def variables_and_sample_data_from_multi(instance, params) # rubocop:disable Metrics/AbcSize
+      vars = {}
+      count = 0
+      xml_vars = []
+      vartypes = []
+      repo.sub_label_ids(instance.id).each do |sub_label_id|
+        sub_label = repo.find_label(sub_label_id)
+        doc       = Nokogiri::XML(sub_label.variable_xml)
+        sub_xml_vars = doc.css('variable_field_count').map do |var|
+          "F#{var.text.sub(/f/i, '').to_i + count}"
+        end
+        count += sub_xml_vars.length
+        xml_vars += sub_xml_vars
+        vartypes += doc.css('variable_type').map(&:text)
+      end
+      combos = Hash[xml_vars.zip(vartypes)]
+      params.each do |k, v|
+        vars[combos[k.to_s]] = v
+      end
+      vars
+    end
+
+    def variables_and_sample_data_from_single(instance, params)
+      vars = {}
+      doc = Nokogiri::XML(instance.variable_xml)
+      vartypes = doc.css('variable_type').map(&:text)
+      params.each do |k, v|
+        index = k.to_s.delete('F').to_i - 1
+        vars[vartypes[index]] = v
+      end
+      vars
     end
   end
 end
