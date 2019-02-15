@@ -146,6 +146,26 @@ class LabelDesigner < Roda
         end
       end
 
+      r.on 'email_preview' do
+        r.get do
+          res = interactor.can_email_preview?(id)
+          if res.success
+            show_partial { Labels::Labels::Label::EmailPreview.call(id) }
+          else
+            dialog_warning(res.message)
+          end
+        end
+
+        r.patch do
+          res = interactor.email_preview(id, params[:label])
+          if res.success
+            show_json_notice(res.message)
+          else
+            re_show_form(r, res) { Labels::Labels::Label::EmailPreview.call(id, form_values: params[:label], form_errors: res.errors) }
+          end
+        end
+      end
+
       r.on 'batch_print' do
         r.get do
           res = interactor.can_preview?(id)

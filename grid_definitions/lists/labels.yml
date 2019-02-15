@@ -55,11 +55,19 @@
         :icon: printer
         :title: Print preview - fill in variables
         :popup: true
+      - :url: /labels/labels/labels/$:id$/email_preview
+        :text: Email preview
+        :icon: envelope
+        :title: Email preview - fill in variables
+        :popup: true
+        :hide_if_false: completed
+        :hide_if_true: multi_label
       - :url: /labels/labels/labels/$:id$/batch_print
         :text: Batch Print
         :icon: play
         :title: Batch Print - fill in variables
         :popup: true
+        :hide_if_false: approved
   - :separator: true
   - :url: /labels/labels/labels/$:id$
     :text: Delete

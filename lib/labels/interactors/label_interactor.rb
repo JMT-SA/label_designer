@@ -112,6 +112,18 @@ module LabelApp
       end
     end
 
+    def can_email_preview?(id)
+      res = can_preview?(id)
+      return res unless res.success
+      if @user.email.nil? || @user.email.strip.empty?
+        failed_response('You do not have an email address set')
+      elsif label(id).multi_label
+        failed_response('A multi-label cannot be emailed. Please email each sub label on its own')
+      else
+        success_response('ok')
+      end
+    end
+
     def prepare_clone_label(id, params)
       res = validate_clone_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
@@ -205,10 +217,44 @@ module LabelApp
       printer_code = params.delete(:printer)
 
       repo.update_label(id, sample_data: repo.hash_to_jsonb_str(params))
-      vars = variables_and_sample_data_from_label(instance, params)
+      # vars = variables_and_sample_data_from_label(instance, params)
 
       mes_repo = MesserverApp::MesserverRepo.new
-      mes_repo.print_label(instance.label_name, vars, quantity, printer_code)
+      mes_repo.print_label(instance.label_name, params, quantity, printer_code)
+    end
+
+    def email_preview(id, params) # rubocop:disable Metrics/AbcSize
+      vars = params.dup
+      vars.delete_if { |k| %i[to subject body cc].include?(k) }
+      instance = label(id)
+      repo.update_label(id, sample_data: repo.hash_to_jsonb_str(vars))
+
+      fname, binary_data = LabelFiles.new.make_label_zip(instance, vars)
+      # File.open('zz.zip', 'w') { |f| f.puts binary_data }
+
+      mes_repo = MesserverApp::MesserverRepo.new
+      res = mes_repo.preview_label('screen', vars, fname, binary_data)
+      if res.success
+        filepath = Tempfile.open([fname, '.png'], 'public/tempfiles') do |f|
+          f.write(res.instance)
+          f.path
+        end
+        File.chmod(0o644, filepath) # Ensure web app can read the image.
+
+        mail_opts = {
+          from: @user.email,
+          to: params[:to],
+          subject: params[:subject],
+          body: params[:body],
+          attachments: [{ path: filepath }]
+        }
+        mail_opts[:cc] = params[:cc] if params[:cc]
+        DevelopmentApp::SendMailJob.enqueue(mail_opts)
+        log_status('labels', id, 'EMAILED FOR APPROVAL', comment: "to #{params[:to]}")
+        success_response('Email has been queued for sending. Please check your inbox for a copy.')
+      else
+        failed_response(res.message)
+      end
     end
 
     def refresh_multi_label_variables(id)
@@ -343,46 +389,46 @@ module LabelApp
       config
     end
 
-    def variables_and_sample_data_from_label(instance, params)
-      if instance.multi_label
-        variables_and_sample_data_from_single(instance, params)
-      else
-        variables_and_sample_data_from_multi(instance, params)
-      end
-    end
-
-    def variables_and_sample_data_from_multi(instance, params) # rubocop:disable Metrics/AbcSize
-      vars = {}
-      count = 0
-      xml_vars = []
-      vartypes = []
-      repo.sub_label_ids(instance.id).each do |sub_label_id|
-        sub_label = repo.find_label(sub_label_id)
-        doc       = Nokogiri::XML(sub_label.variable_xml)
-        sub_xml_vars = doc.css('variable_field_count').map do |var|
-          "F#{var.text.sub(/f/i, '').to_i + count}"
-        end
-        count += sub_xml_vars.length
-        xml_vars += sub_xml_vars
-        vartypes += doc.css('variable_type').map(&:text)
-      end
-      combos = Hash[xml_vars.zip(vartypes)]
-      params.each do |k, v|
-        vars[combos[k.to_s]] = v
-      end
-      vars
-    end
-
-    def variables_and_sample_data_from_single(instance, params)
-      vars = {}
-      doc = Nokogiri::XML(instance.variable_xml)
-      vartypes = doc.css('variable_type').map(&:text)
-      params.each do |k, v|
-        index = k.to_s.delete('F').to_i - 1
-        vars[vartypes[index]] = v
-      end
-      vars
-    end
+    # def variables_and_sample_data_from_label(instance, params)
+    #   if instance.multi_label
+    #     variables_and_sample_data_from_multi(instance, params)
+    #   else
+    #     variables_and_sample_data_from_single(instance, params)
+    #   end
+    # end
+    #
+    # def variables_and_sample_data_from_multi(instance, params) # rubocop:disable Metrics/AbcSize
+    #   vars = {}
+    #   count = 0
+    #   xml_vars = []
+    #   vartypes = []
+    #   repo.sub_label_ids(instance.id).each do |sub_label_id|
+    #     sub_label = repo.find_label(sub_label_id)
+    #     doc       = Nokogiri::XML(sub_label.variable_xml)
+    #     sub_xml_vars = doc.css('variable_field_count').map do |var|
+    #       "F#{var.text.sub(/f/i, '').to_i + count}"
+    #     end
+    #     count += sub_xml_vars.length
+    #     xml_vars += sub_xml_vars
+    #     vartypes += doc.css('variable_type').map(&:text)
+    #   end
+    #   combos = Hash[xml_vars.zip(vartypes)]
+    #   params.each do |k, v|
+    #     vars[combos[k.to_s]] = v
+    #   end
+    #   vars
+    # end
+    #
+    # def variables_and_sample_data_from_single(instance, params)
+    #   vars = {}
+    #   doc = Nokogiri::XML(instance.variable_xml)
+    #   vartypes = doc.css('variable_type').map(&:text)
+    #   params.each do |k, v|
+    #     index = k.to_s.delete('F').to_i - 1
+    #     vars[vartypes[index]] = v
+    #   end
+    #   vars
+    # end
   end
 end
 # rubocop:enable Metrics/ClassLength
