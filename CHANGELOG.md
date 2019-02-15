@@ -7,11 +7,15 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+### Changed
+### Fixed
+
+## [0.4.1] - 2019-02-15
+### Added
 - Email a preview image to someone for approval.
 - Batch print a label.
 ### Changed
 - Only approved labels can be published.
-### Fixed
 
 ## [0.4.0] - 2019-02-07
 ### Added
