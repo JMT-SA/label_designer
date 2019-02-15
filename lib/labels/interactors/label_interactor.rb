@@ -250,6 +250,7 @@ module LabelApp
         }
         mail_opts[:cc] = params[:cc] if params[:cc]
         DevelopmentApp::SendMailJob.enqueue(mail_opts)
+        log_status('labels', id, 'EMAILED FOR APPROVAL', comment: "to #{params[:to]}")
         success_response('Email has been queued for sending. Please check your inbox for a copy.')
       else
         failed_response(res.message)
