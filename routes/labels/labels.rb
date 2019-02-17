@@ -17,6 +17,7 @@ class LabelDesigner < Roda
 
       r.on 'edit' do   # EDIT
         check_auth!('designs', 'edit')
+        interactor.assert_permission!(:edit, id)
         @label_edit_page = true
         view(inline: interactor.label_designer_page(id: id))
       end
@@ -63,6 +64,7 @@ class LabelDesigner < Roda
       end
 
       r.on 'properties' do
+        interactor.assert_permission!(:edit, id)
         show_partial { Labels::Labels::Label::Properties.call(id) }
       end
 
@@ -204,6 +206,7 @@ class LabelDesigner < Roda
       r.on 'complete' do
         r.get do
           check_auth!('designs', 'edit')
+          interactor.assert_permission!(:complete, id)
           show_partial { Labels::Labels::Label::Complete.call(id) }
         end
 
@@ -221,6 +224,7 @@ class LabelDesigner < Roda
       r.on 'reopen' do
         r.get do
           check_auth!('designs', 'edit')
+          interactor.assert_permission!(:reopen, id)
           show_partial { Labels::Labels::Label::Reopen.call(id) }
         end
 
@@ -238,6 +242,7 @@ class LabelDesigner < Roda
       r.on 'approve' do
         r.get do
           check_auth!('designs', 'approve')
+          interactor.assert_permission!(:approve, id)
           show_partial { Labels::Labels::Label::Approve.call(id) }
         end
 
@@ -295,6 +300,7 @@ class LabelDesigner < Roda
 
         r.delete do    # DELETE
           check_auth!('designs', 'delete')
+          interactor.assert_permission!(:delete, id)
           res = interactor.delete_label(id)
           delete_grid_row(id, notice: res.message)
         end
@@ -304,6 +310,7 @@ class LabelDesigner < Roda
       interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
       r.on 'new' do    # NEW
         check_auth!('designs', 'new')
+        interactor.assert_permission!(:create)
         set_last_grid_url('/list/labels/with_params?key=active', r)
         show_partial_or_page(r) { Labels::Labels::Label::New.call(remote: fetch?(r)) }
       end

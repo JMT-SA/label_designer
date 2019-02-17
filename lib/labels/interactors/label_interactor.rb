@@ -265,7 +265,7 @@ module LabelApp
       success_response('Preview values have been built up from the sub-labels')
     end
 
-    def label_designer_page(opts = {})
+    def label_designer_page(opts = {}) # rubocop:disable Metrics/AbcSize
       variable_set = find_variable_set(opts)
 
       Crossbeams::LabelDesigner::Config.configure do |config|
@@ -341,6 +341,11 @@ module LabelApp
       else
         failed_response(res.message, label(id))
       end
+    end
+
+    def assert_permission!(task, id = nil)
+      res = TaskPermissionCheck::Label.call(task, id)
+      raise Crossbeams::TaskNotPermittedError, res.message unless res.success
     end
 
     private

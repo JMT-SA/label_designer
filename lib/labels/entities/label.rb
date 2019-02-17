@@ -18,6 +18,8 @@ module LabelApp
     attribute :variable_set, Types::String
     attribute :created_by, Types::String
     attribute :updated_by, Types::String
+    attribute :completed, Types::Bool
+    attribute :approved, Types::Bool
 
     #  label_name character varying(255) NOT NULL,
     #   label_json text,

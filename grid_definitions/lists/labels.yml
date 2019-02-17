@@ -4,7 +4,7 @@
   - :url: /labels/labels/labels/$:id$/edit
     :text: Edit
     :icon: edit
-    :hide_if_true: multi_label
+    :hide_if_true: multi_label,completed
     :auth:
       :function: label designer
       :program: designs
@@ -31,6 +31,7 @@
       :program: designs
       :permission: edit
     :hide_if_false: active
+    :hide_if_true: completed
   - :url: /labels/labels/labels/$:id$/background
     :text: Background image
     :icon: photo
@@ -68,13 +69,32 @@
         :title: Batch Print - fill in variables
         :popup: true
         :hide_if_false: approved
+  - :submenu:
+      :text: Sub-labels
+      :items:
+      - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$&variable_set=$:variable_set$"
+        :text: Select sub-labels
+        :icon: list
+        :popup: true
+        :hide_if_false: multi_label,active
+        :hide_if_true: completed
+        :auth:
+          :function: label designer
+          :program: designs
+          :permission: edit
+      - :url: /labels/labels/labels/$:id$/refresh_multi_label_variables
+        :text: Refresh preview values from sub-labels
+        :icon: code
+        :popup: true
+        :prompt: Are you sure you want to replace the preview values?
+        :hide_if_false: multi_label,active
   - :separator: true
   - :url: /labels/labels/labels/$:id$
     :text: Delete
     :icon: delete
     :is_delete: true
     :popup: true
-    :hide_if_true: part_of_multi_label
+    :hide_if_true: part_of_multi_label,completed
     :auth:
       :function: label designer
       :program: designs
@@ -91,31 +111,6 @@
       :function: label designer
       :program: designs
       :permission: export
-  - :url: "/list/sub_labels/multi?key=sub_labels&id=$:id$&label_dimension=$:label_dimension$&variable_set=$:variable_set$"
-    :text: Select sub-labels
-    :icon: list
-    :popup: true
-    :hide_if_false: multi_label,active
-    :auth:
-      :function: label designer
-      :program: designs
-      :permission: edit
-  - :url: /labels/labels/labels/$:id$/refresh_multi_label_variables
-    :text: Refresh preview values from sub-labels
-    :icon: code
-    :popup: true
-    :prompt: Are you sure you want to replace the preview values?
-    :hide_if_false: multi_label,active
-  - :url: /development/statuses/list/labels/$:id$
-    :text: status
-    :icon: information-solid
-    :title: Status
-    :popup: true
-  - :url: "/list/label_publishing_history/with_params?key=standard&id=$:id$"
-    :text: Publishing history
-    :icon: list
-    :popup: true
-  - :separator: true
   - :url: /labels/labels/labels/$:id$/complete
     :text: Complete
     :icon: toggle-on
@@ -162,6 +157,16 @@
       :program: designs
       :permission: edit
     :hide_if_true: active
+  - :separator: true
+  - :url: /development/statuses/list/labels/$:id$
+    :text: status
+    :icon: information-solid
+    :title: Status
+    :popup: true
+  - :url: "/list/label_publishing_history/with_params?key=standard&id=$:id$"
+    :text: Publishing history
+    :icon: list
+    :popup: true
 :page_controls:
   - :control_type: :link
     :url: /labels/labels/labels/new
