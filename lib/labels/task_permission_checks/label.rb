@@ -40,6 +40,11 @@ module LabelApp
         all_ok
       end
 
+      def delete_check
+        return failed_response 'Label has been completed' if completed?
+        all_ok
+      end
+
       def complete_check
         return failed_response 'Label has already been completed' if completed?
         all_ok
