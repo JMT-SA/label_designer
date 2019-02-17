@@ -65,6 +65,7 @@ module DevelopmentApp
           search: "grid_definitions/searches/#{@table}.yml",
           repo: "lib/#{@applet}/repositories/#{repofile}_repo.rb",
           inter: "lib/#{@applet}/interactors/#{@singlename}_interactor.rb",
+          permission: "lib/#{@applet}/task_permission_checks/#{@singlename}.rb",
           entity: "lib/#{@applet}/entities/#{@singlename}.rb",
           validation: "lib/#{@applet}/validations/#{@singlename}_schema.rb",
           route: "routes/#{@applet}/#{@program}.rb",
@@ -76,6 +77,7 @@ module DevelopmentApp
           },
           test: {
             interactor: "lib/#{@applet}/test/interactors/test_#{@singlename}_interactor.rb",
+            permission: "lib/#{@applet}/test/task_permission_checks/test_#{@singlename}.rb",
             repo: "lib/#{@applet}/test/repositories/test_#{repofile}_repo.rb",
             route: "test/routes/#{@applet}/#{@program}/test_#{@singlename}_routes.rb"
           }
@@ -105,6 +107,7 @@ module DevelopmentApp
       sources[:repo]       = RepoMaker.call(opts)
       sources[:entity]     = EntityMaker.call(opts)
       sources[:inter]      = InteractorMaker.call(opts)
+      sources[:permission] = PermissionMaker.call(opts)
       sources[:validation] = ValidationMaker.call(opts)
       sources[:uirule]     = UiRuleMaker.call(opts)
       sources[:view]       = ViewMaker.call(opts)
@@ -142,6 +145,19 @@ module DevelopmentApp
         integer_array: 'Types::Array',
         string_array: 'Types::Array',
         jsonb: 'Types::Hash'
+      }.freeze
+
+      DUMMY_DATA_LOOKUP = {
+        integer: '1',
+        string: "'ABC'",
+        boolean: 'false',
+        float: '1.0',
+        datetime: '2010-01-01 12:00',
+        date: '2010-01-01',
+        decimal: '1.0',
+        integer_array: '[1, 2, 3]',
+        string_array: "['A', 'B', 'C']",
+        jsonb: '{}'
       }.freeze
 
       VALIDATION_EXPECT_LOOKUP = {
@@ -206,6 +222,10 @@ module DevelopmentApp
 
       def column_dry_type(column)
         DRY_TYPE_LOOKUP[@col_lookup[column][:type]] || "Types::??? (#{@col_lookup[column][:type]})"
+      end
+
+      def column_dummy_data(column)
+        DUMMY_DATA_LOOKUP[@col_lookup[column][:type]] || "'??? (#{@col_lookup[column][:type]})'"
       end
 
       def column_dry_validation_type(column)
@@ -306,6 +326,91 @@ module DevelopmentApp
       def add_parent_to_params
         parent_id_name = opts.inflector.foreign_key(opts.inflector.singularize(opts.nested_route)) if opts.nested_route
         opts.nested_route ? "\n      params[:#{parent_id_name}] = parent_id" : ''
+      end
+    end
+
+    class PermissionMaker < BaseService
+      attr_reader :opts
+      def initialize(opts)
+        @opts = opts
+      end
+
+      def call
+        <<~RUBY
+          # frozen_string_literal: true
+
+          module #{opts.classnames[:module]}
+            module TaskPermissionCheck
+              class #{opts.classnames[:class]} < BaseService
+                attr_reader :task, :entity
+                def initialize(task, #{opts.singlename}_id = nil)
+                  @task = task
+                  @repo = #{opts.classnames[:repo]}.new
+                  @id = #{opts.singlename}_id
+                  @entity = @id ? @repo.find_#{opts.singlename}(@id) : nil
+                end
+
+                CHECKS = {
+                  create: :create_check,
+                  edit: :edit_check,
+                  delete: :delete_check,
+                  complete: :complete_check,
+                  approve: :approve_check,
+                  reopen: :reopen_check
+                }.freeze
+
+                def call
+                  return failed_response 'Record not found' unless @entity || task == :create
+
+                  check = CHECKS[task]
+                  raise ArgumentError, "Task \\"\#{task}\\" is unknown for \#{self.class}" if check.nil?
+
+                  send(check)
+                end
+
+                private
+
+                def create_check
+                  all_ok
+                end
+
+                def edit_check
+                  return failed_response '#{opts.classnames[:class]} has been completed' if completed?
+                  all_ok
+                end
+
+                def delete_check
+                  return failed_response '#{opts.classnames[:class]} has been completed' if completed?
+                  all_ok
+                end
+
+                def complete_check
+                  return failed_response '#{opts.classnames[:class]} has already been completed' if completed?
+                  all_ok
+                end
+
+                def approve_check
+                  return failed_response '#{opts.classnames[:class]} has not been completed' unless completed?
+                  return failed_response '#{opts.classnames[:class]} has already been approved' if approved?
+                  all_ok
+                end
+
+                def reopen_check
+                  return failed_response '#{opts.classnames[:class]} has not been approved' unless approved?
+                  all_ok
+                end
+
+                def completed?
+                  @entity.completed
+                end
+
+                def approved?
+                  @entity.approved
+                end
+              end
+            end
+          end
+        RUBY
       end
     end
 
@@ -835,12 +940,22 @@ module DevelopmentApp
       def call
         {
           interactor: test_interactor,
+          permission: test_permission,
           repo: test_repo,
           route: test_route
         }
       end
 
       private
+
+      def columnise
+        attr = []
+        opts.table_meta.columns_without(%i[created_at updated_at active]).each do |col|
+          attr << "#{col}: #{opts.table_meta.column_dummy_data(col)}"
+        end
+        attr << 'active: true' if opts.table_meta.active_column_present?
+        attr
+      end
 
       def test_repo
         <<~RUBY
@@ -900,6 +1015,88 @@ module DevelopmentApp
           end
           # rubocop:enable Metrics/ClassLength
           # rubocop:enable Metrics/AbcSize
+        RUBY
+      end
+
+      def test_permission
+        perm_check = "#{opts.classnames[:module]}::TaskPermissionCheck::#{opts.classnames[:class]}"
+        ent = columnise.join(",\n        ")
+        <<~RUBY
+          # frozen_string_literal: true
+
+          require File.join(File.expand_path('../../../../test', __dir__), 'test_helper')
+
+          module #{opts.classnames[:module]}
+            class Test#{opts.classnames[:class]}Permission < Minitest::Test
+              include Crossbeams::Responses
+
+              def entity(attrs = {})
+                base_attrs = {
+                  #{ent}
+                }
+                #{opts.classnames[:module]}::#{opts.classnames[:class]}.new(base_attrs.merge(attrs))
+              end
+
+              def test_create
+                res = #{perm_check}.call(:create)
+                assert res.success, 'Should always be able to create a #{opts.singlename}'
+              end
+
+              def test_edit
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity)
+                res = #{perm_check}.call(:edit, 1)
+                assert res.success, 'Should be able to edit a #{opts.singlename}'
+
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity(completed: true))
+                res = #{perm_check}.call(:edit, 1)
+                refute res.success, 'Should not be able to edit a completed #{opts.singlename}'
+              end
+
+              def test_delete
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity)
+                res = #{perm_check}.call(:delete, 1)
+                assert res.success, 'Should be able to delete a #{opts.singlename}'
+
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity(completed: true))
+                res = #{perm_check}.call(:delete, 1)
+                refute res.success, 'Should not be able to delete a completed #{opts.singlename}'
+              end
+
+              def test_complete
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity)
+                res = #{perm_check}.call(:complete, 1)
+                assert res.success, 'Should be able to complete a #{opts.singlename}'
+
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity(completed: true))
+                res = #{perm_check}.call(:complete, 1)
+                refute res.success, 'Should not be able to complete an already completed #{opts.singlename}'
+              end
+
+              def test_approve
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity(completed: true, approved: false))
+                res = #{perm_check}.call(:approve, 1)
+                assert res.success, 'Should be able to approve a completed #{opts.singlename}'
+
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity)
+                res = #{perm_check}.call(:approve, 1)
+                refute res.success, 'Should not be able to approve a non-completed #{opts.singlename}'
+
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity(completed: true, approved: true))
+                res = #{perm_check}.call(:approve, 1)
+                refute res.success, 'Should not be able to approve an already approved #{opts.singlename}'
+              end
+
+              def test_reopen
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity)
+                res = #{perm_check}.call(:reopen, 1)
+                refute res.success, 'Should not be able to reopen a #{opts.singlename} that has not been approved'
+
+                #{opts.classnames[:module]}::#{opts.classnames[:repo]}.any_instance.stubs(:find_#{opts.singlename}).returns(entity(completed: true, approved: true))
+                res = #{perm_check}.call(:reopen, 1)
+                assert res.success, 'Should be able to reopen an approved #{opts.singlename}'
+              end
+            end
+          end
         RUBY
       end
 
@@ -1357,6 +1554,7 @@ module DevelopmentApp
           # Dir["\#{root_dir}/#{opts.applet}/jobs/*.rb"].each { |f| require f }
           Dir["\#{root_dir}/#{opts.applet}/repositories/*.rb"].each { |f| require f }
           # Dir["\#{root_dir}/#{opts.applet}/services/*.rb"].each { |f| require f }
+          # Dir["\#{root_dir}/#{opts.applet}/task_permission_checks/*.rb"].each { |f| require f }
           Dir["\#{root_dir}/#{opts.applet}/ui_rules/*.rb"].each { |f| require f }
           Dir["\#{root_dir}/#{opts.applet}/validations/*.rb"].each { |f| require f }
           Dir["\#{root_dir}/#{opts.applet}/views/**/*.rb"].each { |f| require f }
