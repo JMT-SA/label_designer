@@ -199,7 +199,7 @@ class LabelDesigner < Roda
         r.post do
           res = interactor.link_multi_label(id, params[:sublbl_sorted_ids])
           flash[:notice] = res.message # 'Linked sub-labels for a multi-label'
-          redirect_via_json('/list/labels/with_params?key=active')
+          redirect_to_last_grid(r)
         end
       end
 
@@ -214,27 +214,9 @@ class LabelDesigner < Roda
           res = interactor.complete_a_label(id, params[:label])
           if res.success
             flash[:notice] = res.message
-            redirect_via_json('/list/labels/with_params?key=active')
+            redirect_to_last_grid(r)
           else
             re_show_form(r, res) { Labels::Labels::Label::Complete.call(id, params[:label], res.errors) }
-          end
-        end
-      end
-
-      r.on 'reopen' do
-        r.get do
-          check_auth!('designs', 'edit')
-          interactor.assert_permission!(:reopen, id)
-          show_partial { Labels::Labels::Label::Reopen.call(id) }
-        end
-
-        r.post do
-          res = interactor.reopen_a_label(id, params[:label])
-          if res.success
-            flash[:notice] = res.message
-            redirect_via_json('/list/labels/with_params?key=active')
-          else
-            re_show_form(r, res) { Labels::Labels::Label::Reopen.call(id, params[:label], res.errors) }
           end
         end
       end
@@ -251,9 +233,27 @@ class LabelDesigner < Roda
           # If reject, send email to person who completed, but who was that... [completed_by, approved_by] (although this is in the status log)
           if res.success
             flash[:notice] = res.message
-            redirect_via_json('/list/labels/with_params?key=active')
+            redirect_to_last_grid(r)
           else
             re_show_form(r, res) { Labels::Labels::Label::Approve.call(id, params[:label], res.errors) }
+          end
+        end
+      end
+
+      r.on 'reopen' do
+        r.get do
+          check_auth!('designs', 'edit')
+          interactor.assert_permission!(:reopen, id)
+          show_partial { Labels::Labels::Label::Reopen.call(id) }
+        end
+
+        r.post do
+          res = interactor.reopen_a_label(id, params[:label])
+          if res.success
+            flash[:notice] = res.message
+            redirect_to_last_grid(r)
+          else
+            re_show_form(r, res) { Labels::Labels::Label::Reopen.call(id, params[:label], res.errors) }
           end
         end
       end

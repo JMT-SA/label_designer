@@ -73,7 +73,10 @@ module DevelopmentApp
           view: {
             new: "lib/#{@applet}/views/#{@singlename}/new.rb",
             edit: "lib/#{@applet}/views/#{@singlename}/edit.rb",
-            show: "lib/#{@applet}/views/#{@singlename}/show.rb"
+            show: "lib/#{@applet}/views/#{@singlename}/show.rb",
+            complete: "lib/#{@applet}/views/#{@singlename}/complete.rb",
+            approve: "lib/#{@applet}/views/#{@singlename}/approve.rb",
+            reopen: "lib/#{@applet}/views/#{@singlename}/reopen.rb"
           },
           test: {
             interactor: "lib/#{@applet}/test/interactors/test_#{@singlename}_interactor.rb",
@@ -311,6 +314,42 @@ module DevelopmentApp
                 success_response("Deleted #{opts.classnames[:text_name].downcase} \#{name}")
               rescue Crossbeams::InfoError => e
                 failed_response(e.message)
+              end
+
+              def complete_a_#{opts.singlename}(id, params)
+                res = complete_a_record(:#{opts.table}, id, params.merge(enqueue_job: false))
+                if res.success
+                  success_response(res.message, #{opts.singlename}(id))
+                else
+                  failed_response(res.message, #{opts.singlename}(id))
+                end
+              end
+
+              def reopen_a_#{opts.singlename}(id, params)
+                res = reopen_a_record(:#{opts.table}, id, params.merge(enqueue_job: false))
+                if res.success
+                  success_response(res.message, #{opts.singlename}(id))
+                else
+                  failed_response(res.message, #{opts.singlename}(id))
+                end
+              end
+
+              def approve_or_reject_a_#{opts.singlename}(id, params)
+                res = if params[:approve_action] == 'a'
+                        approve_a_record(:#{opts.table}, id, params.merge(enqueue_job: false))
+                      else
+                        reject_a_record(:#{opts.table}, id, params.merge(enqueue_job: false))
+                      end
+                if res.success
+                  success_response(res.message, #{opts.singlename}(id))
+                else
+                  failed_response(res.message, #{opts.singlename}(id))
+                end
+              end
+
+              def assert_permission!(task, id = nil)
+                res = TaskPermissionCheck::#{opts.classnames[:class]}.call(task, id)
+                raise Crossbeams::TaskNotPermittedError, res.message unless res.success
               end
             end
           end
@@ -558,6 +597,37 @@ module DevelopmentApp
                             icon: 'delete',
                             is_delete: true,
                             popup: true }
+        list[:actions] << { url: "/#{opts.applet}/#{opts.program}/#{opts.table}/$:id$/complete",
+                            text: 'Complete',
+                            icon: 'toggle-on',
+                            popup: true,
+                            hide_if_true: 'completed',
+                            auth: {
+                              function: opts.applet,
+                              program: opts.program,
+                              permission: 'edit'
+                            } }
+        list[:actions] << { url: "/#{opts.applet}/#{opts.program}/#{opts.table}/$:id$/approve",
+                            text: 'Approve/Reject',
+                            icon: 'gavel',
+                            popup: true,
+                            hide_if_false: 'completed',
+                            hide_if_true: 'approved',
+                            auth: {
+                              function: opts.applet,
+                              program: opts.program,
+                              permission: 'approve'
+                            } }
+        list[:actions] << { url: "/#{opts.applet}/#{opts.program}/#{opts.table}/$:id$/reopen",
+                            text: 'Re-open for editing',
+                            icon: 'toggle-off',
+                            popup: true,
+                            hide_if_false: 'approved',
+                            auth: {
+                              function: opts.applet,
+                              program: opts.program,
+                              permission: 'edit'
+                            } }
         list[:actions] << { url: "/development/statuses/list/#{opts.table}/$:id$",
                             text: 'status',
                             icon: 'information-solid',
@@ -634,8 +704,64 @@ module DevelopmentApp
 
                 r.on 'edit' do   # EDIT
                   check_auth!('#{opts.program_text}', 'edit')
+                  interactor.assert_permission!(:edit, id)
                   show_partial { #{opts.classnames[:view_prefix]}::Edit.call(id) }
                 end
+
+                # r.on 'complete' do
+                #   r.get do
+                #     check_auth!('#{opts.program_text}', 'edit')
+                #     interactor.assert_permission!(:complete, id)
+                #     show_partial { #{opts.classnames[:view_prefix]}::Complete.call(id) }
+                #   end
+
+                #   r.post do
+                #     res = interactor.complete_a_#{opts.singlename}(id, params[:#{opts.singlename}])
+                #     if res.success
+                #       flash[:notice] = res.message
+                #       redirect_to_last_grid(r)
+                #     else
+                #       re_show_form(r, res) { #{opts.classnames[:view_prefix]}::Complete.call(id, params[:#{opts.singlename}], res.errors) }
+                #     end
+                #   end
+                # end
+
+                # r.on 'approve' do
+                #   r.get do
+                #     check_auth!('#{opts.program_text}', 'approve')
+                #     interactor.assert_permission!(:approve, id)
+                #     show_partial { #{opts.classnames[:view_prefix]}::Approve.call(id) }
+                #   end
+
+                #   r.post do
+                #     res = interactor.approve_or_reject_a_#{opts.singlename}(id, params[:#{opts.singlename}])
+                #     if res.success
+                #       flash[:notice] = res.message
+                #       redirect_to_last_grid(r)
+                #     else
+                #       re_show_form(r, res) { #{opts.classnames[:view_prefix]}::Approve.call(id, params[:#{opts.singlename}], res.errors) }
+                #     end
+                #   end
+                # end
+
+                # r.on 'reopen' do
+                #   r.get do
+                #     check_auth!('#{opts.program_text}', 'edit')
+                #     interactor.assert_permission!(:reopen, id)
+                #     show_partial { #{opts.classnames[:view_prefix]}::Reopen.call(id) }
+                #   end
+
+                #   r.post do
+                #     res = interactor.reopen_a_#{opts.singlename}(id, params[:#{opts.singlename}])
+                #     if res.success
+                #       flash[:notice] = res.message
+                #       redirect_to_last_grid(r)
+                #     else
+                #       re_show_form(r, res) { #{opts.classnames[:view_prefix]}::Reopen.call(id, params[:#{opts.singlename}], res.errors) }
+                #     end
+                #   end
+                # end
+
                 r.is do
                   r.get do       # SHOW
                     check_auth!('#{opts.program_text}', 'read')
@@ -651,6 +777,7 @@ module DevelopmentApp
                   end
                   r.delete do    # DELETE
                     check_auth!('#{opts.program_text}', 'delete')
+                    interactor.assert_permission!(:delete, id)
                     res = interactor.delete_#{opts.singlename}(id)
                     if res.success
                       delete_grid_row(id, notice: res.message)
@@ -812,13 +939,29 @@ module DevelopmentApp
 
                 common_values_for_fields common_fields
 
-                set_show_fields if @mode == :show
+                set_show_fields if %i[show reopen].include? @mode
+                set_complete_fields if @mode == :complete
+                set_approve_fields if @mode == :approve
+
+                add_approve_behaviours if @mode == :approve
 
                 form_name '#{opts.singlename}'
               end
 
               def set_show_fields
                 #{show_fields.join(UtilityFunctions.newline_and_spaces(6))}
+              end
+
+              def set_approve_fields
+                set_show_fields
+                fields[:approve_action] = { renderer: :select, options: [%w[Approve a], %w[Reject r]], required: true }
+                fields[:reject_reason] = { renderer: :textarea, disabled: true }
+              end
+
+              def set_complete_fields
+                set_show_fields
+                # user_repo = DevelopmentApp::UserRepo.new
+                # fields[:to] = { renderer: :select, options: user_repo.email_addresses(user_email_group: AppConst::EMAIL_GROUP_LABEL_APPROVERS), caption: 'Email address of person to notify', required: true }
               end
 
               def common_fields
@@ -835,6 +978,14 @@ module DevelopmentApp
 
               def make_new_form_object
                 @form_object = OpenStruct.new(#{struct_fields.join(UtilityFunctions.comma_newline_and_spaces(36))})
+              end
+
+              private
+
+              def add_approve_behaviours
+                behaviours do |behaviour|
+                  behaviour.enable :reject_reason, when: :approve_action, changes_to: ['r']
+                end
               end
             end
           end
@@ -1257,7 +1408,10 @@ module DevelopmentApp
         {
           new: new_view,
           edit: edit_view,
-          show: show_view
+          show: show_view,
+          complete: complete_view,
+          approve: approve_view,
+          reopen: reopen_view
         }
       end
 
@@ -1372,6 +1526,106 @@ module DevelopmentApp
                       page.form do |form|
                         # form.caption '#{opts.text_name}'
                         form.view_only!
+                        #{form_fields(true)}
+                      end
+                    end
+
+                    layout
+                  end
+                end
+              end
+            end
+          end
+        RUBY
+      end
+
+      def complete_view
+        <<~RUBY
+          # frozen_string_literal: true
+
+          module #{opts.classnames[:applet]}
+            module #{opts.classnames[:program]}
+              module #{opts.classnames[:class]}
+                class Complete
+                  def self.call(id)
+                    ui_rule = UiRules::Compiler.new(:#{opts.singlename}, :complete, id: id)
+                    rules   = ui_rule.compile
+
+                    layout = Crossbeams::Layout::Page.build(rules) do |page|
+                      page.form_object ui_rule.form_object
+                      page.form do |form|
+                        form.caption 'Complete #{opts.text_name}'
+                        form.action "/#{opts.applet}/#{opts.program}/#{opts.table}/\#{id}/complete"
+                        form.remote!
+                        form.submit_captions 'Complete'
+                        form.add_text 'Are you sure you want to complete this #{opts.singlename}?', wrapper: :h3
+                        form.add_field :to
+                        #{form_fields(true)}
+                      end
+                    end
+
+                    layout
+                  end
+                end
+              end
+            end
+          end
+        RUBY
+      end
+
+      def approve_view
+        <<~RUBY
+          # frozen_string_literal: true
+
+          module #{opts.classnames[:applet]}
+            module #{opts.classnames[:program]}
+              module #{opts.classnames[:class]}
+                class Complete
+                  def self.call(id)
+                    ui_rule = UiRules::Compiler.new(:#{opts.singlename}, :approve, id: id)
+                    rules   = ui_rule.compile
+
+                    layout = Crossbeams::Layout::Page.build(rules) do |page|
+                      page.form_object ui_rule.form_object
+                      page.form do |form|
+                        form.caption 'Approve or Reject #{opts.text_name}'
+                        form.action "/#{opts.applet}/#{opts.program}/#{opts.table}/\#{id}/approve"
+                        form.remote!
+                        form.submit_captions 'Approve or Reject'
+                        form.add_field :approve_action
+                        #{form_fields(true)}
+                      end
+                    end
+
+                    layout
+                  end
+                end
+              end
+            end
+          end
+        RUBY
+      end
+
+      def reopen_view
+        <<~RUBY
+          # frozen_string_literal: true
+
+          module #{opts.classnames[:applet]}
+            module #{opts.classnames[:program]}
+              module #{opts.classnames[:class]}
+                class Complete
+                  def self.call(id)
+                    ui_rule = UiRules::Compiler.new(:#{opts.singlename}, :reopen, id: id)
+                    rules   = ui_rule.compile
+
+                    layout = Crossbeams::Layout::Page.build(rules) do |page|
+                      page.form_object ui_rule.form_object
+                      page.form do |form|
+                        form.caption 'Reopen #{opts.text_name}'
+                        form.action "/#{opts.applet}/#{opts.program}/#{opts.table}/\#{id}/reopen"
+                        form.remote!
+                        form.submit_captions 'Reopen'
+                        form.add_text 'Are you sure you want to reopen this #{opts.singlename} for editing?', wrapper: :h3
                         #{form_fields(true)}
                       end
                     end

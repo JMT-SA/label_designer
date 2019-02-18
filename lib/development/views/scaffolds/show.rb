@@ -99,6 +99,12 @@ module Development
               section.add_text(results[:view][:edit], syntax: :ruby)
               save_snippet_form(section, results[:paths][:view][:show], results[:view][:show])
               section.add_text(results[:view][:show], syntax: :ruby)
+              save_snippet_form(section, results[:paths][:view][:complete], results[:view][:complete])
+              section.add_text(results[:view][:complete], syntax: :ruby)
+              save_snippet_form(section, results[:paths][:view][:approve], results[:view][:approve])
+              section.add_text(results[:view][:approve], syntax: :ruby)
+              save_snippet_form(section, results[:paths][:view][:reopen], results[:view][:reopen])
+              section.add_text(results[:view][:reopen], syntax: :ruby)
             end
             page.section do |section|
               section.caption = '<a name="ui_rules">UI Rules</a>'
