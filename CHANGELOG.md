@@ -8,6 +8,8 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+- User maintainer security for maintaining users.
+- User permissions security for allocating users to programs.
 ### Fixed
 
 ## [0.4.1] - 2019-02-15
