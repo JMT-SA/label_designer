@@ -246,9 +246,17 @@ module DevelopmentApp
       def active_column_present?
         @column_names.include?(:active)
       end
+
+      def completed_column_present?
+        @column_names.include?(:completed)
+      end
+
+      def approved_column_present?
+        @column_names.include?(:approved)
+      end
     end
 
-    class InteractorMaker < BaseService
+    class InteractorMaker < BaseService # rubocop:disable Metrics/ClassLength
       attr_reader :opts
       def initialize(opts)
         @opts = opts
@@ -628,6 +636,7 @@ module DevelopmentApp
                               program: opts.program,
                               permission: 'edit'
                             } }
+        list[:actions] << { separator: true }
         list[:actions] << { url: "/development/statuses/list/#{opts.table}/$:id$",
                             text: 'status',
                             icon: 'information-solid',
@@ -960,8 +969,8 @@ module DevelopmentApp
 
               def set_complete_fields
                 set_show_fields
-                # user_repo = DevelopmentApp::UserRepo.new
-                # fields[:to] = { renderer: :select, options: user_repo.email_addresses(user_email_group: AppConst::EMAIL_GROUP_LABEL_APPROVERS), caption: 'Email address of person to notify', required: true }
+                user_repo = DevelopmentApp::UserRepo.new
+                fields[:to] = { renderer: :select, options: user_repo.email_addresses(user_email_group: AppConst::EMAIL_GROUP_#{opts.singlename.upcase}_APPROVERS), caption: 'Email address of person to notify', required: true }
               end
 
               def common_fields
@@ -1650,7 +1659,7 @@ module DevelopmentApp
 
       def call
         @base_sql = <<~SQL
-          SELECT #{columns}
+          SELECT #{columns}, fn_current_status('#{opts.table}') AS status
           FROM #{opts.table}
           #{make_joins}
         SQL
