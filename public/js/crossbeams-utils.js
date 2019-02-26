@@ -732,6 +732,7 @@ const crossbeamsUtils = {
           // multiple: true,     // should configure via data...
           allowDeselect: false,
           clearable: true,       // should configure via data...
+          disabled: sel.disabled,
           width: 'notset',       // stop Selectr from setting width to 100%
         }); // select that can be searched.
         // Store a reference on the DOM node.
@@ -751,7 +752,11 @@ const crossbeamsUtils = {
                   target.disabled = true;
                 }
                 if (target.selectr) {
-                  target.selectr.disable(target.disabled === true);
+                  if (target.disabled) {
+                    target.selectr.disable();
+                  } else {
+                    target.selectr.enable();
+                  }
                 }
               }
             });
