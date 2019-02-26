@@ -14,17 +14,17 @@ module Labels
               form.remote!
               form.action "/labels/labels/labels/#{id}/approve"
               form.submit_captions 'Approve or Reject'
-              # form.add_text 'Are you sure you want to complete this label?', wrapper: :h3
-              # form.add_field :to
               form.add_field :approve_action
               form.add_field :reject_reason
               form.add_field :label_name
-              form.add_field :container_type
-              form.add_field :commodity
-              form.add_field :market
-              form.add_field :language
-              form.add_field :category
-              form.add_field :sub_category
+              form.fold_up do |fold|
+                fold.add_field :container_type
+                fold.add_field :commodity
+                fold.add_field :market
+                fold.add_field :language
+                fold.add_field :category
+                fold.add_field :sub_category
+              end
             end
           end
 
