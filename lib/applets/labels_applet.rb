@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 root_dir = File.expand_path('..', __dir__)
+# Required module
+require "#{root_dir}/labels/views/label/label_variable_fields.rb"
+
 Dir["#{root_dir}/labels/entities/*.rb"].each { |f| require f }
 Dir["#{root_dir}/labels/interactors/*.rb"].each { |f| require f }
 Dir["#{root_dir}/labels/jobs/*.rb"].each { |f| require f }
