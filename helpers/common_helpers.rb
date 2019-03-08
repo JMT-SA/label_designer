@@ -203,9 +203,38 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
     route.has_header?('HTTP_X_CUSTOM_REQUEST_TYPE')
   end
 
+  # The logged-in user.
+  # If the logged-in user is acting as another user, that user will be returned.
+  # If not logged-in, returns nil.
+  #
+  # @return [User, nil] the logged-in user or the acts-as user.
   def current_user
     return nil unless session[:user_id]
-    @current_user ||= DevelopmentApp::UserRepo.new.find(:users, DevelopmentApp::User, session[:user_id])
+    @current_user ||= DevelopmentApp::UserRepo.new.find(:users, DevelopmentApp::User, session[:act_as_user_id] || session[:user_id])
+  end
+
+  # The user acting as another user.
+  #
+  # @return [User, nil] the logged-in user acting as another user.
+  def actor_user
+    return nil unless session[:act_as_user_id]
+    @actor_user ||= DevelopmentApp::UserRepo.new.find(:users, DevelopmentApp::User, session[:user_id])
+  end
+
+  # Act as if logged-in as another user.
+  #
+  # @param id [integer] the id of the user to act-as.
+  # @return [void]
+  def act_as_user(id)
+    session[:act_as_user_id] = id
+  end
+
+  # Clear the act-as user.
+  #
+  # @return [void]
+  def revert_to_logged_in_user
+    session[:act_as_user_id] = nil
+    @current_user = nil
   end
 
   def store_current_functional_area(functional_area_name)
@@ -400,6 +429,10 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
     json_actions(OpenStruct.new(type: :replace_input_value, dom_id: dom_id, value: value), message, keep_dialog_open: keep_dialog_open)
   end
 
+  def json_change_select_value(dom_id, value, message: nil, keep_dialog_open: false)
+    json_actions(OpenStruct.new(type: :change_select_value, dom_id: dom_id, value: value), message, keep_dialog_open: keep_dialog_open)
+  end
+
   def json_replace_inner_html(dom_id, value, message: nil, keep_dialog_open: false)
     json_actions(OpenStruct.new(type: :replace_inner_html, dom_id: dom_id, value: value), message, keep_dialog_open: keep_dialog_open)
   end
@@ -423,6 +456,7 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   def build_json_action(action) # rubocop:disable Metrics/AbcSize
     {
       replace_input_value:    ->(act) { action_replace_input_value(act) },
+      change_select_value:    ->(act) { action_change_select_value(act) },
       replace_inner_html:     ->(act) { action_replace_inner_html(act) },
       replace_select_options: ->(act) { action_replace_select_options(act) },
       replace_multi_options:  ->(act) { action_replace_multi_options(act) },
@@ -446,6 +480,10 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
 
   def action_replace_input_value(action)
     { replace_input_value: { id: action.dom_id, value: action.value } }
+  end
+
+  def action_change_select_value(action)
+    { change_select_value: { id: action.dom_id, value: action.value } }
   end
 
   def action_replace_inner_html(action)

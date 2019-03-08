@@ -460,6 +460,29 @@ const crossbeamsUtils = {
     elem.value = action.replace_input_value.value;
   },
   /**
+   * Change the selected option of a Select element.
+   * @param {object} action - the action object returned from the backend.
+   * @returns {void}
+   */
+  changeSelectValue: function changeSelectValue(action) {
+    const elem = document.getElementById(action.change_select_value.id);
+    if (elem === null) {
+      this.alert({
+        prompt: `There is no DOM element with id: "${action.change_select_value.id}"`,
+        title: 'Change select: id missmatch',
+        type: 'error',
+      });
+      return;
+    }
+    if (elem.selectr) {
+      if (String(elem.value) !== String(action.change_select_value.value)) {
+        elem.selectr.setValue(action.change_select_value.value);
+      }
+    } else {
+      elem.value = action.change_select_value.value;
+    }
+  },
+  /**
    * Replace the contents of a DOM element.
    * @param {object} action - the action object returned from the backend.
    * @returns {void}
@@ -595,6 +618,9 @@ const crossbeamsUtils = {
       }
       if (action.replace_input_value) {
         crossbeamsUtils.replaceInputValue(action);
+      }
+      if (action.change_select_value) {
+        crossbeamsUtils.changeSelectValue(action);
       }
       if (action.replace_inner_html) {
         crossbeamsUtils.replaceInnerHtml(action);
