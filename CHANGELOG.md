@@ -7,6 +7,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- Exceptions are emailed. The recipients and subject prefix can be configured.
 ### Changed
 - User maintainer security for maintaining users.
 - User permissions security for allocating users to programs.
