@@ -92,7 +92,7 @@ module UiRules
 
     def make_new_form_object
       @form_object = OpenStruct.new(label_name: nil,
-                                    label_dimension: '84x64',
+                                    label_dimension: AppConst::DEFAULT_LABEL_DIMENSION,
                                     px_per_mm: '8',
                                     container_type: nil,
                                     commodity: nil,
