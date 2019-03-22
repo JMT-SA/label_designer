@@ -33,7 +33,8 @@ class AppConst
     [100, 100],
     [105, 250],
     [130, 100],
-    [145,  50]
+    [145,  50],
+    [150, 100]
   ].map { |w, h| ["#{w}x#{h}", { 'width': w, 'height': h }] }].freeze
 
   # Printers
