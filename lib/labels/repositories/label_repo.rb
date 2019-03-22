@@ -6,6 +6,7 @@ module LabelApp
     crud_calls_for :multi_labels, name: :multi_label
     crud_calls_for :label_publish_logs, name: :label_publish_log, wrapper: LabelPublishLog
     crud_calls_for :label_publish_log_details, name: :label_publish_log_detail, wrapper: LabelPublishLogDetail
+    crud_calls_for :label_publish_notifications, name: :label_publish_notification, wrapper: LabelPublishNotification
 
     def sub_label_list(sub_label_ids)
       DB[:labels].select(:id, :label_name)
@@ -89,6 +90,18 @@ module LabelApp
       complete = DB[complete_query, label_publish_log_id].get.zero?
       failed = DB[fail_query, label_publish_log_id].get.positive?
       [complete, failed]
+    end
+
+    def published_label_ids_for(log_id)
+      DB[:label_publish_log_details].distinct.where(label_publish_log_id: log_id, complete: true, failed: false).select_map(:label_id)
+    end
+
+    def create_label_publish_notifications(label_publish_log_id, label_ids, urls)
+      urls.each do |url|
+        label_ids.each do |label_id|
+          create_label_publish_notification(label_publish_log_id: label_publish_log_id, label_id: label_id, url: url)
+        end
+      end
     end
 
     private

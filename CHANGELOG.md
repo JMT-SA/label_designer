@@ -8,6 +8,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - Exceptions are emailed. The recipients and subject prefix can be configured.
+- On publish, any paths in LABEL_PUBLISH_NOTIFY_URLS are sent a JSON package with a list of published labels and their variables so that those applications can maintain their label template definitions.
 ### Changed
 - User maintainer security for maintaining users.
 - User permissions security for allocating users to programs.

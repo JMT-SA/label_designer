@@ -10,7 +10,11 @@ module.exports = {
     }
   },
   "rules": {
-    "no-param-reassign": [ "error", { "props": false } ]
+    "no-param-reassign": [ "error", { "props": false } ],
+    // "no-console": [ 0 ],
+    // "no-alert": [ 0 ],
+    // "func-names": [ 0 ],
+    // "max-len": [ 0 ],
   },
   "env": {
     "browser": true,
@@ -21,6 +25,7 @@ module.exports = {
     "swal": false,
     "agGrid": false,
     "Jackbox": false,
+    "Konva": false,
     "Selectr": false,
     "Sortable": false,
     "multi": false,

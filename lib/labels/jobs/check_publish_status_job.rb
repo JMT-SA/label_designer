@@ -23,6 +23,7 @@ module LabelApp
       labels = @repo.published_label_lookup(@label_publish_log.id)
       @repo.transaction do
         if apply_log_changes(labels, instance)
+          notify_apps_of_publishing
           finish
         else
           retry_in(0.2)
@@ -91,6 +92,11 @@ module LabelApp
         @repo.update(:label_publish_logs, @label_publish_log.id, failed: failed, status: 'PUBLISHED', complete: true)
       end
       complete
+    end
+
+    def notify_apps_of_publishing
+      return if AppConst::LABEL_PUBLISH_NOTIFY_URLS.empty?
+      BroadcastLabelPublishEventJob.enqueue(@label_publish_log.id)
     end
   end
 end
