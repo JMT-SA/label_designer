@@ -2,6 +2,11 @@
 
 # A class for defining global constants in a central place.
 class AppConst
+  # Helper to create hash of label sizes from a 2D array.
+  def self.make_label_size_hash(array)
+    Hash[array.map { |w, h| ["#{w}x#{h}", { 'width': w, 'height': h }] }].freeze
+  end
+
   # Constants for roles:
   ROLE_IMPLEMENTATION_OWNER = 'IMPLEMENTATION_OWNER'
   ROLE_CUSTOMER = 'CUSTOMER'
@@ -25,20 +30,16 @@ class AppConst
 
   # Label sizes. The arrays contain width then height.
   DEFAULT_LABEL_DIMENSION = ENV.fetch('DEFAULT_LABEL_DIMENSION', '84x64')
-  LABEL_SIZES = Hash[[
-    [84,   64],
-    [84,  100],
-    [97,   78],
-    [78,   97],
-    [77,  130],
-    [100,  70],
-    [100,  84],
-    [100, 100],
-    [105, 250],
-    [130, 100],
-    [145,  50],
-    [150, 100]
-  ].map { |w, h| ["#{w}x#{h}", { 'width': w, 'height': h }] }].freeze
+  LABEL_SIZES = if ENV['LABEL_SIZES']
+                  AppConst.make_label_size_hash(ENV['LABEL_SIZES'].split(';').map { |s| s.split(',') })
+                else
+                  AppConst.make_label_size_hash(
+                    [
+                      [84,   64], [84,  100], [97,   78], [78,   97], [77,  130], [100,  70],
+                      [100,  84], [100, 100], [105, 250], [130, 100], [145,  50], [100, 150]
+                    ]
+                  )
+                end
 
   # Printers
   PRINTER_USE_INDUSTRIAL = 'INDUSTRIAL'

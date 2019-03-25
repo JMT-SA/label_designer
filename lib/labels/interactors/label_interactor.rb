@@ -268,9 +268,12 @@ module LabelApp
     def label_designer_page(opts = {}) # rubocop:disable Metrics/AbcSize
       variable_set = find_variable_set(opts)
 
+      lbl_config = label_config(opts)
+      raise Crossbeams::FrameworkError, "Label dimension \"#{lbl_config[:labelDimension]}\" is not defined. Please call support." unless AppConst::LABEL_SIZES[lbl_config[:labelDimension]]
+
       Crossbeams::LabelDesigner::Config.configure do |config|
         config.label_variable_types = label_variables(variable_set)
-        config.label_config = label_config(opts).to_json
+        config.label_config = lbl_config.to_json
         config.label_sizes = AppConst::LABEL_SIZES.to_json
       end
 
