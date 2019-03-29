@@ -29,7 +29,7 @@ module Labels
             end
             count += sub_xml_vars.length
             xml_vars += sub_xml_vars
-            vartypes += doc.css('variable_type').map(&:text)
+            vartypes += doc.css('variable variable_type').map(&:text)
           end
           combos = Hash[xml_vars.zip(vartypes)]
 
@@ -50,7 +50,7 @@ module Labels
         def rules_for_single(obj, as_labels)
           doc       = Nokogiri::XML(obj.variable_xml)
           xml_vars  = doc.css('variable_field_count').map(&:text)
-          vartypes  = doc.css('variable_type').map(&:text)
+          vartypes  = doc.css('variable variable_type').map(&:text)
           combos    = Hash[xml_vars.zip(vartypes)]
 
           rules = {}

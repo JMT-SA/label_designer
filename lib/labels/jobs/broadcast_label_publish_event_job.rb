@@ -75,7 +75,7 @@ module LabelApp
 
     def variable_names_from(variable_xml)
       doc = Nokogiri::XML(variable_xml)
-      doc.css('variable_type').map(&:text)
+      doc.css('variable variable_type').map(&:text)
     end
 
     def variable_details_for(variable_set, varnames)
