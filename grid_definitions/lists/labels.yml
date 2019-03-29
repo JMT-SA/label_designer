@@ -137,7 +137,7 @@
     :auth:
       :function: label designer
       :program: designs
-      :permission: edit
+      :permission: approve
     :hide_if_false: approved
   - :url: /labels/labels/labels/$:id$/archive
     :text: Archive
