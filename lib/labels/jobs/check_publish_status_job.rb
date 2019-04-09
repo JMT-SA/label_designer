@@ -10,10 +10,10 @@ module LabelApp
 
       if res.success
         handle_success(res.instance)
-      elsif res.instance.to_s.start_with?('404') # Nothing sent from MesServer to CMS/MesScada yet...
+      elsif res.instance[:response_code].to_s.start_with?('404') # Nothing sent from MesServer to CMS/MesScada yet...
         handle_retry
       else
-        handle_fail(res.instance)
+        handle_fail(res)
       end
     end
 
@@ -41,13 +41,13 @@ module LabelApp
       end
     end
 
-    def handle_fail(instance)
-      msg = if instance[:timeout]
+    def handle_fail(res)
+      msg = if res.instance[:timeout]
               'Timeout'
-            elsif instance[:refused]
+            elsif res.instance[:refused]
               'Connection refused'
             else
-              instance
+              res.message
             end
       @repo.update(:label_publish_logs, @label_publish_log.id, failed: true, status: 'FAILED', errors: msg, complete: true)
       finish

@@ -33,12 +33,32 @@ module LabelApp
       end
     end
 
+    # Number of sub labels on a multi label.
+    #
+    # @param id [integer] the multi label id.
+    # @return [integer] the count of sub labels.
     def no_sub_labels(id)
       DB[:multi_labels].where(label_id: id).count
     end
 
+    # Get all the label ids of sub labels for a multi label.
+    #
+    # @param id [integer] the multi label id.
+    # @return [Array] the ids of the sub labels.
     def sub_label_ids(id)
       DB[:multi_labels].where(label_id: id).order(:print_sequence).select_map(:sub_label_id)
+    end
+
+    # Get a list of multi labels that this label is a sub-label of.
+    # Only return active labels.
+    #
+    # @param id [integer] the sub label id.
+    # @return [Array] the label names of the multi labels.
+    def sub_label_belongs_to_names(id)
+      DB[:multi_labels].join(:labels, id: :label_id)
+                       .where(sub_label_id: id, active: true)
+                       .order(:label_name)
+                       .select_map(:label_name)
     end
 
     # Re-build the sample data for a multi label from its sub-labels.
