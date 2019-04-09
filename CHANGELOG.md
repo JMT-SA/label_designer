@@ -7,8 +7,12 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- Label Publishers email group. All users in the group will receive an email on label approval.
+- UI theme was changed to use blues.
 ### Changed
 ### Fixed
+- DB connection was lost soon after Passenger was restarted due to child processes using the parent process connection after forking.
+- Drb connection to shared_config was not closing sockets after use.
 
 ## [0.5.0] - 2019-03-29
 ### Added

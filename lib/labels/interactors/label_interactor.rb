@@ -337,6 +337,7 @@ module LabelApp
             end
       # Use params to trigger alert...
       if res.success
+        NotifyLabelApprovedJob.enqueue(id)
         success_response(res.message, label(id))
       else
         failed_response(res.message, label(id))
