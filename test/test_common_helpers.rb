@@ -76,6 +76,10 @@ class TestCommonHelpers < Minitest::Test
     expect = { replace_input_value: { id: 'html_dom_tag_id', value: 'TEST' } }
     assert_equal expect, res
 
+    res = build_json_action(OpenStruct.new(type: :change_select_value, dom_id: 'html_dom_tag_id', value: 'TEST'))
+    expect = { change_select_value: { id: 'html_dom_tag_id', value: 'TEST' } }
+    assert_equal expect, res
+
     res = build_json_action(OpenStruct.new(type: :replace_inner_html, dom_id: 'html_dom_tag_id', value: 'TEST'))
     expect = { replace_inner_html: { id: 'html_dom_tag_id', value: 'TEST' } }
     assert_equal expect, res
@@ -93,19 +97,19 @@ class TestCommonHelpers < Minitest::Test
     assert_equal expect, res
 
     res = build_json_action(OpenStruct.new(type: :hide_element, dom_id: 'html_dom_tag_id'))
-    expect = { hide_element: { id: 'html_dom_tag_id', reclaim_space: false } }
-    assert_equal expect, res
-
-    res = build_json_action(OpenStruct.new(type: :hide_element, dom_id: 'html_dom_tag_id', reclaim_space: true))
     expect = { hide_element: { id: 'html_dom_tag_id', reclaim_space: true } }
     assert_equal expect, res
 
-    res = build_json_action(OpenStruct.new(type: :show_element, dom_id: 'html_dom_tag_id'))
-    expect = { show_element: { id: 'html_dom_tag_id', reclaim_space: false } }
+    res = build_json_action(OpenStruct.new(type: :hide_element, dom_id: 'html_dom_tag_id', reclaim_space: false))
+    expect = { hide_element: { id: 'html_dom_tag_id', reclaim_space: false } }
     assert_equal expect, res
 
-    res = build_json_action(OpenStruct.new(type: :show_element, dom_id: 'html_dom_tag_id', reclaim_space: true))
+    res = build_json_action(OpenStruct.new(type: :show_element, dom_id: 'html_dom_tag_id'))
     expect = { show_element: { id: 'html_dom_tag_id', reclaim_space: true } }
+    assert_equal expect, res
+
+    res = build_json_action(OpenStruct.new(type: :show_element, dom_id: 'html_dom_tag_id', reclaim_space: false))
+    expect = { show_element: { id: 'html_dom_tag_id', reclaim_space: false } }
     assert_equal expect, res
 
     res = build_json_action(OpenStruct.new(type: :clear_form_validation, dom_id: 'html_dom_tag_id'))
@@ -129,7 +133,7 @@ class TestCommonHelpers < Minitest::Test
     ])
     expect = { actions: [{ replace_input_value: { id: 'html_dom_tag_id', value: 'TEST' } },
                          { clear_form_validation: { form_id: 'html_dom_tag_id' } },
-                         { hide_element: { id: 'html_dom_tag_id', reclaim_space: false } }] }.to_json
+                         { hide_element: { id: 'html_dom_tag_id', reclaim_space: true } }] }.to_json
     assert_equal expect, res
   end
 end
