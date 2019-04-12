@@ -68,7 +68,7 @@ module LabelApp
                                   .order(:print_sequence)
                                   .select(:sample_data)
                                   .map { |a| a[:sample_data] || {} }
-      update_label(id, sample_data: hash_to_jsonb_str(new_sample(datalist)))
+      update_label(id, sample_data: hash_for_jsonb_col(new_sample(datalist)))
     end
 
     def label_publish_states(label_publish_log_id)

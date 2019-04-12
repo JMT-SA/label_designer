@@ -195,7 +195,7 @@ module LabelApp
       instance = label(id)
       # Store the input variables:
       # repo.update_label(id, sample_data: "{#{vars.map { |k, v| %("#{k}":"#{v}") }.join(',')}}")
-      repo.update_label(id, sample_data: repo.hash_to_jsonb_str(vars))
+      repo.update_label(id, sample_data: repo.hash_for_jsonb_col(vars))
 
       fname, binary_data = LabelFiles.new.make_label_zip(instance, vars)
       # File.open('zz.zip', 'w') { |f| f.puts binary_data }
@@ -214,7 +214,7 @@ module LabelApp
       quantity = params.delete(:no_of_labels)
       printer_code = params.delete(:printer)
 
-      repo.update_label(id, sample_data: repo.hash_to_jsonb_str(params))
+      repo.update_label(id, sample_data: repo.hash_for_jsonb_col(params))
 
       mes_repo = MesserverApp::MesserverRepo.new
       mes_repo.print_label(instance.label_name, params, quantity, printer_code)
@@ -224,7 +224,7 @@ module LabelApp
       vars = params.dup
       vars.delete_if { |k| %i[to subject body cc].include?(k) }
       instance = label(id)
-      repo.update_label(id, sample_data: repo.hash_to_jsonb_str(vars))
+      repo.update_label(id, sample_data: repo.hash_for_jsonb_col(vars))
 
       fname, binary_data = LabelFiles.new.make_label_zip(instance, vars)
       # File.open('zz.zip', 'w') { |f| f.puts binary_data }
