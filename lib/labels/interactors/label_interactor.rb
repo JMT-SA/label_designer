@@ -272,6 +272,7 @@ module LabelApp
         config.label_variable_types = label_variables(variable_set)
         config.label_config = lbl_config.to_json
         config.label_sizes = AppConst::LABEL_SIZES.to_json
+        config.allow_compound_variable = variable_set != 'CMS'
       end
 
       page = Crossbeams::LabelDesigner::Page.new(opts[:id])
