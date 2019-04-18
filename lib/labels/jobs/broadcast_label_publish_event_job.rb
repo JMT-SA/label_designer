@@ -18,7 +18,6 @@ module LabelApp
     private
 
     def broadcast_event
-      # p @payload
       @repo.all(:label_publish_notifications, LabelPublishNotification, label_publish_log_id: @label_publish_log.id).each do |notification|
         NotifyLabelPublishEventJob.enqueue(notification.id, @payload)
       end
@@ -80,7 +79,23 @@ module LabelApp
 
     def variable_details_for(variable_set, varnames)
       config = config_for(variable_set)
-      varnames.map { |varname| { varname => config[varname] } }
+      varnames.map { |varname| { display_varname(varname) => varname.start_with?('CMP:') ? composite_config(config, varname) : config[varname] } }
+    end
+
+    def composite_config(config, varname)
+      # get tokens within ${} and replace with config resolver
+      tokens = varname.scan(/\$\{(.+?)\}/).flatten
+      lkp = {}
+      tokens.each { |token| lkp[token] = config[token][:resolver] }
+      composite_resolver = varname
+      tokens.each { |t| composite_resolver.gsub!(t, lkp[t]) }
+
+      { group: 'Any', resolver: composite_resolver, applications: ['ANY'] }
+    end
+
+    def display_varname(varname)
+      return varname unless varname.start_with?('CMP:')
+      varname.gsub(/CMP:|[${}]/, '')
     end
 
     def config_for(variable_set)
