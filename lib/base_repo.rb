@@ -228,6 +228,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param arr [Array] the array to convert.
   # @return [Sequel::Postgres::PGArray] Postgres version of the Array.
   def array_for_db_col(arr)
+    return nil if arr.nil?
     Sequel.pg_array(arr)
   end
 
