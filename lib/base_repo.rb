@@ -219,6 +219,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param hash [Hash] the hash to convert.
   # @return [Sequel::Postgres::JSONHash] JSON version of the Hash.
   def hash_for_jsonb_col(hash)
+    return nil if hash.nil?
     Sequel.pg_json(hash)
   end
 
