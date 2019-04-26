@@ -8,6 +8,7 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - Work with compound variables in labels.
+- Tables can have a column named `extended_columns` with JSONB key/values that can be displayed and edited.
 ### Changed
 ### Fixed
 

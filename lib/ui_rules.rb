@@ -39,6 +39,35 @@ module UiRules
 
     private
 
+    def extended_columns(repo, table, edit_mode: true)
+      config = Crossbeams::Config::ExtendedColumnDefinitions::EXTENDED_COLUMNS.dig(table, AppConst::CLIENT_CODE)
+      return if config.nil?
+      config.each do |key, defn|
+        caption = key.to_s.split('_').map(&:capitalize).join(' ')
+        fields["extcol_#{key}".to_sym] = if edit_mode
+                                           renderer_for_extcol(repo, defn, caption)
+                                         else
+                                           { renderer: :label, caption: caption, as_boolean: defn[:type] == :boolean }
+                                         end
+      end
+    end
+
+    def renderer_for_extcol(repo, config, caption)
+      field = { caption: caption }
+      if config[:masterlist_key]
+        field[:renderer] = :select
+        field[:prompt] = true
+        field[:options] = repo.master_list_values(config[:masterlist_key])
+      elsif %i[integer number numeric].include?(config[:type])
+        field[:renderer] = config[:type]
+      elsif config[:type] == :boolean
+        field[:renderer] = :checkbox
+      end
+      field[:required] = true if config[:required]
+      field[:pattern] = config[:pattern] if config[:pattern]
+      field
+    end
+
     def common_values_for_fields(value = nil)
       @rules[:fields] = value.nil? ? {} : value
     end

@@ -291,7 +291,7 @@ class LabelDesigner < Roda
               category: grid_cols[:category],
               updated_by: grid_cols[:updated_by],
               sub_category:  grid_cols[:sub_category]
-            },
+            }.merge(interactor.extended_columns_for_row(grid_cols)),
                                 notice: res.message)
           else
             re_show_form(r, res) { Labels::Labels::Label::Properties.call(id, params[:label], res.errors) }

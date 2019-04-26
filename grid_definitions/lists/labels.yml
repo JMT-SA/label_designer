@@ -1,5 +1,7 @@
 ---
 :dataminer_definition: labels
+:dataminer_client_definitions:
+  srcc: labels_srcc
 :actions:
   - :url: /labels/labels/labels/$:id$/edit
     :text: Edit

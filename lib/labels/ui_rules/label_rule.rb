@@ -19,6 +19,7 @@ module UiRules
       set_import_fields if @mode == :import
 
       add_approve_behaviours if @mode == :approve
+      extended_columns(@this_repo, :labels, edit_mode: !%i[show archive complete reopen].include?(@mode))
 
       form_name 'label'
     end

@@ -20,6 +20,7 @@ module LabelApp
     attribute :updated_by, Types::String
     attribute :completed, Types::Bool
     attribute :approved, Types::Bool
+    attribute :extended_columns, Types::JSON::Hash.optional
 
     #  label_name character varying(255) NOT NULL,
     #   label_json text,

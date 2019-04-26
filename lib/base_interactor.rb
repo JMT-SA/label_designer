@@ -62,6 +62,43 @@ class BaseInteractor
     changeset.to_h.merge(updated_by: @user.user_name)
   end
 
+  # Remove all parameters for an +extended_columns+ field from a normal params object.
+  # Return the params and the extended_columns separately.
+  #
+  # @param params [Hash] the request parameters.
+  # @return [Array] the params and extended_columns Hashes.
+  def unwrap_extended_columns_params(params)
+    parms = {}
+    ext = {}
+    params.each do |name, value|
+      if name.to_s.start_with?('extcol_')
+        ext[name.to_s.delete_prefix('extcol_').to_sym] = value
+      else
+        parms[name] = value
+      end
+    end
+    [parms, ext]
+  end
+
+  # Add extended_columns to a changeset.
+  #
+  # @param changeset [Hash, DryStruct] the changeset.
+  # @param repo [BaseRepository] any repository.
+  # @param extended_cols [Hash] the extended_column values.
+  # @return [Hash] the augmented changeset.
+  def add_extended_columns_to_changeset(changeset, repo, extended_cols)
+    changeset.to_h.merge(extended_columns: repo.hash_for_jsonb_col(extended_cols))
+  end
+
+  # Get the extended_columns hash from an instance and change the keys from strings to symbols.
+  #
+  # @param instance [DryStruct/Hash] the data instance.
+  # @return [Hash] the extended_columns Hash or an empty Hash.
+  def extended_columns_for_row(instance)
+    return {} unless instance.to_h[:extended_columns]
+    instance.to_h[:extended_columns].symbolize_keys
+  end
+
   # Mark an entity as complete.
   #
   # @param table_name [string] the table.

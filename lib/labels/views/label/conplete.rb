@@ -26,6 +26,7 @@ module Labels
                 fold.add_field :language
                 fold.add_field :category
                 fold.add_field :sub_category
+                Crossbeams::Config::ExtendedColumnDefinitions.extended_columns_for_view(:labels, fold)
               end
             end
           end

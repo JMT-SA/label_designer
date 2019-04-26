@@ -7,6 +7,9 @@ class AppConst
     Hash[array.map { |w, h| ["#{w}x#{h}", { 'width': w, 'height': h }] }].freeze
   end
 
+  # Client-specific code
+  CLIENT_CODE = ENV.fetch('CLIENT_CODE')
+
   # Constants for roles:
   ROLE_IMPLEMENTATION_OWNER = 'IMPLEMENTATION_OWNER'
   ROLE_CUSTOMER = 'CUSTOMER'

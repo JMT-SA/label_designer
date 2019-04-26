@@ -23,6 +23,7 @@ require 'uri'
 require 'pry' if ENV.fetch('RACK_ENV') == 'development'
 
 require './config/app_const'
+require './config/extended_column_definitions'
 require './config/mail_settings'
 require './config/observers_list'
 require './config/status_header_definitions'

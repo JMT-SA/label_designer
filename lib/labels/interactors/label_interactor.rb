@@ -45,10 +45,11 @@ module LabelApp
     end
 
     def update_label(id, params)
-      res = validate_label_params(params)
-      return validation_failed_response(res) unless res.messages.empty?
+      parms, extcols = unwrap_extended_columns_params(params)
+      res = validate_label_params(parms)
+      return validation_failed_response(params) unless res.messages.empty?
       repo.transaction do
-        repo.update_label(id, include_updated_by_in_changeset(res))
+        repo.update_label(id, include_updated_by_in_changeset(add_extended_columns_to_changeset(res, repo, extcols)))
         log_transaction
       end
       instance = label(id)
