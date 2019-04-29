@@ -68,6 +68,25 @@ module UiRules
       field
     end
 
+    def apply_extended_column_defaults_to_form_object(table)
+      config = Crossbeams::Config::ExtendedColumnDefinitions::EXTENDED_COLUMNS.dig(table, AppConst::CLIENT_CODE)
+      return if config.nil?
+
+      col_with_default = {}
+      config.each do |key, defn|
+        next if defn[:default].nil?
+        col_with_default[key.to_s] = defn[:default]
+      end
+      return if col_with_default.empty?
+      if @form_object.is_a?(Hash) || @form_object.is_a?(OpenStruct)
+        @form_object[:extended_columns] = col_with_default
+      else
+        hs = @form_object.to_h
+        hs[:extended_columns] = col_with_default
+        @form_object = OpenStruct(hs)
+      end
+    end
+
     def common_values_for_fields(value = nil)
       @rules[:fields] = value.nil? ? {} : value
     end

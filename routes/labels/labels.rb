@@ -258,20 +258,6 @@ class LabelDesigner < Roda
         end
       end
 
-      # r.on 'send_preview' do
-      #   r.on String do |screen_or_print|
-      #     interactor.do_preview(id, screen_or_print)
-      #   end
-      #   # r.on String do |screen_or_print|
-      #   # r.on 'screen' do
-      #   #   do_preview(id, 'screen')
-      #   # end
-      #   # r.on 'print' do
-      #   #   do_preview(id, 'print')
-      #   # end
-      #   # end
-      # end
-
       r.is do
         r.get do       # SHOW
           check_auth!('designs', 'read')
@@ -280,19 +266,22 @@ class LabelDesigner < Roda
         r.patch do     # UPDATE
           res = interactor.update_label(id, params[:label])
           if res.success
-            grid_cols = res.instance.to_h
-            update_grid_row(id, changes:
-            {
-              label_name: grid_cols[:label_name],
-              container_type: grid_cols[:container_type],
-              commodity: grid_cols[:commodity],
-              market: grid_cols[:market],
-              language: grid_cols[:language],
-              category: grid_cols[:category],
-              updated_by: grid_cols[:updated_by],
-              sub_category:  grid_cols[:sub_category]
-            }.merge(interactor.extended_columns_for_row(grid_cols)),
-                                notice: res.message)
+            row_keys = %i[label_name container_type commodity market language category updated_by sub_category]
+            update_grid_row(id, changes: select_attributes(res.instance, row_keys), notice: res.message)
+            # update_grid_row(id, changes: select_attributes(res.instance, row_keys, interactor.extended_columns_for_row(res.instance)), notice: res.message)
+            # grid_cols = res.instance.to_h
+            # update_grid_row(id, changes:
+            # {
+            #   label_name: grid_cols[:label_name],
+            #   container_type: grid_cols[:container_type],
+            #   commodity: grid_cols[:commodity],
+            #   market: grid_cols[:market],
+            #   language: grid_cols[:language],
+            #   category: grid_cols[:category],
+            #   updated_by: grid_cols[:updated_by],
+            #   sub_category:  grid_cols[:sub_category]
+            # }.merge(interactor.extended_columns_for_row(grid_cols)),
+            #                     notice: res.message)
           else
             re_show_form(r, res) { Labels::Labels::Label::Properties.call(id, params[:label], res.errors) }
           end

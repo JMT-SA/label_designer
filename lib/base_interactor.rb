@@ -80,6 +80,31 @@ class BaseInteractor
     [parms, ext]
   end
 
+  # Return all parameters for an +extended_columns+ field from a params object.
+  # The keys of the resulting hash can optionally retain the "extcol_" prefix or have it stripped off.
+  #
+  # @param params [Hash] the request parameters.
+  # @param delete_prefix [boolean] should the "extcol_" prefix be removed from the keys? Default true.
+  # @return [Hash] the extended_columns Hash.
+  def select_extended_columns_params(params, delete_prefix: true)
+    selection = params.select { |a| a.to_s.start_with?('extcol_') }
+    if delete_prefix
+      selection.transform_keys { |k| k.to_s.delete_prefix('extcol_').to_sym }
+    else
+      selection
+    end
+  end
+
+  def validate_extended_columns(table, params)
+    validator = Crossbeams::Config::ExtendedColumnDefinitions::VALIDATIONS[table][AppConst::CLIENT_CODE]
+    return OpenStruct.new(messages: {}) unless validator
+
+    res = validator.call(select_extended_columns_params(params))
+    errs = { messages: res.messages.transform_keys { |k| "extcol_#{k}".to_sym } }
+    fields = res.to_h.transform_keys { |k| "extcol_#{k}".to_sym }
+    OpenStruct.new(errs.merge(fields))
+  end
+
   # Add extended_columns to a changeset.
   #
   # @param changeset [Hash, DryStruct] the changeset.

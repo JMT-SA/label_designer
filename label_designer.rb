@@ -202,6 +202,7 @@ class LabelDesigner < Roda
       r.post do
         repo = LabelApp::LabelRepo.new
         extra_attributes = session[:new_label_attributes]
+        extcols = interactor.select_extended_columns_params(extra_attributes)
         from_id = extra_attributes[:cloned_from_id]
         changeset = { label_json: params[:label],
                       label_name: params[:labelName],
@@ -219,7 +220,7 @@ class LabelDesigner < Roda
 
         id = nil
         DB.transaction do
-          id = repo.create_label(interactor.include_created_by_in_changeset(changeset))
+          id = repo.create_label(interactor.include_created_by_in_changeset(interactor.add_extended_columns_to_changeset(changeset, repo, extcols)))
           if from_id.nil?
             repo.log_status('labels', id, 'CREATED', user_name: current_user.user_name)
           else

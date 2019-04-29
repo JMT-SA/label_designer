@@ -26,6 +26,10 @@ module Labels
               form.add_field :category
               form.add_field :sub_category
               form.add_field :multi_label
+              form.fold_up do |fold|
+                fold.caption 'Extended attributes'
+                Crossbeams::Config::ExtendedColumnDefinitions.extended_columns_for_view(:labels, fold)
+              end
             end
           end
 

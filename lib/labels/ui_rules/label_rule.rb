@@ -103,6 +103,7 @@ module UiRules
                                     sub_category: nil,
                                     multi_label: false,
                                     variable_set: AppConst::LABEL_VARIABLE_SETS.first)
+      apply_extended_column_defaults_to_form_object(:labels)
     end
 
     private

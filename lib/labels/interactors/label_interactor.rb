@@ -15,6 +15,7 @@ module LabelApp
     end
 
     def pre_create_label(params)
+      extcols = select_extended_columns_params(params, delete_prefix: false)
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
       attrs = {
@@ -25,16 +26,17 @@ module LabelApp
         category: params[:category],
         variable_set: params[:variable_set],
         sub_category: params[:sub_category]
-      }
+      }.merge(extcols)
       success_response('Ok', attrs)
     end
 
     def create_label(params) # rubocop:disable Metrics/AbcSize
+      extcols = select_extended_columns_params(params)
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
       id = nil
       repo.transaction do
-        id = repo.create_label(include_created_by_in_changeset(res))
+        id = repo.create_label(include_created_by_in_changeset(add_extended_columns_to_changeset(res, repo, extcols)))
         log_transaction
       end
       instance = label(id)
@@ -44,10 +46,11 @@ module LabelApp
       validation_failed_response(OpenStruct.new(messages: { label_name: ['This label already exists'] }))
     end
 
-    def update_label(id, params)
+    def update_label(id, params) # rubocop:disable Metrics/AbcSize
       parms, extcols = unwrap_extended_columns_params(params)
+      ext_res = validate_extended_columns(:labels, params)
       res = validate_label_params(parms)
-      return validation_failed_response(params) unless res.messages.empty?
+      return mixed_validation_failed_response(res, ext_res) unless res.messages.empty? && ext_res.messages.empty?
       repo.transaction do
         repo.update_label(id, include_updated_by_in_changeset(add_extended_columns_to_changeset(res, repo, extcols)))
         log_transaction
