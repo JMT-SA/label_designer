@@ -95,6 +95,11 @@ class BaseInteractor
     end
   end
 
+  # Apply validation rules to a set of extended_columns and return the results.
+  #
+  # @param table [Symbol] the table name.
+  # @param params [Hash] the request parameters.
+  # @return [OpenStruct] validation results.
   def validate_extended_columns(table, params)
     validator = Crossbeams::Config::ExtendedColumnDefinitions::VALIDATIONS[table][AppConst::CLIENT_CODE]
     return OpenStruct.new(messages: {}) unless validator
