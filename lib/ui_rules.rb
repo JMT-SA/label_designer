@@ -70,7 +70,7 @@ module UiRules
 
     def apply_extended_column_defaults_to_form_object(table)
       config = Crossbeams::Config::ExtendedColumnDefinitions::EXTENDED_COLUMNS.dig(table, AppConst::CLIENT_CODE)
-      return if config.nil?
+      return nil if config.nil?
 
       col_with_default = {}
       config.each do |key, defn|

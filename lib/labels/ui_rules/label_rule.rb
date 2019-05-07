@@ -2,7 +2,7 @@
 
 module UiRules
   class LabelRule < Base
-    def generate_rules # rubocop:disable Metrics/AbcSize
+    def generate_rules # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
       @this_repo = LabelApp::LabelRepo.new
       @print_repo = LabelApp::PrinterRepo.new
       @master_repo = LabelApp::MasterListRepo.new
@@ -84,7 +84,10 @@ module UiRules
     end
 
     def make_form_object
-      make_new_form_object && return if @mode == :new || @mode == :import
+      if @mode == :new || @mode == :import
+        make_new_form_object
+        return
+      end
 
       @form_object = @this_repo.find_label(@options[:id])
       @form_object = OpenStruct.new(@form_object.to_h.merge(to: nil)) if @mode == :complete
