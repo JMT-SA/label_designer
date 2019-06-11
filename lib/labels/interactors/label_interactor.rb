@@ -338,8 +338,8 @@ module LabelApp
       end
     end
 
-    def reopen_a_label(id, params)
-      res = reopen_a_record(:labels, id, params.merge(enqueue_job: false))
+    def reopen_a_label(id)
+      res = reopen_a_record(:labels, id, enqueue_job: false)
       # Use params to trigger alert...
       if res.success
         success_response(res.message, label(id))

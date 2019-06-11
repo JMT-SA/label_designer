@@ -248,7 +248,7 @@ class LabelDesigner < Roda
         end
 
         r.post do
-          res = interactor.reopen_a_label(id, params[:label])
+          res = interactor.reopen_a_label(id)
           if res.success
             flash[:notice] = res.message
             redirect_to_last_grid(r)
