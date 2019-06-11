@@ -47,6 +47,7 @@ module LabelApp
 
       # JS: create publish header & publish_label_logs
       create_publish_logs(fname, vars)
+      clear_published_history(vars[:label_ids])
 
       mes_repo = MesserverApp::MesserverRepo.new
       res = mes_repo.send_publish_package(vars[:chosen_printer], vars[:chosen_targets], fname, binary_data)
@@ -54,6 +55,12 @@ module LabelApp
         success_response('Published labels.', OpenStruct.new(fname: fname, body: res.instance))
       else
         failed_response(res.message)
+      end
+    end
+
+    def clear_published_history(label_ids)
+      label_ids.each do |label_id|
+        DevelopmentApp::ClearAuditTrail.enqueue(:labels, label_id, keep_latest: true)
       end
     end
 

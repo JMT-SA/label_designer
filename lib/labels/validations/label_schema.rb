@@ -13,6 +13,6 @@ module LabelApp
     optional(:category).maybe(:str?)
     optional(:sub_category).maybe(:str?)
     optional(:multi_label).maybe(:bool?)
-    required(:variable_set, Types::StrippedString).filled(:str?)
+    optional(:variable_set, Types::StrippedString).filled(:str?)
   end
 end
