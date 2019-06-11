@@ -7,18 +7,18 @@ GIT
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-label_designer.git
-  revision: 26fbaabdd32bda6c4b4cba527e88f47dadad9ca8
+  revision: 9060acc5a0fdc3b11e949ef0655bdfab1bf49520
   specs:
-    crossbeams-label_designer (0.2.1)
+    crossbeams-label_designer (0.2.2)
       dry-configurable
       erubi
       json
 
 GIT
   remote: https://github.com/NoSoft-SA/crossbeams-layout.git
-  revision: 5eed99796f5831db4fbb126cd8468b31f762430b
+  revision: ac93b55cb9f53bc416823ef63503e7420e29fbde
   specs:
-    crossbeams-layout (0.2.1)
+    crossbeams-layout (0.2.2)
       diffy
       rouge
 
@@ -62,7 +62,7 @@ GEM
     concurrent-ruby (1.1.5)
     diffy (3.3.0)
     dotenv (2.5.0)
-    dry-configurable (0.8.2)
+    dry-configurable (0.8.3)
       concurrent-ruby (~> 1.0)
       dry-core (~> 0.4, >= 0.4.7)
     dry-container (0.6.0)

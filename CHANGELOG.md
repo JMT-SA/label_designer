@@ -7,10 +7,15 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+### Changed
+### Fixed
+
+## [0.5.2] - 2019-06-11
+### Added
 - Work with compound variables in labels.
 - Tables can have a column named `extended_columns` with JSONB key/values that can be displayed and edited.
 ### Changed
-### Fixed
+- Labels are designed with a 1mm margin all round.
 
 ## [0.5.1] - 2019-04-09
 ### Added

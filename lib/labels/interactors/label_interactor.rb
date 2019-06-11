@@ -18,6 +18,7 @@ module LabelApp
       extcols = select_extended_columns_params(params, delete_prefix: false)
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
+
       attrs = {
         container_type: params[:container_type],
         commodity: params[:commodity],
@@ -34,6 +35,7 @@ module LabelApp
       extcols = select_extended_columns_params(params)
       res = validate_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
+
       id = nil
       repo.transaction do
         id = repo.create_label(include_created_by_in_changeset(add_extended_columns_to_changeset(res, repo, extcols)))
@@ -51,6 +53,7 @@ module LabelApp
       ext_res = validate_extended_columns(:labels, params)
       res = validate_label_params(parms)
       return mixed_validation_failed_response(res, ext_res) unless res.messages.empty? && ext_res.messages.empty?
+
       repo.transaction do
         repo.update_label(id, include_updated_by_in_changeset(add_extended_columns_to_changeset(res, repo, extcols)))
         log_transaction
@@ -117,6 +120,7 @@ module LabelApp
     def can_email_preview?(id)
       res = can_preview?(id)
       return res unless res.success
+
       if @user.email.nil? || @user.email.strip.empty?
         failed_response('You do not have an email address set')
       elsif label(id).multi_label
@@ -129,6 +133,7 @@ module LabelApp
     def prepare_clone_label(id, params)
       res = validate_clone_label_params(params)
       return validation_failed_response(res) unless res.messages.empty?
+
       instance = label(id)
       attrs = {
         label_name: params[:label_name],
@@ -147,12 +152,17 @@ module LabelApp
     def background_images(id)
       res = can_preview?(id)
       return res unless res.success
+
       ids = if label(id).multi_label
               repo.sub_label_ids(id)
             else
               [id]
             end
       success_response('ok', ids)
+    end
+
+    def label_border(id)
+      label(id).px_per_mm.to_f / 2.0
     end
 
     def png_image(id)
@@ -168,11 +178,13 @@ module LabelApp
     def label_export(id)
       instance = label(id)
       raise 'Multi-labels cannot be exported' if instance.multi_label
+
       LabelFiles.new.make_export_zip(instance)
     end
 
     def import_label(params) # rubocop:disable Metrics/AbcSize
       return failed_response('No file selected to import') unless params[:import_file] && (tempfile = params[:import_file][:tempfile])
+
       attrs = {
         label_name: params[:label_name],
         container_type: params[:container_type],
@@ -306,7 +318,7 @@ module LabelApp
       HTML
     end
 
-    PNG_REGEXP = %r{\Adata:([-\w]+/[-\w\+\.]+)?;base64,(.*)}m
+    PNG_REGEXP = %r{\Adata:([-\w]+/[-\w\+\.]+)?;base64,(.*)}m.freeze
     def image_from_param(param)
       data_uri_parts = param.match(PNG_REGEXP) || []
       # extension = MIME::Types[data_uri_parts[1]].first.preferred_extension
@@ -364,6 +376,7 @@ module LabelApp
 
     def variable_set_from_label(id)
       return nil if id.nil?
+
       repo = LabelApp::LabelRepo.new
       repo.find_label(id).variable_set
     end
@@ -376,9 +389,7 @@ module LabelApp
       if opts[:id]
         repo = LabelApp::LabelRepo.new
         label = repo.find_label(opts[:id])
-        if opts[:cloned]
-          label = LabelApp::Label.new(label.to_h.merge(id: nil, label_name: opts[:label_name]))
-        end
+        label = LabelApp::Label.new(label.to_h.merge(id: nil, label_name: opts[:label_name])) if opts[:cloned]
         label
       else
         OpenStruct.new(opts)
@@ -390,7 +401,7 @@ module LabelApp
 
       config = {
         labelState: opts[:id].nil? ? 'new' : 'edit',
-        labelName:  label.label_name,
+        labelName: label.label_name,
         savePath: label.id.nil? ? '/save_label' : "/save_label/#{label.id}",
         labelDimension: label.label_dimension,
         id: label.id,

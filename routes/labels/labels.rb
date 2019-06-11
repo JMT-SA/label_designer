@@ -71,7 +71,7 @@ class LabelDesigner < Roda
       r.on 'background' do
         res = interactor.background_images(id)
         if res.success
-          html = res.instance.map { |sub| "<img src='/labels/labels/labels/#{sub}/png' />" }.join("\n<hr>")
+          html = res.instance.map { |sub| "<div style='border:#{interactor.label_border(id)}px solid orange'><img src='/labels/labels/labels/#{sub}/png' /></div>" }.join("\n<hr>")
           update_dialog_content(content: html)
         else
           dialog_warning(res.message)
@@ -142,7 +142,7 @@ class LabelDesigner < Roda
             f.path
           end
           File.chmod(0o644, filepath) # Ensure web app can read the image.
-          update_dialog_content(content: "<img src='/#{File.join('tempfiles', File.basename(filepath))}'>")
+          update_dialog_content(content: "<div style='border:#{interactor.label_border(id)}px solid orange'><img src='/#{File.join('tempfiles', File.basename(filepath))}'>i</div>")
         else
           { flash: { error: res.message } }.to_json
         end
