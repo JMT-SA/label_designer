@@ -4,6 +4,10 @@
 .brown {
   color: #a52a2a;
 }
+/* Force editable grid column to render when in modal */
+.ag-theme-balham .ag-popup-editor {
+  z-index: 30 !important;
+}
 .gridEditableColumn {
   color: #357edd;
 }
@@ -304,6 +308,11 @@ form.rodauth div.form-group {
 /*  border: 0 none; */
 }
 input.cbl-input {
+  line-height: 1.4em;
+  border-radius: 0.25em;
+  border: 1px solid #999;
+}
+div.cbl-input {
   line-height: 1.4em;
   border-radius: 0.25em;
   border: 1px solid #999;
