@@ -16,6 +16,9 @@ class AppConst
   ROLE_SUPPLIER = 'SUPPLIER'
   ROLE_TRANSPORTER = 'TRANSPORTER'
 
+  # Routes that do not require login:
+  BYPASS_LOGIN_ROUTES = [].freeze
+
   # Menu
   FUNCTIONAL_AREA_RMD = 'RMD'
 
@@ -79,4 +82,6 @@ class AppConst
   EMAIL_GROUP_LABEL_APPROVERS = 'label_approvers'
   EMAIL_GROUP_LABEL_PUBLISHERS = 'label_publishers'
   USER_EMAIL_GROUPS = [EMAIL_GROUP_LABEL_APPROVERS, EMAIL_GROUP_LABEL_PUBLISHERS].freeze
+
+  BIG_ZERO = BigDecimal('0')
 end

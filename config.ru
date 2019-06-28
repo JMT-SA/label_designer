@@ -1,4 +1,4 @@
-require './label_designer.rb'
+require './webapp.rb'
 
 # EXAMPLE of quick+dirty debug middleware:
 #

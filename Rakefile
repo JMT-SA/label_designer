@@ -32,7 +32,7 @@ namespace :assets do
   desc 'Precompile the assets'
   task :precompile do
     require_relative 'config/environment'
-    require './label_designer'
+    require './webapp'
     LabelDesigner.compile_assets
   end
   CLEAN << 'prestyle.css'
@@ -59,6 +59,7 @@ namespace :jobs do
     part1 = "screen -S #{session_name} -X quit"
     part2 = "cd #{__dir__} && screen -dmS #{session_name} bash -c 'source /usr/local/share/chruby/chruby.sh && chruby #{ruby_ver} && RACK_ENV=production bundle exec que -q #{queue} ./app_loader.rb'"
     # `#{part1} ; #{part2}`
+    # `{ #{part1} ; #{part2} }`
     `#{part1}`
     `#{part2}`
   end
@@ -68,10 +69,10 @@ namespace :db do
   desc 'Add a new user'
   task :add_user, %i[login_name password user_name] => [:dotenv_with_override] do |_, args|
     raise "\nLogin name cannot include spaces.\n\n" if args[:login_name].include?(' ')
+
     require 'sequel'
-    # db_name = "#{ENV.fetch('DATABASE_URL')}#{'_test' if ENV.fetch('RACK_ENV') == 'test'}"
     db_name = if ENV.fetch('RACK_ENV') == 'test'
-                'postgres://postgres:postgres@localhost/label_designer_test'
+                ENV.fetch('DATABASE_URL').rpartition('/')[0..1].push(ENV.fetch('DATABASE_NAME')).push('_test').join
               else
                 ENV.fetch('DATABASE_URL')
               end
@@ -84,16 +85,17 @@ namespace :db do
   task version: :dotenv_with_override do
     require 'sequel'
     Sequel.extension :migration
-    # db_name = "#{ENV.fetch('DATABASE_URL')}#{'_test' if ENV.fetch('RACK_ENV') == 'test'}"
     db_name = if ENV.fetch('RACK_ENV') == 'test'
-                'postgres://postgres:postgres@localhost/label_designer_test'
+                ENV.fetch('DATABASE_URL').rpartition('/')[0..1].push(ENV.fetch('DATABASE_NAME')).push('_test').join
               else
                 ENV.fetch('DATABASE_URL')
               end
     db = Sequel.connect(db_name)
     version = if db.tables.include?(:schema_migrations)
                 db[:schema_migrations].reverse(:filename).first[:filename]
-              end || 0
+              else
+                0
+              end
 
     puts "Schema Version: #{version}"
   end
@@ -102,9 +104,8 @@ namespace :db do
   task recent_migrations: :dotenv_with_override do
     require 'sequel'
     Sequel.extension :migration
-    # db_name = "#{ENV.fetch('DATABASE_URL')}#{'_test' if ENV.fetch('RACK_ENV') == 'test'}"
     db_name = if ENV.fetch('RACK_ENV') == 'test'
-                'postgres://postgres:postgres@localhost/label_designer_test'
+                ENV.fetch('DATABASE_URL').rpartition('/')[0..1].push(ENV.fetch('DATABASE_NAME')).push('_test').join
               else
                 ENV.fetch('DATABASE_URL')
               end
@@ -122,9 +123,8 @@ namespace :db do
   task :migrate, [:version] => :dotenv_with_override do |_, args|
     require 'sequel'
     Sequel.extension :migration
-    # db_name = "#{ENV.fetch('DATABASE_URL')}#{'_test' if ENV.fetch('RACK_ENV') == 'test'}"
     db_name = if ENV.fetch('RACK_ENV') == 'test'
-                'postgres://postgres:postgres@localhost/label_designer_test'
+                ENV.fetch('DATABASE_URL').rpartition('/')[0..1].push(ENV.fetch('DATABASE_NAME')).push('_test').join
               else
                 ENV.fetch('DATABASE_URL')
               end
@@ -158,10 +158,10 @@ namespace :db do
             #   primary_key :id
             #   foreign_key :some_id, :some_table_name, null: false, key: [:id]
             #
-            #   String :my_uniq_name, size: 255, null: false
-            #   String :user_name, size: 255
-            #   String :password_hash, size: 255, null: false
-            #   String :email, size: 255
+            #   String :my_uniq_name, null: false
+            #   String :user_name
+            #   String :password_hash, null: false
+            #   String :email
             #   TrueClass :active, default: true
             #   DateTime :created_at, null: false
             #   DateTime :updated_at, null: false
@@ -212,7 +212,7 @@ namespace :db do
             extension :pg_triggers
             create_table(:#{nm}, ignore_index_errors: true) do
               primary_key :id
-              # String :code, size: 255, null: false
+              # String :code, null: false
               # TrueClass :active, default: true
               DateTime :created_at, null: false
               DateTime :updated_at, null: false

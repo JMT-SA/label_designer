@@ -201,7 +201,7 @@ const crossbeamsUtils = {
         // err.style.display = 'block';
         document.getElementById(this.activeDialogTitle()).innerHTML = '<span class="light-red">404</span>';
         crossbeamsUtils.setDialogContent('The requested URL could not be found.');
-        console.log('404', href);
+        console.log('404', href); // eslint-disable-line no-console
         return {};
       }
       return response.json();
@@ -218,10 +218,10 @@ const crossbeamsUtils = {
         crossbeamsUtils.setDialogContent(data.flash.error);
         if (data.exception) {
           if (data.backtrace) {
-            console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
-            console.info('==Backend Backtrace==');
-            console.info(data.backtrace.join('\n'));
-            console.groupEnd();
+            console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
+            console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+            console.info(data.backtrace.join('\n')); // eslint-disable-line no-console
+            console.groupEnd(); // eslint-disable-line no-console
           }
         }
       } else if (data.replaceDialog) {
@@ -392,7 +392,8 @@ const crossbeamsUtils = {
     const select = elem.selectr;
     let nVal = '';
     let nText = '';
-    select.removeAll();
+    const newItems = [];
+    select.removeActiveItems();
     action.replace_options.options.forEach((item) => {
       if (item.constructor === Array) {
         nVal = (item[1] || item[0]);
@@ -401,12 +402,12 @@ const crossbeamsUtils = {
         nVal = item;
         nText = item;
       }
-      select.add({
+      newItems.push({
         value: nVal,
-        text: nText,
+        label: nText,
       });
     });
-    select.setPlaceholder();
+    select.setChoices(newItems, 'value', 'label', true);
   },
 
   /**
@@ -476,7 +477,7 @@ const crossbeamsUtils = {
     }
     if (elem.selectr) {
       if (String(elem.value) !== String(action.change_select_value.value)) {
-        elem.selectr.setValue(action.change_select_value.value);
+        elem.selectr.setChoiceByValue(String(action.change_select_value.value));
       }
     } else {
       elem.value = action.change_select_value.value;
@@ -680,10 +681,10 @@ const crossbeamsUtils = {
           if (data.exception) {
             Jackbox.error(data.flash.error, { time: 20 });
             if (data.backtrace) {
-              console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
-              console.info('==Backend Backtrace==');
-              console.info(data.backtrace.join('\n'));
-              console.groupEnd();
+              console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
+              console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+              console.info(data.backtrace.join('\n')); // eslint-disable-line no-console
+              console.groupEnd(); // eslint-disable-line no-console
             }
           } else {
             Jackbox.error(data.flash.error);
@@ -693,6 +694,21 @@ const crossbeamsUtils = {
     }).catch((data) => {
       crossbeamsUtils.fetchErrorHandler(data);
     });
+  },
+
+  /**
+   * observeChange behaviour - call specified urls on change of an
+   * input's value - either through keyup or blur events.
+   * @param {element} elem - the input element that changed.
+   * @param {string} rules - the input element dataset rule.
+   * @returns {void}
+   */
+  observeInputChange: function observeInputChange(elem, rules) {
+    // const s = elem.dataset.observeChange;
+    const j = JSON.parse(rules);
+    const urls = j.map(el => this.buildObserveChangeUrl(el, elem.value));
+
+    urls.forEach(url => this.fetchDropdownChanges(url));
   },
 
   /**
@@ -742,37 +758,62 @@ const crossbeamsUtils = {
   makeSearchableSelects: function makeSearchableSelects() {
     const sels = document.querySelectorAll('.searchable-select');
     let holdSel;
+    let cls = 'cbl-input';
+    let isRequired;
+    let clearable;
+    let autoHide;
+    let sortItems;
+    let searchableOpt;
     sels.forEach((sel) => {
       if (sel.selectr) {
-        // Selectr has already been applied...
+        // Choices has already been applied...
       } else {
-        const isRequired = sel.required;
-        let cls = 'cbl-input';
+        isRequired = sel.required;
+        searchableOpt = sel.dataset.noSearch !== 'Y';
+        clearable = sel.dataset.clearable === 'true';
+        autoHide = sel.dataset.autoHideSearch === 'Y';
+        sortItems = sel.dataset.sortItems === 'Y';
+        // Do not show a search box if there are 10 or less items.
+        // (This prevents unnecessary keyboard activation on mobile devices)
+        if (searchableOpt && autoHide && sel.options.length < 11) {
+          searchableOpt = false;
+        }
+        cls = 'cbl-input';
         if (isRequired) {
           sel.required = false;
           cls = 'cbl-input-required';
         }
-        holdSel = new Selectr(sel, {
-          customClass: cls,
-          defaultSelected: true, // should configure via data...
-          // multiple: true,     // should configure via data...
-          allowDeselect: false,
-          clearable: true,       // should configure via data...
-          disabled: sel.disabled,
-          width: 'notset',       // stop Selectr from setting width to 100%
-        }); // select that can be searched.
-        // Store a reference on the DOM node.
-        sel.selectr = holdSel;
+
+        holdSel = new Choices(sel, {
+          searchEnabled: searchableOpt,
+          searchResultLimit: 100,
+          removeItemButton: clearable,
+          itemSelectText: '',
+          classNames: {
+            containerOuter: `choices ${cls}`,
+            containerInner: 'choices__inner_cbl',
+            highlightedState: 'is-highlighted_cbl',
+          },
+          shouldSort: sortItems,
+          searchFields: ['label'],
+          fuseOptions: {
+            include: 'score',
+            threshold: 0.25,
+          },
+        });
+        if (sel.diabled) {
+          holdSel.disable();
+        }
 
         // changeValues behaviour - check if another element should be
         // enabled/disabled based on the current selected value.
         if (sel.dataset && sel.dataset.changeValues) {
-          holdSel.on('selectr.change', (option) => {
+          sel.addEventListener('change', (event) => {
             sel.dataset.changeValues.split(',').forEach((el) => {
               const target = document.getElementById(el);
               if (target && (target.dataset && target.dataset.enableOnValues)) {
                 const vals = target.dataset.enableOnValues;
-                if (_.includes(vals, option.value)) {
+                if (_.includes(vals, event.detail.value)) {
                   target.disabled = false;
                 } else {
                   target.disabled = true;
@@ -792,14 +833,16 @@ const crossbeamsUtils = {
         // observeChange behaviour - get rules from select element and
         // call the supplied url(s).
         if (sel.dataset && sel.dataset.observeChange) {
-          holdSel.on('selectr.change', (option) => {
+          sel.addEventListener('change', (event) => {
             const s = sel.dataset.observeChange;
             const j = JSON.parse(s);
-            const urls = j.map(el => this.buildObserveChangeUrl(el, option));
+            const urls = j.map(el => this.buildObserveChangeUrl(el, event.detail.value));
 
             urls.forEach(url => this.fetchDropdownChanges(url));
           });
         }
+
+        sel.selectr = holdSel;
       }
     });
   },
@@ -812,6 +855,22 @@ const crossbeamsUtils = {
   toggleVisibility: function toggleVisibility(id) {
     const e = document.getElementById(id);
     e.hidden = !e.hidden;
+  },
+
+  /**
+   * Open or close all FoldUps (<details> tags) in a form.
+   * @param {element} elem - the DOM element.
+   * @param {boolean} open - open or close the foldups.
+   * @returns {boolean}
+   */
+  openOrCloseFolds: function openOrCloseFolds(elem, open) {
+    const form = elem.closest('form');
+    if (form === undefined) {
+      return null;
+    }
+    const folds = form.querySelectorAll('details');
+    folds.forEach((f) => { f.open = open; });
+    return open;
   },
 
   /**
@@ -975,16 +1034,16 @@ const crossbeamsUtils = {
    * @returns {void}
    */
   fetchErrorHandler: function fetchErrorHandler(data) {
-    console.log(data);
+    console.log(data); // eslint-disable-line no-console
     if (data.response && data.response.status === 500) {
       data.response.json().then((body) => {
         if (body.flash.error) {
           if (body.exception) {
             if (body.backtrace) {
-              console.groupCollapsed('EXCEPTION:', body.exception, body.flash.error);
-              console.info('==Backend Backtrace==');
-              console.info(body.backtrace.join('\n'));
-              console.groupEnd();
+              console.groupCollapsed('EXCEPTION:', body.exception, body.flash.error); // eslint-disable-line no-console
+              console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+              console.info(body.backtrace.join('\n')); // eslint-disable-line no-console
+              console.groupEnd(); // eslint-disable-line no-console
             }
           } else {
             Jackbox.error(body.flash.error);
@@ -1033,7 +1092,7 @@ const crossbeamsUtils = {
             setTimeout(pollMessage, interval, element, url, interval);
           }
         } else {
-          console.log('Not sure what to do with this:', data);
+          console.log('Not sure what to do with this:', data); // eslint-disable-line no-console
         }
         if (data.flash) {
           if (data.flash.notice) {
@@ -1043,10 +1102,10 @@ const crossbeamsUtils = {
             if (data.exception) {
               Jackbox.error(data.flash.error, { time: 20 });
               if (data.backtrace) {
-                console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
-                console.info('==Backend Backtrace==');
-                console.info(data.backtrace.join('\n'));
-                console.groupEnd();
+                console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
+                console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+                console.info(data.backtrace.join('\n')); // eslint-disable-line no-console
+                console.groupEnd(); // eslint-disable-line no-console
               }
             } else {
               Jackbox.error(data.flash.error);
@@ -1114,10 +1173,10 @@ const crossbeamsUtils = {
           if (data.exception) {
             Jackbox.error(data.flash.error, { time: 20 });
             if (data.backtrace) {
-              console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
-              console.info('==Backend Backtrace==');
-              console.info(data.backtrace.join('\n'));
-              console.groupEnd();
+              console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
+              console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+              console.info(data.backtrace.join('\n')); // eslint-disable-line no-console
+              console.groupEnd(); // eslint-disable-line no-console
             }
           } else {
             Jackbox.error(data.flash.error);

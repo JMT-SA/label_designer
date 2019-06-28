@@ -1,13 +1,14 @@
 # frozen_string_literal: true
 
 module SecurityApp
-  class MenuRepo < BaseRepo
+  class MenuRepo < BaseRepo # rubocop:disable Metrics/ClassLength
     crud_calls_for :functional_areas, name: :functional_area, wrapper: FunctionalArea
     crud_calls_for :programs, name: :program, wrapper: Program, exclude: %i[create update delete]
     crud_calls_for :program_functions, name: :program_function, wrapper: ProgramFunction
 
     def authorise?(user, programs, sought_permission, functional_area_id)
       raise 'Invalid Functional Area' if functional_area_id.nil?
+
       prog_ids = program_ids_for(functional_area_id, programs)
       raise 'Invalid Functional Area/Program combination' if prog_ids.empty?
 

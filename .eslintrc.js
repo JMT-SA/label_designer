@@ -26,6 +26,7 @@ module.exports = {
     "agGrid": false,
     "Jackbox": false,
     "Konva": false,
+    "Choices": false,
     "Selectr": false,
     "Sortable": false,
     "multi": false,
@@ -34,6 +35,7 @@ module.exports = {
     "crossbeamsDialogLevel2": false,
     "crossbeamsGridStore": false,
     "crossbeamsUtils": false,
+    "crossbeamsDataMinerParams": false,
     "crossbeamsLocalStorage": false,
     "crossbeamsGridEvents": false
   }

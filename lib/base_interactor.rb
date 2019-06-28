@@ -126,7 +126,8 @@ class BaseInteractor
   # @return [Hash] the extended_columns Hash or an empty Hash.
   def extended_columns_for_row(instance)
     return {} unless instance.to_h[:extended_columns]
-    instance.to_h[:extended_columns].symbolize_keys
+
+    instance.to_h[:extended_columns].transform_keys(&:to_sym)
   end
 
   # Mark an entity as complete.

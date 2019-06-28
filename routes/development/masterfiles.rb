@@ -25,6 +25,25 @@ class LabelDesigner < Roda
         r.redirect '/'
       end
 
+      r.on 'permission_tree' do
+        check_auth!('masterfiles', 'user_maintenance')
+        r.get do
+          show_partial { Development::Masterfiles::User::PermissionTree.call(id) }
+        end
+        r.patch do
+          res = interactor.change_user_permissions(id, params[:user]) # apply params to tree & save hash to JSON permission_tree
+          if res.success
+            show_json_notice res.message
+          else
+            re_show_form(r, res) do
+              Development::Masterfiles::User::PermissionTree.call(id,
+                                                                  form_values: params[:permission_tree],
+                                                                  form_errors: res.errors)
+            end
+          end
+        end
+      end
+
       r.on 'details' do
         r.get do
           show_partial { Development::Masterfiles::User::Details.call(id) }

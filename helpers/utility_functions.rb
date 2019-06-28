@@ -37,6 +37,7 @@ module UtilityFunctions
 
   def change_days(anchor, no_days, up_down)
     raise ArgumentError unless no_days.positive?
+
     case anchor
     when Time
       anchor + (no_days * TIME_DAY * up_down)
@@ -91,5 +92,41 @@ module UtilityFunctions
     i = s.to_i
     f = s.to_f
     i == f ? i.to_s : f.to_s
+  end
+
+  # Deep merge for two hashes
+  #
+  # @param left [hash] the "base" hash
+  # @param right [hash] the "additional" hash
+  def merge_recursively(left, right)
+    left.merge(right) { |_, a_item, b_item| a_item.is_a?(Hash) ? merge_recursively(a_item, b_item) : b_item }
+  end
+
+  # Change string keys in a nested hash into symbol keys.
+  #
+  # @param hash [hash] the hash with keys to symbolize.
+  # @return [hash]
+  def symbolize_keys(hash)
+    if hash.is_a?(Hash)
+      Hash[
+        hash.map do |k, v|
+          [k.respond_to?(:to_sym) ? k.to_sym : k, symbolize_keys(v)]
+        end
+      ]
+    else
+      hash
+    end
+  end
+
+  def stringify_keys(hash)
+    if hash.is_a?(Hash)
+      Hash[
+        hash.map do |k, v|
+          [k.respond_to?(:to_s) ? k.to_s : k, stringify_keys(v)]
+        end
+      ]
+    else
+      hash
+    end
   end
 end

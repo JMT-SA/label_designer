@@ -22,6 +22,23 @@ module Crossbeams
       failed_response("There was an error: #{e.message}")
     end
 
+    def xml_post(url, xml)
+      uri, http = setup_http(url)
+      request = Net::HTTP::Post.new(uri.request_uri, 'Content-Type' => 'application/xml')
+      request.body = xml
+
+      log_request(request)
+
+      response = http.request(request)
+      format_response(response)
+    rescue Timeout::Error
+      failed_response('The call to the server timed out.', timeout: true)
+    rescue Errno::ECONNREFUSED
+      failed_response('The connection was refused. Perhaps the server is not running.', refused: true)
+    rescue StandardError => e
+      failed_response("There was an error: #{e.message}")
+    end
+
     private
 
     def setup_http(url)
@@ -47,7 +64,8 @@ module Crossbeams
       if request.method == 'GET'
         puts ">>> HTTP call: #{request.method} >> #{request.path}"
       else
-        puts ">>> HTTP call: #{request.method} >> #{request.path} > #{request.body[0, 300]}"
+        body = ENV['LOGFULLMESSERVERCALLS'] ? request.body : request.body[0, 300]
+        puts ">>> HTTP call: #{request.method} >> #{request.path} > #{body}"
       end
     end
   end
