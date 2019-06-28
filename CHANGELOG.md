@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.5.3] - 2019-06-28
+### Changed
+- Use the Choices.js library instead of Selectr.js library for decorating select boxes.
+
 ## [0.5.2] - 2019-06-11
 ### Added
 - Work with compound variables in labels.
