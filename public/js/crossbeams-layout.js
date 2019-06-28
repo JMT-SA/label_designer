@@ -109,10 +109,10 @@
           if (data.exception) {
             Jackbox.error(data.flash.error, { time: 20 });
             if (data.backtrace) {
-              console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
-              console.info('==Backend Backtrace==');
-              console.info(data.backtrace.join('\n'));
-              console.groupEnd();
+              console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
+              console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+              console.info(data.backtrace.join('\n')); // eslint-disable-line no-console
+              console.groupEnd(); // eslint-disable-line no-console
             }
           } else {
             Jackbox.error(data.flash.error);
@@ -160,6 +160,20 @@
       }
     }, false);
 
+    // KeyUp - check for observers
+    document.body.addEventListener('keyup', (event) => {
+      if (event.target.dataset && event.target.dataset.observeKeyup) {
+        crossbeamsUtils.observeInputChange(event.target, event.target.dataset.observeKeyup);
+      }
+    }, false);
+
+    // Blur (lose focus) - check for observers
+    document.body.addEventListener('blur', (event) => {
+      if (event.target.dataset && event.target.dataset.observeLoseFocus) {
+        crossbeamsUtils.observeInputChange(event.target, event.target.dataset.observeLoseFocus);
+      }
+    }, true);
+
     // Display report parameters if applicable.
     document.querySelectorAll('[data-report-param-display]').forEach((el) => {
       const key = el.dataset.reportParamDisplay;
@@ -174,6 +188,14 @@
       // Briefly disable a button
       if (event.target.dataset && event.target.dataset.brieflyDisableWith) {
         preventMultipleSubmitsBriefly(event.target);
+      }
+      // Expand or collapse FoldUps
+      if (event.target.closest('[data-expand-collapse]')) {
+        const elem = event.target.closest('[data-expand-collapse]');
+        const open = elem.dataset.expandCollapse === 'open';
+        event.stopPropagation();
+        event.preventDefault();
+        crossbeamsUtils.openOrCloseFolds(elem, open);
       }
       // Open the href in a new window and show a loading animation.
       if (event.target.dataset && event.target.dataset.loadingWindow) {
@@ -304,7 +326,7 @@
                 document.dispatchEvent(gridEvent);
               });
             } else {
-              console.log('Not sure what to do with this:', data);
+              console.log('Not sure what to do with this:', data); // eslint-disable-line no-console
             }
             // Only if not redirect...
             if (data.flash) {
@@ -315,10 +337,10 @@
                 if (data.exception) {
                   Jackbox.error(data.flash.error, { time: 20 });
                   if (data.backtrace) {
-                    console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
-                    console.info('==Backend Backtrace==');
-                    console.info(data.backtrace.join('\n'));
-                    console.groupEnd();
+                    console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
+                    console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+                    console.info(data.backtrace.join('\n')); // eslint-disable-line no-console
+                    console.groupEnd(); // eslint-disable-line no-console
                   }
                 } else {
                   Jackbox.error(data.flash.error);

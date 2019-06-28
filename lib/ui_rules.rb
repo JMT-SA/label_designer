@@ -39,11 +39,16 @@ module UiRules
 
     private
 
+    def make_caption(value)
+      value.to_s.split('_').map(&:capitalize).join(' ')
+    end
+
     def extended_columns(repo, table, edit_mode: true)
       config = Crossbeams::Config::ExtendedColumnDefinitions::EXTENDED_COLUMNS.dig(table, AppConst::CLIENT_CODE)
       return if config.nil?
+
       config.each do |key, defn|
-        caption = key.to_s.split('_').map(&:capitalize).join(' ')
+        caption = make_caption(key)
         fields["extcol_#{key}".to_sym] = if edit_mode
                                            renderer_for_extcol(repo, defn, caption)
                                          else
@@ -68,16 +73,18 @@ module UiRules
       field
     end
 
-    def apply_extended_column_defaults_to_form_object(table)
+    def apply_extended_column_defaults_to_form_object(table) # rubocop:disable Metrics/AbcSize
       config = Crossbeams::Config::ExtendedColumnDefinitions::EXTENDED_COLUMNS.dig(table, AppConst::CLIENT_CODE)
-      return nil if config.nil?
+      return if config.nil?
 
       col_with_default = {}
       config.each do |key, defn|
         next if defn[:default].nil?
+
         col_with_default[key.to_s] = defn[:default]
       end
       return if col_with_default.empty?
+
       if @form_object.is_a?(Hash) || @form_object.is_a?(OpenStruct)
         @form_object[:extended_columns] = col_with_default
       else
@@ -107,11 +114,12 @@ module UiRules
 
     def apply_form_values
       return unless @options && @options[:form_values]
+
       # We need to apply values to the form object, so make sure it is not immutable first.
       @form_object = OpenStruct.new(@form_object.to_h)
 
       @options[:form_values].each do |k, v|
-        @form_object.public_send("#{k}=", v)
+        @form_object[k] = v
       end
     end
   end
@@ -134,6 +142,7 @@ module UiRules
 
     def dropdown_change(field_name, conditions = {})
       raise(ArgumentError, 'Dropdown change behaviour requires `notify: url`.') if (conditions[:notify] || []).any? { |c| c[:url].nil? }
+
       @rules << { field_name => {
         notify: (conditions[:notify] || []).map do |n|
           {
@@ -150,6 +159,34 @@ module UiRules
         populate_from_selected: (conditions[:populate_from_selected] || []).map do |p|
           {
             sortable: p[:sortable]
+          }
+        end
+      } }
+    end
+
+    def keyup(field_name, conditions = {})
+      raise(ArgumentError, 'Key up behaviour requires `notify: url`.') if (conditions[:notify] || []).any? { |c| c[:url].nil? }
+
+      @rules << { field_name => {
+        keyup: (conditions[:notify] || []).map do |n|
+          {
+            url: n[:url],
+            param_keys: n[:param_keys] || [],
+            param_values: n[:param_values] || {}
+          }
+        end
+      } }
+    end
+
+    def lose_focus(field_name, conditions = {})
+      raise(ArgumentError, 'Key up behaviour requires `notify: url`.') if (conditions[:notify] || []).any? { |c| c[:url].nil? }
+
+      @rules << { field_name => {
+        lose_focus: (conditions[:notify] || []).map do |n|
+          {
+            url: n[:url],
+            param_keys: n[:param_keys] || [],
+            param_values: n[:param_values] || {}
           }
         end
       } }

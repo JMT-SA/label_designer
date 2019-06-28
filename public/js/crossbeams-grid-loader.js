@@ -79,10 +79,10 @@ const crossbeamsGridEvents = {
     const rowNode = gridOptions.api.getRowNode(id);
     if (rowNode === undefined) {
       Jackbox.error(`Could not find a grid with id "${id}".`, { time: 20 });
-      console.log('No grid with id:', id);
+      console.log('No grid with id:', id); // eslint-disable-line no-console
       return;
     }
-    gridOptions.context.nonUserEdit = true;
+
     Object.keys(changes).forEach((k) => {
       rowNode.setDataValue(k, changes[k]);
     });
@@ -202,7 +202,7 @@ const crossbeamsGridEvents = {
             sortable.forEach(elem => crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix,
                                                      elem.dataset.sortableGroup));
           } else {
-            console.log('Not sure what to do with this:', data);
+            console.log('Not sure what to do with this:', data); // eslint-disable-line no-console
           }
           if (closeDialog) {
             crossbeamsUtils.closePopupDialog();
@@ -216,10 +216,10 @@ const crossbeamsGridEvents = {
               if (data.exception) {
                 Jackbox.error(data.flash.error, { time: 20 });
                 if (data.backtrace) {
-                  console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
-                  console.info('==Backend Backtrace==');
-                  console.info(data.backtrace.join('\n'));
-                  console.groupEnd();
+                  console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
+                  console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+                  console.info(data.backtrace.join('\n')); // eslint-disable-line no-console
+                  console.groupEnd(); // eslint-disable-line no-console
                 }
               } else {
                 Jackbox.error(data.flash.error);
@@ -297,7 +297,7 @@ const crossbeamsGridEvents = {
         } else if (data.actions) {
           crossbeamsUtils.processActions(data.actions);
         } else {
-          console.log('Not sure what to do with this:', data);
+          console.log('Not sure what to do with this:', data); // eslint-disable-line no-console
         }
         // Only if not redirect...
         if (data.flash) {
@@ -309,10 +309,10 @@ const crossbeamsGridEvents = {
             if (data.exception) {
               Jackbox.error(data.flash.error, { time: 20 });
               if (data.backtrace) {
-                console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
-                console.info('==Backend Backtrace==');
-                console.info(data.backtrace.join('\n'));
-                console.groupEnd();
+                console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
+                console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+                console.info(data.backtrace.join('\n')); // eslint-disable-line no-console
+                console.groupEnd(); // eslint-disable-line no-console
               }
             } else {
               Jackbox.error(data.flash.error);
@@ -330,9 +330,18 @@ const crossbeamsGridEvents = {
    * Add line item tags to an unordered list element - one for each column name in the grid.
    * @param {string} gridId - the DOM id of the grid.
    * @param {array} colDefs - the column definitions for the grid.
+   * @param {bool} showJump - should the list be shown. (Hide if there is no horizontal scroll bar)
    * @returns {void}
    */
-  makeColumnScrollList: function makeColumnScrollList(gridId, colDefs) {
+  makeColumnScrollList: function makeColumnScrollList(gridId, colDefs, showJump) {
+    const frame = document.getElementById(`${gridId}-frame`);
+    if (showJump) {
+      frame.querySelector('.crossbeams-column-jump').hidden = false;
+    } else {
+      frame.querySelector('.crossbeams-column-jump').hidden = true;
+      return;
+    }
+
     const ul = document.getElementById(`${gridId}-scrollcol`);
     let li;
     colDefs.sort((a, b) => a.headerName.localeCompare(b.headerName)).forEach((col) => {
@@ -732,6 +741,7 @@ function NumericCellEditor() {
 
 // gets called once before the renderer is used
 NumericCellEditor.prototype.init = (params) => {
+  this.dataType = params.dataType || 'numeric';
   this.nonKeyInit = params.charPress === null;
   // create the cell
   this.eInput = document.createElement('input');
@@ -741,14 +751,24 @@ NumericCellEditor.prototype.init = (params) => {
 
   const that = this;
   this.eInput.addEventListener('keypress', (event) => {
-    if (!crossbeamsUtils.isKeyPressedNumeric(event)) {
-      that.eInput.focus();
-      if (event.preventDefault) event.preventDefault();
+    if (this.dataType === 'integer') {
+      if (!crossbeamsUtils.isKeyPressedNumeric(event)) {
+        that.eInput.focus();
+        if (event.preventDefault) event.preventDefault();
+      }
+    } else {
+      const charCode = crossbeamsUtils.getCharCodeFromEvent(event);
+      const charStr = String.fromCharCode(charCode);
+      if (!crossbeamsUtils.isKeyPressedNumeric(event) && charStr !== '.') {
+        that.eInput.focus();
+        if (event.preventDefault) event.preventDefault();
+      }
     }
   });
 
   // only start edit if key pressed is a number, not a letter
-  const charPressIsNotANumber = params.charPress && ('1234567890'.indexOf(params.charPress) < 0);
+  const charSet = this.dataType === 'integer' ? '1234567890' : '1234567890.';
+  const charPressIsNotANumber = params.charPress && (charSet.indexOf(params.charPress) < 0);
   this.cancelBeforeStart = charPressIsNotANumber;
 };
 
@@ -776,7 +796,10 @@ NumericCellEditor.prototype.getValue = () => {
   if (this.eInput.value === '') {
     return '';
   }
-  return parseInt(this.eInput.value, 10);
+  if (this.dataType === 'integer') {
+    return parseInt(this.eInput.value, 10);
+  }
+  return parseFloat(this.eInput.value, 10);
 };
 
 // any cleanup we need to be done here
@@ -846,7 +869,7 @@ Level2PanelCellRenderer.prototype.setupLevel2Grid = function setupLevel2Grid(l2D
   };
 
   const eDetailGrid = this.eGui.querySelector('.full-width-grid');
-  new agGrid.Grid(eDetailGrid, this.level2GridOptions);
+  new agGrid.Grid(eDetailGrid, this.level2GridOptions); // eslint-disable-line no-new
 };
 
 Level2PanelCellRenderer.prototype.getTemplate = function getTemplate(params) {
@@ -937,7 +960,7 @@ Level3PanelCellRenderer.prototype.setupDetailGrid = function setupDetailGrid(l3D
   };
 
   const eDetailGrid = this.eGui.querySelector('.full-width-grid');
-  new agGrid.Grid(eDetailGrid, this.detailGridOptions);
+  new agGrid.Grid(eDetailGrid, this.detailGridOptions); // eslint-disable-line no-new
 };
 
 Level3PanelCellRenderer.prototype.getTemplate = function getTemplate(params) {
@@ -1055,6 +1078,12 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
           } else {
             crossbeamsUtils.alert({ prompt: `${col[attr]} is not a recognised cellEditor`, type: 'error' });
           }
+        } else if (attr === 'cellEditorType') {
+          if (['integer'].indexOf(col[attr]) > -1) {
+            newCol.cellEditorParams = { dataType: col[attr] };
+          } else {
+            crossbeamsUtils.alert({ prompt: `${col[attr]} is not a recognised cellEditorType`, type: 'error' });
+          }
         } else if (attr === 'valueGetter') {
           // This blankWhenNull valueGetter is written especially to help when
           // grouping on a column that could have a null value.
@@ -1093,10 +1122,10 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
         if (httpResult.exception) {
           crossbeamsUtils.alert({ prompt: httpResult.flash.error, type: 'error' });
           if (httpResult.backtrace) {
-            console.groupCollapsed('EXCEPTION:', httpResult.exception, httpResult.flash.error);
-            console.info('==Backend Backtrace==');
-            console.info(httpResult.backtrace.join('\n'));
-            console.groupEnd();
+            console.groupCollapsed('EXCEPTION:', httpResult.exception, httpResult.flash.error); // eslint-disable-line no-console
+            console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+            console.info(httpResult.backtrace.join('\n')); // eslint-disable-line no-console
+            console.groupEnd(); // eslint-disable-line no-console
           }
           return null;
         }
@@ -1123,8 +1152,12 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
             gridOptions.context.fieldUpdateUrl = httpResult.fieldUpdateUrl;
           }
           crossbeamsGridEvents.displayRowCounts(gridOptions.context.domGridId, rows, rows);
-          // TODO: if the grid has no horizontal scrollbar, hide the scroll to column dropdown.
-          crossbeamsGridEvents.makeColumnScrollList(gridOptions.context.domGridId, newColDefs);
+          // If the grid has no horizontal scrollbar, hide the scroll to column dropdown.
+          const grdEl = document.getElementById(gridOptions.context.domGridId);
+          const vport = grdEl.querySelector('.ag-body-viewport');
+          crossbeamsGridEvents.makeColumnScrollList(gridOptions.context.domGridId,
+            newColDefs,
+            vport.scrollWidth > vport.offsetWidth);
         }
       }
       return null;
@@ -1315,6 +1348,8 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
       gridOptions.getDataPath = data => data[treeConfig.treeColumn];
       gridOptions.autoGroupColumnDef = {
         headerName: treeConfig.treeCaption || 'Hierarchy',
+        width: 300,
+        pinned: 'left',
         cellRendererParams: {
           suppressCount: treeConfig.suppressNodeCounts || false,
         },
@@ -1332,7 +1367,7 @@ Level3PanelCellRenderer.prototype.consumeMouseWheelOnDetailGrid = function consu
     // Index rows by the id column...
     gridOptions.getRowNodeId = function getRowNodeId(data) { return data.id; };
 
-    new agGrid.Grid(grid, gridOptions);
+    new agGrid.Grid(grid, gridOptions); // eslint-disable-line no-new
     crossbeamsGridStore.addGrid(gridId, gridOptions);
     loadGrid(grid, gridOptions);
   };
@@ -1415,7 +1450,8 @@ document.addEventListener('DOMContentLoaded', () => {
       });
 
       return {
-        callback: (key, options) => {
+        // callback: (key, options) => {
+        callback: (key) => {
           const item = getItemFromTree(key, items);
           const caller = () => {
             let form = null;
@@ -1467,7 +1503,7 @@ document.addEventListener('DOMContentLoaded', () => {
                   } else if (data.actions) {
                     crossbeamsUtils.processActions(data.actions);
                   } else {
-                    console.log('Not sure what to do with this:', data);
+                    console.log('Not sure what to do with this:', data); // eslint-disable-line no-console
                   }
                   // Only if not redirect...
                   if (data.flash) {
@@ -1478,10 +1514,10 @@ document.addEventListener('DOMContentLoaded', () => {
                       if (data.exception) {
                         Jackbox.error(data.flash.error, { time: 20 });
                         if (data.backtrace) {
-                          console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error);
-                          console.info('==Backend Backtrace==');
-                          console.info(data.backtrace.join('\n'));
-                          console.groupEnd();
+                          console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
+                          console.info('==Backend Backtrace=='); // eslint-disable-line no-console
+                          console.info(data.backtrace.join('\n')); // eslint-disable-line no-console
+                          console.groupEnd(); // eslint-disable-line no-console
                         }
                       } else {
                         Jackbox.error(data.flash.error);

@@ -27,7 +27,8 @@ module LabelApp
         created_by: 'ABC',
         updated_by: 'ABC',
         completed: false,
-        approved: false
+        approved: false,
+        extended_columns: {}
       }
       LabelApp::Label.new(base_attrs.merge(attrs))
     end

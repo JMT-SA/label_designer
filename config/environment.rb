@@ -2,13 +2,12 @@ require 'dotenv'
 require 'que'
 
 if ENV.fetch('RACK_ENV') == 'test'
-  Dotenv.load('.env.test', '.env')
+  Dotenv.load('.env.test', '.env.local', '.env')
 else
   Dotenv.load('.env.local', '.env')
 end
-# db_name = "#{ENV.fetch('DATABASE_URL')}#{'_test' if ENV.fetch('RACK_ENV') == 'test'}"
 db_name = if ENV.fetch('RACK_ENV') == 'test'
-            'postgres://postgres:postgres@localhost/label_designer_test'
+            ENV.fetch('DATABASE_URL').rpartition('/')[0..1].push(ENV.fetch('DATABASE_NAME')).push('_test').join
           else
             ENV.fetch('DATABASE_URL')
           end
@@ -30,7 +29,8 @@ DB.extension :pg_inet
 
 Que.connection = DB
 Que.job_middleware.push(
-  ->(job, &block) {
+  # ->(job, &block) {
+  lambda { |job, &block|
     job.lock_single_instance
     block.call
     job.clear_single_instance

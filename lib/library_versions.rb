@@ -11,11 +11,24 @@ class LibraryVersions
     datagrid: [:gemver, 'Roda::DataGrid'],
     ag_grid: %i[jsver ag_grid],
     selectr: %i[jsver selectr],
+    choices: %i[jsver choices],
     sweetalert: %i[jsver sweetalert],
     sortable: %i[jsver sortable],
     konva: %i[jsver konva],
     lodash: %i[jsver lodash],
     multi: %i[jsver multi]
+  }.freeze
+
+  # Javascript strategies - use send to call private methods.
+  JS_STRATEGY = {
+    ag_grid: ->(s) { s.send :ag_grid_version },
+    selectr: ->(s) { s.send :selectr_version },
+    choices: ->(s) { s.send :choices_version },
+    sweetalert: ->(s) { s.send :sweetalert_version },
+    sortable: ->(s) { s.send :sortable_version },
+    konva: ->(s) { s.send :konva_version },
+    lodash: ->(s) { s.send :lodash_version },
+    multi: ->(s) { s.send :multi_version }
   }.freeze
 
   def initialize(*requested_libs)
@@ -34,8 +47,8 @@ class LibraryVersions
 
   private
 
-  def resolve(r)
-    send(*LIB_STRATEGIES[r])
+  def resolve(lib)
+    send(*LIB_STRATEGIES[lib])
   end
 
   def format_lib(lib, version)
@@ -47,24 +60,10 @@ class LibraryVersions
   end
 
   def jsver(key)
-    case key
-    when :ag_grid
-      ag_grid_version
-    when :selectr
-      selectr_version
-    when :sweetalert
-      sweetalert_version
-    when :sortable
-      sortable_version
-    when :konva
-      konva_version
-    when :lodash
-      lodash_version
-    when :multi
-      multi_version
-    else
-      format_lib('Unknown directive', key)
-    end
+    js_strategy = JS_STRATEGY[key]
+    return format_lib('Unknown directive', key) if js_strategy.nil?
+
+    js_strategy.call(self)
   end
 
   def ag_grid_version
@@ -73,6 +72,10 @@ class LibraryVersions
 
   def selectr_version
     format_lib('Selectr', File.readlines('public/js/selectr.min.js', encoding: 'UTF-8')[1].chomp.split(' ').last)
+  end
+
+  def choices_version
+    format_lib('Choices', File.readlines('public/js/choices.min.js', encoding: 'UTF-8').first.chomp.split(' v').last.split(' |').first)
   end
 
   def sweetalert_version
