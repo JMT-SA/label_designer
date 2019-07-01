@@ -10,6 +10,10 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.5.4] - 2019-07-01
+### Added
+- Grid can render with a row bookmark button. When pressed, the previously actioned row becomes selected.
+
 ## [0.5.3] - 2019-06-28
 ### Changed
 - Use the Choices.js library instead of Selectr.js library for decorating select boxes.

@@ -8,7 +8,7 @@ class LabelDesigner < Roda
     r.on :id do |id|
       r.is do
         session[:last_grid_url] = "/list/#{id}"
-        show_page { render_data_grid_page(id, fit_height: true) }
+        show_page { render_data_grid_page(id, fit_height: true, bookmark_row_on_action: !fetch?(r)) }
       end
 
       r.on 'with_params' do
@@ -18,7 +18,7 @@ class LabelDesigner < Roda
           show_partial { render_data_grid_page(id, query_string: request.query_string) }
         else
           session[:last_grid_url] = "/list/#{id}/with_params?#{request.query_string}"
-          show_page { render_data_grid_page(id, query_string: request.query_string, fit_height: true) }
+          show_page { render_data_grid_page(id, query_string: request.query_string, fit_height: true, bookmark_row_on_action: true) }
         end
       end
 
