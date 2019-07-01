@@ -7,9 +7,12 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
-- Grid can render with a row bookmark button. When pressed, the previously actioned row becomes selected.
 ### Changed
 ### Fixed
+
+## [0.5.4] - 2019-07-01
+### Added
+- Grid can render with a row bookmark button. When pressed, the previously actioned row becomes selected.
 
 ## [0.5.3] - 2019-06-28
 ### Changed
