@@ -8,6 +8,8 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+- Dataminer grids now share standard javascript grid logic.
+- New grid to display label publish notification events.
 ### Fixed
 
 ## [0.5.4] - 2019-07-01
