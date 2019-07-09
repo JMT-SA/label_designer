@@ -1,0 +1,7 @@
+---
+:dataminer_definition: label_publish_notifications
+:conditions:
+  :standard:
+    - :col: label_publish_notifications.label_publish_log_id
+      :op: =
+      :val: $:label_publish_log_id$

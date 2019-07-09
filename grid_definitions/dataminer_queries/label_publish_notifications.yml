@@ -1,0 +1,198 @@
+---
+:caption: Label publish notification history
+:sql: "SELECT label_publish_notifications.id, labels.label_name, label_publish_notifications.label_publish_log_id,
+  label_publish_notifications.label_id,\r\nlabel_publish_notifications.url, label_publish_notifications.complete,
+  label_publish_notifications.failed, label_publish_notifications.errors, \r\nlabel_publish_notifications.created_at,
+  label_publish_notifications.updated_at,\r\nCASE WHEN label_publish_notifications.failed
+  THEN 'error' ELSE NULL END AS colour_rule\r\nFROM label_publish_notifications\r\nJOIN
+  labels ON labels.id = label_publish_notifications.label_id"
+:limit: 
+:offset: 
+:external_settings:
+  :render_url: 
+:columns:
+  id:
+    :name: id
+    :sequence_no: 1
+    :caption: Id
+    :namespaced_name: label_publish_notifications.id
+    :data_type: :integer
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  label_name:
+    :name: label_name
+    :sequence_no: 2
+    :caption: Label name
+    :namespaced_name: labels.label_name
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  label_publish_log_id:
+    :name: label_publish_log_id
+    :sequence_no: 3
+    :caption: Label publish log
+    :namespaced_name: label_publish_notifications.label_publish_log_id
+    :data_type: :integer
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  label_id:
+    :name: label_id
+    :sequence_no: 4
+    :caption: Label
+    :namespaced_name: label_publish_notifications.label_id
+    :data_type: :integer
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  url:
+    :name: url
+    :sequence_no: 5
+    :caption: Url
+    :namespaced_name: label_publish_notifications.url
+    :data_type: :string
+    :width: 500
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  complete:
+    :name: complete
+    :sequence_no: 6
+    :caption: Complete
+    :namespaced_name: label_publish_notifications.complete
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  failed:
+    :name: failed
+    :sequence_no: 7
+    :caption: Failed
+    :namespaced_name: label_publish_notifications.failed
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  errors:
+    :name: errors
+    :sequence_no: 8
+    :caption: Errors
+    :namespaced_name: label_publish_notifications.errors
+    :data_type: :string
+    :width: 500
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  created_at:
+    :name: created_at
+    :sequence_no: 9
+    :caption: Created at
+    :namespaced_name: label_publish_notifications.created_at
+    :data_type: :datetime
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  updated_at:
+    :name: updated_at
+    :sequence_no: 10
+    :caption: Updated at
+    :namespaced_name: label_publish_notifications.updated_at
+    :data_type: :datetime
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  colour_rule:
+    :name: colour_rule
+    :sequence_no: 11
+    :caption: Colour rule
+    :namespaced_name: 
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+:query_parameter_definitions:
+- :column: label_publish_notifications.label_publish_log_id
+  :caption: Log id
+  :data_type: :integer
+  :control_type: :text
+  :default_value: 
+  :ordered_list: false
+  :ui_priority: 1
+  :list_def: 

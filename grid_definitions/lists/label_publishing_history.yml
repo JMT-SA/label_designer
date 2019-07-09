@@ -1,5 +1,10 @@
 ---
 :dataminer_definition: label_publishing_history
+:actions:
+  - :url: "/list/label_publish_notifications/with_params?key=standard&label_publish_log_id=$:label_publish_log_id$"
+    :text: Publish notifications
+    :icon: list
+    :popup: true
 :conditions:
   :standard:
     - :col: d.label_id

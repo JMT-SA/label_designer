@@ -3,8 +3,8 @@
 :sql: "SELECT CONCAT(d.destination, ' (', d.server_ip, ')') AS published_to, \r\nCASE
   WHEN l.failed AND NOT d.failed THEN l.status ELSE d.status END AS status,\r\n date(d.updated_at)
   AS published_on, \r\nto_char(d.updated_at, 'HH24:MI:SS') AS published_at,\r\nl.user_name
-  AS published_by,\r\nCOALESCE(l.errors, d.errors) AS errors, d.id,\r\nCASE WHEN d.failed
-  OR l.failed THEN 'error' ELSE NULL END AS colour_rule\r\nFROM label_publish_log_details
+  AS published_by,\r\nCOALESCE(l.errors, d.errors) AS errors, d.id, d.label_publish_log_id,\r\nCASE
+  WHEN d.failed OR l.failed THEN 'error' ELSE NULL END AS colour_rule\r\nFROM label_publish_log_details
   d\r\nJOIN label_publish_logs l ON l.id = d.label_publish_log_id\r\nORDER BY d.created_at
   DESC, d.label_id"
 :limit: 
@@ -123,9 +123,25 @@
     :group_avg: false
     :group_min: false
     :group_max: false
+  label_publish_log_id:
+    :name: label_publish_log_id
+    :sequence_no: 8
+    :caption: Label publish log
+    :namespaced_name: d.label_publish_log_id
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
   colour_rule:
     :name: colour_rule
-    :sequence_no: 8
+    :sequence_no: 9
     :caption: Colour rule
     :namespaced_name: 
     :data_type: :string
