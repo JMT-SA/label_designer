@@ -87,13 +87,15 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
       id = id.gsub('%20', ' ')
 
       r.on 'edit' do
-        @page = interactor.edit_report(id)
         r.is do
+          @page = interactor.edit_report(id)
+          store_locally(:dm_admin_page, @page)
           view('dataminer/admin/edit')
         end
 
         r.on 'columns_grid' do
-          @page = interactor.edit_report(id)
+          @page = retrieve_from_local_store(:dm_admin_page)
+          store_locally(:dm_admin_page, @page)
 
           {
             extraContext: { keyColumn: 'name' },
@@ -106,7 +108,11 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
         end
 
         r.on 'params_grid' do
-          @page = interactor.edit_report(id)
+          # NOTE: This relies on the fact that the params_grid url comes after the
+          #       columns grid url in the page, so it'll be loaded last.
+          #       If that ever changes, the retrieve+store in columns_grid above
+          #       will not work properly!
+          @page = retrieve_from_local_store(:dm_admin_page)
 
           {
             multiselect_ids: [],
@@ -135,7 +141,7 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
           else
             flash[:error] = res.message
           end
-          r.redirect("/dataminer/admin/#{id}/edit/")
+          r.redirect("/dataminer/admin/#{id}/edit")
         end
       end
       r.on 'change_sql' do
@@ -149,7 +155,7 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
           else
             flash[:error] = res.message
           end
-          r.redirect("/dataminer/admin/#{id}/edit/")
+          r.redirect("/dataminer/admin/#{id}/edit")
         end
       end
       r.on 'reorder_columns' do
@@ -163,12 +169,20 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
           else
             flash[:error] = res.message
           end
-          r.redirect("/dataminer/admin/#{id}/edit/")
+          r.redirect("/dataminer/admin/#{id}/edit")
         end
       end
       r.on 'save_param_grid_col' do # JSON
         res = interactor.save_param_grid_col(id, params)
-        res.instance.to_json
+        if res.success
+          if res.instance.nil?
+            show_json_notice(res.instance)
+          else
+            update_grid_row(id, changes: res.instance, notice: res.message)
+          end
+        else
+          undo_grid_inline_edit(message: res.message, message_type: :warn)
+        end
       end
       r.on 'parameter' do
         r.on 'new' do
@@ -183,7 +197,7 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
             else
               flash[:error] = res.message
             end
-            r.redirect("/dataminer/admin/#{id}/edit/")
+            r.redirect("/dataminer/admin/#{id}/edit")
           end
         end
         r.on 'delete' do
@@ -194,7 +208,7 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
             else
               flash[:error] = res.message
             end
-            r.redirect("/dataminer/admin/#{id}/edit/")
+            r.redirect("/dataminer/admin/#{id}/edit")
           end
         end
       end
