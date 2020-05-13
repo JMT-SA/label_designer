@@ -19,16 +19,16 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
                                        caption: 'Delivery putaway',
                                        action: '/rmd/deliveries/putaways',
                                        button_caption: 'Putaway')
-        form.add_field(:delivery_number, 'Delivery', scan: 'key248_all', scan_type: :delivery)
-        form.add_field(:sku_number, 'SKU', scan: 'key248_all', scan_type: :sku)
-        form.add_field(:location, 'Location', scan: 'key248_all', scan_type: :location, lookup: true)
+        form.add_field(:delivery_number, 'Delivery', scan: 'key248_all', scan_type: :delivery, data_type: 'number')
+        form.add_field(:sku_number, 'SKU', scan: 'key248_all', scan_type: :sku, lookup: true, data_type: 'number')
         form.add_field(:quantity, 'Quantity', data_type: 'number')
+        form.add_field(:location, 'Location', scan: 'key248_all', scan_type: :location, lookup: true)
         form.add_csrf_tag csrf_tag
         view(inline: form.render, layout: :layout_rmd)
       end
 
       r.post do        # CREATE
-        interactor = PackMaterialApp::MrDeliveryInteractor.new(current_user, {}, { route_url: request.path }, {})
+        interactor = PackMaterialApp::MrDeliveryInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
         res = interactor.putaway_delivery(params[:putaway])
         payload = { progress: nil }
         if res.success
@@ -45,6 +45,7 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
                          delivery_number: these_params[:delivery_number],
                          delivery_number_scan_field: these_params[:delivery_number_scan_field],
                          quantity: these_params[:quantity])
+          payload.merge!(lookup_values: params[:lookup_values])
         end
 
         store_locally(:delivery_putaway, payload)

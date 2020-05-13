@@ -4,6 +4,7 @@ Block
 element
 -modifier
 */
+      @media ( min-width: 40rem ) {
 .functional-area-menu ul {
   display: inline-block;
   padding: 0;
@@ -233,7 +234,7 @@ element
     .Menu > li ul .Icon,
     .Menu.-floating .Icon,
     .Menu > li ul *[data-icon]:before,
-    .Menu.-floating *[data-icon]:before,
+    .Menu.-floating *[data-icon]:before
     {
         font-size: 18px;
     }
@@ -296,7 +297,7 @@ element
     #functional-area-menu li.active > a:first-child {
         background-color: rgba(255,255,255,0.2);
     }
-
+  }
 /*
 ** End configurable values
 */

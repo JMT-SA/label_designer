@@ -6,7 +6,7 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
     raise ArgumentError unless table_name.is_a?(Symbol)
 
     @main_table = table_name
-    @id = id
+    @id = id.to_s.blank? ? nil : id
     @sub_tables = sub_tables
     @parent_tables = parent_tables
     @lookup_functions = lookup_functions
@@ -37,7 +37,7 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
   private
 
   VALID_LKP_KEYS = %i[function args col_name].freeze
-  VALID_SUB_KEYS = %i[sub_table columns join_table uses_join_table active_only inactive_only].freeze
+  VALID_SUB_KEYS = %i[sub_table columns join_table uses_join_table active_only inactive_only id_keys_column one_to_one].freeze
   VALID_PARENT_KEYS = %i[parent_table columns flatten_columns foreign_key].freeze
 
   def main_table_id
@@ -72,9 +72,10 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
     @sub_tables.each do |rule|
       sub_table = rule.fetch(:sub_table)
       raise ArgumentError, "Sub_table #{sub_table} must be a Symbol" unless sub_table.is_a?(Symbol)
+      raise ArgumentError, "Sub_table #{sub_table} cannot be joined via a join table AND an id keys array" if rule.key?(:id_keys_column) && (rule.key?(:join_table) || rule.key?(:uses_join_table))
 
-      rule.keys.each { |k| raise ArgumentError, "Unknown sub-table key: #{k}" unless VALID_SUB_KEYS.include?(k) }
-      rule.keys.each { |k| validate_sub_table_rule!(k, rule) }
+      rule.each_key { |k| raise ArgumentError, "Unknown sub-table key: #{k}" unless VALID_SUB_KEYS.include?(k) }
+      rule.each_key { |k| validate_sub_table_rule!(k, rule) }
     end
   end
 
@@ -85,7 +86,7 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
       raise ArgumentError, "Args for function #{function} must be an Array" unless args.is_a?(Array)
 
       _ = rule.fetch(:col_name)
-      rule.keys.each { |k| raise ArgumentError, "Unknown lookup-function key: #{k}" unless VALID_LKP_KEYS.include?(k) }
+      rule.each_key { |k| raise ArgumentError, "Unknown lookup-function key: #{k}" unless VALID_LKP_KEYS.include?(k) }
     end
   end
 
@@ -94,16 +95,19 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
       parent_table = rule.fetch(:parent_table)
       raise ArgumentError, "parent_table #{parent_table} must be a Symbol" unless parent_table.is_a?(Symbol)
 
-      rule.keys.each { |k| raise ArgumentError, "Unknown parent-table key: #{k}" unless VALID_PARENT_KEYS.include?(k) }
+      rule.each_key { |k| raise ArgumentError, "Unknown parent-table key: #{k}" unless VALID_PARENT_KEYS.include?(k) }
+      raise ArgumentError, 'Parent tables columns rule must be an Array' if rule[:columns] && !rule[:columns].is_a?(Array)
     end
   end
 
-  def validate_sub_table_rule!(key, rule)
+  def validate_sub_table_rule!(key, rule) # rubocop:disable Metrics/CyclomaticComplexity
     case key
     when :columns
       validate_columns!(rule)
-    when :join_table, :sub_table
+    when :join_table, :sub_table, :id_keys_column
       raise ArgumentError unless rule[key].is_a?(Symbol)
+    when :one_to_one
+      raise ArgumentError unless rule[key].is_a?(Hash)
     else
       raise ArgumentError unless rule[key] == true || rule[key] == false
     end
@@ -185,6 +189,8 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
     @sub_table = sub.fetch(:sub_table)
     @sub_table_id = "#{@inflector.singularize(@sub_table)}_id".to_sym
     @join_table = sub_table_join_table(sub[:uses_join_table], sub[:join_table])
+    @id_keys_column = sub[:id_keys_column]
+    @one_to_one = sub[:one_to_one]
     sub[:columns] || Sequel.lit('*')
   end
 
@@ -196,28 +202,54 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
   end
 
   def add_active_sub_table_recs(cols)
-    @rec[@sub_table] = if @join_table
-                         active_inactive_join_call(cols, true)
-                       else
-                         active_inactive_belongs_call(cols, true)
-                       end
+    sub_recs = if @join_table
+                 active_inactive_join_call(cols, true)
+               elsif @id_keys_column
+                 active_inactive_array_call(cols, true)
+               else
+                 active_inactive_belongs_call(cols, true)
+               end
+    if @one_to_one
+      flatten_sub_recs(sub_recs)
+    else
+      @rec[@sub_table] = sub_recs
+    end
   end
 
   def add_inactive_sub_table_recs(cols)
-    @rec[inactive_key] = if @join_table
-                           active_inactive_join_call(cols, false)
-                         else
-                           active_inactive_belongs_call(cols, false)
-                         end
+    sub_recs = if @join_table
+                 active_inactive_join_call(cols, false)
+               elsif @id_keys_column
+                 active_inactive_array_call(cols, true)
+               else
+                 active_inactive_belongs_call(cols, false)
+               end
+    if @one_to_one
+      flatten_sub_recs(sub_recs)
+    else
+      @rec[inactive_key] = sub_recs
+    end
   end
 
-  def active_inactive_belongs_call(cols, active)
+  def active_inactive_belongs_call(cols, active, all: false)
     ds = DB[@sub_table].where(main_table_id => @id).select(*cols)
+    return ds.all if all
+
     active ? ds.where(:active).all : ds.where(active: false).all
   end
 
-  def active_inactive_join_call(cols, active)
+  def active_inactive_join_call(cols, active, all: false)
     ds = DB[@sub_table].where(id: DB[@join_table].where(main_table_id => @id).select(@sub_table_id)).select(*cols)
+    return ds.all if all
+
+    active ? ds.where(:active).all : ds.where(active: false).all
+  end
+
+  def active_inactive_array_call(cols, active, all: false)
+    arr = sub_table_array_ids
+    ds = DB[@sub_table].where(id: arr).select(*cols)
+    return ds.all if all
+
     active ? ds.where(:active).all : ds.where(active: false).all
   end
 
@@ -225,11 +257,31 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
     "inactive_#{@sub_table}".to_sym
   end
 
+  def sub_table_array_ids
+    DB[@main_table].where(id: @id).get(@id_keys_column).to_a
+  end
+
   def add_sub_table_recs(cols)
-    @rec[@sub_table] = if @join_table
-                         DB[@sub_table].where(id: DB[@join_table].where(main_table_id => @id).select(@sub_table_id)).select(*cols).all
-                       else
-                         DB[@sub_table].where(main_table_id => @id).select(*cols).all
-                       end
+    sub_recs = if @join_table
+                 active_inactive_join_call(cols, true, all: true)
+               elsif @id_keys_column
+                 active_inactive_array_call(cols, true, all: true)
+               else
+                 active_inactive_belongs_call(cols, true, all: true)
+               end
+    if @one_to_one
+      flatten_sub_recs(sub_recs)
+    else
+      @rec[@sub_table] = sub_recs
+    end
+  end
+
+  def flatten_sub_recs(sub_recs)
+    raise Crossbeams::InfoError, "Sub_table #{@sub_table} cannot return more than one row for one-to-one" if sub_recs.length > 1
+
+    entity = sub_recs.length == 1 ? sub_recs.first : {}
+    (@one_to_one || []).each do |col, new_name|
+      @rec[new_name] = entity.delete(col)
+    end
   end
 end

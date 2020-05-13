@@ -4,7 +4,7 @@ module Labels
   module Publish
     module Batch
       class PublishState
-        def self.call(res)
+        def self.call(res) # rubocop:disable Metrics/AbcSize
           label_states = res.body
 
           header_cols, cols = publishing_table_headers(label_states)
@@ -12,10 +12,17 @@ module Labels
           layout = Crossbeams::Layout::Page.build({}) do |page|
             current_state(page, res)
             page.add_table rows, cols.dup.unshift('Label'), header_captions: Hash[header_cols], cell_classes: publishing_table_classes(cols)
+            page.add_text summary(res.publish_summary) if res.publish_summary
             end_note(page, res, label_states)
           end
 
           layout
+        end
+
+        def self.summary(publish_summary)
+          ar = [publish_summary['summary']]
+          ar << "Failed to publish remotely: #{publish_summary['failed_remotes'].join(', ')}" if publish_summary['failed_remotes'] && !publish_summary['failed_remotes'].empty?
+          ar.join('<br>')
         end
 
         def self.publishing_table_headers(label_states)

@@ -8,6 +8,7 @@ Sequel.migration do
       add_index [:server_ip, :printer_code], name: :printers_ip_code, unique: true
     end
 
+
     alter_table(:printer_applications) do
       add_column :default_printer, :boolean, default: false
     end

@@ -29,7 +29,7 @@ module DevelopmentApp
         SELECT a.event_id, a.action_tstamp_tx,
          CASE a.action WHEN 'I' THEN 'INS' WHEN 'U' THEN 'UPD'
           WHEN 'D' THEN 'DEL' ELSE 'TRUNC' END AS action,
-         l.user_name, l.context, l.route_url,
+         l.user_name, l.context, l.route_url, l.request_ip,
          a.statement_only, a.row_data, a.changed_fields,
          ROW_NUMBER() OVER() + 1 AS id
         FROM audit.logged_actions a
@@ -41,6 +41,19 @@ module DevelopmentApp
       DB[query].all
     end
 
+    def logged_actions_sql_for_transaction(id)
+      tx_id = get_value(Sequel[:audit][:logged_actions], :transaction_id, event_id: id)
+      # This should change to include affected table and changes
+      # (client_query could be an insert/update to tbl1, but a trigger updated tbl2)
+      # Query run      : SQL
+      # table affected : table_name
+      # changes made   : changed_fields / row_data (depending on action - I = insert, D = delete, U = update, T = truncate)
+      # if table_name <> query INSERT INTO | DELETE FROM | UPDATE | TRUNCATE then display table and changed fields (if blank, show row data as insert?)
+      DB[Sequel[:audit][:logged_actions]]
+        .where(transaction_id: tx_id)
+        .select_map(:client_query)
+    end
+
     def clear_audit_trail(table_name, id)
       DB[Sequel[:audit][:logged_actions]].where(table_name: table_name, row_data_id: id).delete
     end
@@ -48,6 +61,22 @@ module DevelopmentApp
     def clear_audit_trail_keeping_latest(table_name, id)
       max_id = DB[Sequel[:audit][:logged_actions]].where(table_name: table_name, row_data_id: id).max(:event_id)
       DB[Sequel[:audit][:logged_actions]].where(table_name: table_name, row_data_id: id).exclude(event_id: max_id).delete
+    end
+
+    # Write out a dump of information for later inspection.
+    # The first three parameters are used to name the logfile.
+    # Log files are written to log/infodump.
+    #
+    # @param keyname [string] the general context of the action.
+    # @param key [string] the specific context of the action.
+    # @param description [string] A short description of the context (preferably without spaces)
+    # @param information [string] the text to dump in the logfile.
+    # @return [void]
+    def log_infodump(keyname, key, description, information)
+      dir = File.join(ENV['ROOT'], 'log', 'infodump')
+      Dir.mkdir(dir) unless Dir.exist?(dir)
+      fn = File.join(dir, "#{keyname}_#{key}_#{Time.now.strftime('%Y_%m_%d_%H_%M_%S')}_#{description}.log")
+      File.open(fn, 'w') { |f| f.puts information }
     end
   end
 end

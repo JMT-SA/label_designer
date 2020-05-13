@@ -1,13 +1,5 @@
 /* exported crossbeamsUtils */
 
-class HttpError extends Error {
-  constructor(response) {
-    super(`${response.status} for ${response.url}`);
-    this.name = 'HttpError';
-    this.response = response;
-  }
-}
-
 /**
  * General utility functions for Crossbeams.
  * @namespace
@@ -158,6 +150,55 @@ const crossbeamsUtils = {
   },
 
   /**
+   * Display an ERROR notice on the page.
+   * @param {string} text - the message to display.
+   * @param {null/integer} - the time to keep the message on the screen.
+   */
+  showError: function showError(text, delay) {
+    if (delay) {
+      Jackbox.error(text, { time: delay });
+    } else {
+      Jackbox.error(text, { time: 20 });
+    }
+  },
+  /**
+   * Display a WARNING notice on the page.
+   * @param {string} text - the message to display.
+   * @param {null/integer} - the time to keep the message on the screen.
+   */
+  showWarning: function showWarning(text, delay) {
+    if (delay) {
+      Jackbox.warning(text, { time: delay });
+    } else {
+      Jackbox.warning(text);
+    }
+  },
+  /**
+   * Display a SUCCESS notice on the page.
+   * @param {string} text - the message to display.
+   * @param {null/integer} - the time to keep the message on the screen.
+   */
+  showSuccess: function showSuccess(text, delay) {
+    if (delay) {
+      Jackbox.success(text, { time: delay });
+    } else {
+      Jackbox.success(text);
+    }
+  },
+  /**
+   * Display an INFORMATION notice on the page.
+   * @param {string} text - the message to display.
+   * @param {null/integer} - the time to keep the message on the screen.
+   */
+  showInformation: function showInformation(text, delay) {
+    if (delay) {
+      Jackbox.information(text, { time: delay });
+    } else {
+      Jackbox.information(text);
+    }
+  },
+
+  /**
    * Save a grid's current row id for bookmarking.
    * Up to 20 grids row ids are cached.
    * @param {string/integer} rowId - the value of the `id` column of the current row.
@@ -209,6 +250,7 @@ const crossbeamsUtils = {
     dlg.innerHTML = data;
     crossbeamsUtils.makeMultiSelects();
     crossbeamsUtils.makeSearchableSelects();
+    crossbeamsUtils.applySelectEvents();
     const grids = dlg.querySelectorAll('[data-grid]');
     grids.forEach((grid) => {
       const gridId = grid.getAttribute('id');
@@ -249,15 +291,23 @@ const crossbeamsUtils = {
       return response.json();
     }).then((data) => {
       if (data.flash) {
-        // const err = document.getElementById(this.activeDialogError());
-        // err.innerHTML = `<strong>An error occurred:</strong><br>${data.flash.error}`;
-        // err.style.display = 'block';
+        let noteStyle = 'error';
         if (data.flash.type && data.flash.type === 'permission') {
+          noteStyle = 'warning';
           document.getElementById(this.activeDialogTitle()).innerHTML = '<span class="light-red">Permission error</span>';
         } else {
           document.getElementById(this.activeDialogTitle()).innerHTML = '<span class="light-red">Error</span>';
         }
-        crossbeamsUtils.setDialogContent(data.flash.error);
+        if (data.replaceDialog) {
+          crossbeamsUtils.setDialogContent(data.replaceDialog.content);
+          if (data.flash.type && data.flash.type === 'permission') {
+            crossbeamsUtils.showWarning(data.flash.error, 20);
+          } else {
+            crossbeamsUtils.showError(data.flash.error);
+          }
+        } else {
+          crossbeamsUtils.setDialogContent(`<div class="mt3"><div class="crossbeams-${noteStyle}-note"><p>${data.flash.error}</p></div></div>`);
+        }
         if (data.exception) {
           if (data.backtrace) {
             console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
@@ -352,8 +402,9 @@ const crossbeamsUtils = {
   getSelectedIdsInStep: function getSelectedIdsInStep(sel, sortedIds) {
     const usedIds = [];
     const out = [];
+    const selAr = Array.from(sel.selectedOptions);
     sortedIds.forEach((id) => {
-      const found = _.find(sel.selectedOptions, ['value', id]);
+      const found = selAr.find(a => a.value === id);
       if (found) {
         out.push(found);
         usedIds.push(id);
@@ -435,7 +486,6 @@ const crossbeamsUtils = {
     let nVal = '';
     let nText = '';
     const newItems = [];
-    select.removeActiveItems();
     action.replace_options.options.forEach((item) => {
       if (item.constructor === Array) {
         nVal = (item[1] || item[0]);
@@ -449,7 +499,19 @@ const crossbeamsUtils = {
         label: nText,
       });
     });
-    select.setChoices(newItems, 'value', 'label', true);
+
+    if (select) {
+      select.removeActiveItems();
+      select.setChoices(newItems, 'value', 'label', true); // seems to remove sortable...
+    } else {
+      while (elem.options.length) elem.remove(0);
+      newItems.forEach((item) => {
+        const option = document.createElement('option');
+        option.value = item.value;
+        option.text = item.label;
+        elem.appendChild(option);
+      });
+    }
   },
 
   /**
@@ -543,6 +605,69 @@ const crossbeamsUtils = {
     elem.innerHTML = action.replace_inner_html.value;
   },
   /**
+   * Set an input element to required or not.
+   * @param {object} action - the action object returned from the backend.
+   * @returns {void}
+   */
+  setRequired: function setRequired(action) {
+    const elem = document.getElementById(action.set_required.id);
+    if (elem === null) {
+      this.alert({
+        prompt: `There is no DOM element with id: "${action.set_required.id}"`,
+        title: 'Set Required element: id missmatch',
+        type: 'error',
+      });
+      return;
+    }
+    if (action.set_required.required) {
+      elem.required = true;
+    } else {
+      elem.required = false;
+    }
+  },
+  /**
+   * Set the checked attribute of an input checkbox element.
+   * @param {object} action - the action object returned from the backend.
+   * @returns {void}
+   */
+  setChecked: function setChecked(action) {
+    const elem = document.getElementById(action.set_checked.id);
+    if (elem === null) {
+      this.alert({
+        prompt: `There is no DOM element with id: "${action.set_checked.id}"`,
+        title: 'Set Checked element: id missmatch',
+        type: 'error',
+      });
+      return;
+    }
+    if (action.set_checked.checked) {
+      elem.checked = true;
+    } else {
+      elem.checked = false;
+    }
+  },
+  /**
+   * Make an input element readonly or make it editable.
+   * @param {object} action - the action object returned from the backend.
+   * @returns {void}
+   */
+  setReadonlyInput: function setReadonlyInput(action) {
+    const elem = document.getElementById(action.set_readonly.id);
+    if (elem === null) {
+      this.alert({
+        prompt: `There is no DOM element with id: "${action.set_readonly.id}"`,
+        title: 'Set Readonly element: id missmatch',
+        type: 'error',
+      });
+      return;
+    }
+    if (action.set_readonly.readonly) {
+      elem.readOnly = true;
+    } else {
+      elem.readOnly = false;
+    }
+  },
+  /**
    * Hide a DOM element.
    * @param {object} action - the action object returned from the backend.
    * @returns {void}
@@ -600,11 +725,33 @@ const crossbeamsUtils = {
       return;
     }
     elem.innerHTML = '';
-    action.replace_list_items.items.forEach((item) => {
-      const li = document.createElement('li');
-      li.append(document.createTextNode(item));
-      elem.appendChild(li);
-    });
+    if (elem.dataset && elem.dataset.removeItemUrl) {
+      action.replace_list_items.items.forEach((item) => {
+        if (item.constructor !== Array) {
+          this.alert({
+            prompt: `The list of items for replacing element ${action.replace_list_items.id} must be a 2D array : [text, id]`,
+            title: 'List items-change: invalid items list',
+            type: 'error',
+          });
+          return;
+        }
+        const li = document.createElement('li');
+        li.id = item[1];
+        const id = document.createAttribute('data-item-id');
+        id.value = item[1];
+        li.setAttributeNode(id);
+        const iconStr = `<svg class="cbl-icon red pointer" data-remove-item="${item[1]}" title="remove item" width="1792" height="1792" viewBox="0 0 1792 1792" xmlns="http://www.w3.org/2000/svg"><path d="M1600 736v192q0 40-28 68t-68 28h-1216q-40 0-68-28t-28-68v-192q0-40 28-68t68-28h1216q40 0 68 28t28 68z"></path></svg>`;
+        li.append(document.createTextNode(item[0]));
+        li.innerHTML = `${iconStr} ${item[0]}`;
+        elem.appendChild(li);
+      });
+    } else {
+      action.replace_list_items.items.forEach((item) => {
+        const li = document.createElement('li');
+        li.append(document.createTextNode(item));
+        elem.appendChild(li);
+      });
+    }
   },
   /**
    * Clear all validation error messages and styling for a form.
@@ -671,6 +818,15 @@ const crossbeamsUtils = {
       if (action.replace_list_items) {
         crossbeamsUtils.replaceListItems(action);
       }
+      if (action.set_readonly) {
+        crossbeamsUtils.setReadonlyInput(action);
+      }
+      if (action.set_required) {
+        crossbeamsUtils.setRequired(action);
+      }
+      if (action.set_checked) {
+        crossbeamsUtils.setChecked(action);
+      }
       if (action.hide_element) {
         crossbeamsUtils.hideElement(action);
       }
@@ -717,11 +873,11 @@ const crossbeamsUtils = {
       }
       if (data.flash) {
         if (data.flash.notice) {
-          Jackbox.success(data.flash.notice);
+          crossbeamsUtils.showSuccess(data.flash.notice);
         }
         if (data.flash.error) {
           if (data.exception) {
-            Jackbox.error(data.flash.error, { time: 20 });
+            crossbeamsUtils.showError(data.flash.error);
             if (data.backtrace) {
               console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
               console.info('==Backend Backtrace=='); // eslint-disable-line no-console
@@ -729,7 +885,7 @@ const crossbeamsUtils = {
               console.groupEnd(); // eslint-disable-line no-console
             }
           } else {
-            Jackbox.error(data.flash.error);
+            crossbeamsUtils.showError(data.flash.error);
           }
         }
       }
@@ -746,9 +902,12 @@ const crossbeamsUtils = {
    * @returns {void}
    */
   observeInputChange: function observeInputChange(elem, rules) {
-    // const s = elem.dataset.observeChange;
     const j = JSON.parse(rules);
-    const urls = j.map(el => this.buildObserveChangeUrl(el, elem.value));
+    let changedValue = elem.value;
+    if (elem.type && elem.type === 'checkbox') {
+      changedValue = elem.checked ? 't' : 'f';
+    }
+    const urls = j.map(el => this.buildObserveChangeUrl(el, changedValue));
 
     urls.forEach(url => this.fetchDropdownChanges(url));
   },
@@ -779,7 +938,7 @@ const crossbeamsUtils = {
     if (option === null || option === undefined) {
       optVal = '';
     } else {
-      optVal = typeof option === 'string' ? option : option.value;
+      optVal = typeof option === 'string' || typeof option === 'number' ? option : option.value;
     }
     const queryParam = { changed_value: optVal };
     element.param_keys.forEach((key) => {
@@ -855,7 +1014,7 @@ const crossbeamsUtils = {
               const target = document.getElementById(el);
               if (target && (target.dataset && target.dataset.enableOnValues)) {
                 const vals = target.dataset.enableOnValues;
-                if (_.includes(vals, event.detail.value)) {
+                if (vals.includes(event.detail.value)) {
                   target.disabled = false;
                 } else {
                   target.disabled = true;
@@ -885,6 +1044,52 @@ const crossbeamsUtils = {
         }
 
         sel.selectr = holdSel;
+      }
+    });
+  },
+
+  /**
+   * Find select elements on the page and add change events.
+   * @returns {void}
+   */
+  applySelectEvents: function applySelectEvents() {
+    const sels = document.querySelectorAll('select:not(.searchable-multi):not(.searchable-select)');
+    sels.forEach((sel) => {
+      // changeValues behaviour - check if another element should be
+      // enabled/disabled based on the current selected value.
+      if (sel.dataset && sel.dataset.changeValues) {
+        sel.addEventListener('change', (event) => {
+          sel.dataset.changeValues.split(',').forEach((el) => {
+            const target = document.getElementById(el);
+            if (target && (target.dataset && target.dataset.enableOnValues)) {
+              const vals = target.dataset.enableOnValues;
+              if (vals.includes(event.target.value)) {
+                target.disabled = false;
+              } else {
+                target.disabled = true;
+              }
+              if (target.selectr) {
+                if (target.disabled) {
+                  target.selectr.disable();
+                } else {
+                  target.selectr.enable();
+                }
+              }
+            }
+          });
+        });
+      }
+
+      // observeChange behaviour - get rules from select element and
+      // call the supplied url(s).
+      if (sel.dataset && sel.dataset.observeChange) {
+        sel.addEventListener('change', (event) => {
+          const s = sel.dataset.observeChange;
+          const j = JSON.parse(s);
+          const urls = j.map(el => this.buildObserveChangeUrl(el, event.target.value));
+
+          urls.forEach(url => this.fetchDropdownChanges(url));
+        });
       }
     });
   },
@@ -1104,7 +1309,7 @@ const crossbeamsUtils = {
               console.groupEnd(); // eslint-disable-line no-console
             }
           } else {
-            Jackbox.error(body.flash.error);
+            crossbeamsUtils.showError(body.flash.error);
           }
         } else {
           // FIXME: Is this always applicable for all errors?
@@ -1112,7 +1317,7 @@ const crossbeamsUtils = {
         }
       });
     }
-    Jackbox.error(`An error occurred ${data}`, { time: 20 });
+    crossbeamsUtils.showError(`An error occurred ${data}`);
   },
 
   /**
@@ -1154,11 +1359,11 @@ const crossbeamsUtils = {
         }
         if (data.flash) {
           if (data.flash.notice) {
-            Jackbox.success(data.flash.notice);
+            crossbeamsUtils.showSuccess(data.flash.notice);
           }
           if (data.flash.error) {
             if (data.exception) {
-              Jackbox.error(data.flash.error, { time: 20 });
+              crossbeamsUtils.showError(data.flash.error);
               if (data.backtrace) {
                 console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
                 console.info('==Backend Backtrace=='); // eslint-disable-line no-console
@@ -1166,7 +1371,7 @@ const crossbeamsUtils = {
                 console.groupEnd(); // eslint-disable-line no-console
               }
             } else {
-              Jackbox.error(data.flash.error);
+              crossbeamsUtils.showError(data.flash.error);
             }
           }
         }
@@ -1212,6 +1417,7 @@ const crossbeamsUtils = {
 
         crossbeamsUtils.makeMultiSelects();
         crossbeamsUtils.makeSearchableSelects();
+        crossbeamsUtils.applySelectEvents();
         const grids = contentDiv.querySelectorAll('[data-grid]');
         grids.forEach((grid) => {
           const gridId = grid.getAttribute('id');
@@ -1225,11 +1431,11 @@ const crossbeamsUtils = {
       }
       if (data.flash) {
         if (data.flash.notice) {
-          Jackbox.success(data.flash.notice);
+          crossbeamsUtils.showSuccess(data.flash.notice);
         }
         if (data.flash.error) {
           if (data.exception) {
-            Jackbox.error(data.flash.error, { time: 20 });
+            crossbeamsUtils.showError(data.flash.error);
             if (data.backtrace) {
               console.groupCollapsed('EXCEPTION:', data.exception, data.flash.error); // eslint-disable-line no-console
               console.info('==Backend Backtrace=='); // eslint-disable-line no-console
@@ -1237,7 +1443,7 @@ const crossbeamsUtils = {
               console.groupEnd(); // eslint-disable-line no-console
             }
           } else {
-            Jackbox.error(data.flash.error);
+            crossbeamsUtils.showError(data.flash.error);
           }
         }
       }

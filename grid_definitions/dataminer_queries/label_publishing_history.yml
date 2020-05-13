@@ -48,7 +48,7 @@
     :sequence_no: 3
     :caption: Published on
     :namespaced_name: 
-    :data_type: :string
+    :data_type: :date
     :width: 120
     :format: 
     :hide: false
@@ -64,7 +64,7 @@
     :sequence_no: 4
     :caption: Published at
     :namespaced_name: 
-    :data_type: :string
+    :data_type: :datetime
     :width: 120
     :format: 
     :hide: false

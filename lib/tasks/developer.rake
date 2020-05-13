@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require File.expand_path('../../config/env_var_rules.rb', __dir__)
+require File.expand_path('../../helpers/utility_functions.rb', __dir__)
 
 # Rake tasks for setting up development environment.
 class AppDevTasks
@@ -19,6 +20,8 @@ class AppDevTasks
         puts ''
         puts '3. Environment variables'
         setup_env
+        puts '4. Required paths'
+        prep_required_paths
         @logs.unshift "\n----------" unless @logs.empty?
         @logs.push '----------' unless @logs.empty?
         puts @logs.join("\n") unless @logs.empty?
@@ -32,6 +35,20 @@ class AppDevTasks
       desc 'Validate presence of ENV variables'
       task :validateenv do
         EnvVarRules.new.validate
+      end
+
+      desc 'Clear the SQL log file'
+      namespace :log do
+        task :clear do
+          fn = 'log/sql.log'
+          if File.exist?(fn)
+            file = File.new(fn)
+            puts "SQL log file is #{UtilityFunctions.filesize(file.size)} in size.\nTruncating."
+          else
+            puts 'No SQL log file. Creating.'
+          end
+          `cat /dev/null > #{fn}`
+        end
       end
     end
   end
@@ -67,6 +84,15 @@ class AppDevTasks
     FileUtils.touch(target) unless File.exist?(target)
 
     EnvVarRules.new.add_missing_to_local
+  end
+
+  def prep_required_paths
+    linked_dirs = %w[log tmp public/assets public/tempfiles public/downloads/jasper prepared_reports].map do |path|
+      File.join(root_path, path)
+    end
+    paths = FileUtils.mkdir_p(linked_dirs)
+    log 'Setting up paths:'
+    paths.each { |p| log p }
   end
 
   def copy(from, to)

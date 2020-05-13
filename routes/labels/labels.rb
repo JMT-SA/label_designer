@@ -8,7 +8,7 @@ class LabelDesigner < Roda
     # LABELS
     # --------------------------------------------------------------------------
     r.on 'labels', Integer do |id|
-      interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:labels, id) do
@@ -142,7 +142,7 @@ class LabelDesigner < Roda
             f.path
           end
           File.chmod(0o644, filepath) # Ensure web app can read the image.
-          update_dialog_content(content: "<div style='border:#{interactor.label_border(id)}px solid orange'><img src='/#{File.join('tempfiles', File.basename(filepath))}'>i</div>")
+          update_dialog_content(content: "<div style='border:#{interactor.label_border(id)}px solid orange'><img src='/#{File.join('tempfiles', File.basename(filepath))}'></div>")
         else
           { flash: { error: res.message } }.to_json
         end
@@ -296,7 +296,7 @@ class LabelDesigner < Roda
       end
     end
     r.on 'labels' do
-      interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
       r.on 'new' do    # NEW
         check_auth!('designs', 'new')
         interactor.assert_permission!(:create)

@@ -1,0 +1,8 @@
+---
+:dataminer_definition: export_data_event_logs
+:actions:
+- :url: "/development/logging/export_data_event_logs/$:id$"
+  :text: view
+  :icon: view-show
+  :title: View
+  :popup: true

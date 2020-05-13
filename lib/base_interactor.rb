@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class BaseInteractor
+class BaseInteractor # rubocop:disable Metrics/ClassLength
   include Crossbeams::Responses
 
   # Create an Interactor.
@@ -30,7 +30,7 @@ class BaseInteractor
   #
   # @return [void]
   def log_transaction
-    repo.log_action(user_name: @user.user_name, context: @context.context, route_url: @context.route_url)
+    repo.log_action(user_name: @user.user_name, context: @context.context, route_url: @context.route_url, request_ip: @context.request_ip)
   end
 
   # Log the status of a record. Uses the context passed to the Interactor constructor.
@@ -44,6 +44,15 @@ class BaseInteractor
   # @return [void]
   def log_status(table_name, id, status, comment: nil)
     repo.log_status(table_name, id, status, user_name: @user.user_name, comment: comment)
+  end
+
+  # Add context to a message for emailing.
+  # (adds the route and ip address)
+  #
+  # @param message [string] the message to appear in the body of the message
+  # @return [string] the message decorated with path and ip data.
+  def decorate_mail_message(message)
+    "#{message}\n\nRoute: #{@context.route_url}\n\nIP: #{@context.request_ip}"
   end
 
   # Add a created_by key to a changeset and set its value to the current user.
@@ -101,7 +110,7 @@ class BaseInteractor
   # @param params [Hash] the request parameters.
   # @return [OpenStruct] validation results.
   def validate_extended_columns(table, params)
-    validator = Crossbeams::Config::ExtendedColumnDefinitions::VALIDATIONS[table][AppConst::CLIENT_CODE]
+    validator = Crossbeams::Config::ExtendedColumnDefinitions.validation_for(table)
     return OpenStruct.new(messages: {}) unless validator
 
     res = validator.call(select_extended_columns_params(params))
@@ -184,7 +193,7 @@ class BaseInteractor
   #
   # @param table_name [symbol] the name of the table
   # @param id [integer] the record id.
-  # @param status_change [symbol] the type of status change.
+  # @param status_change [string] the type of status change.
   # @param opts [Hash] the options.
   # @option opts [Hash] :field_changes The fields and their values to be updated.
   # @option opts [String] :status_text The optional text to record as the status. If not provided, the value of <tt>status_change</tt> will be capitalized and used.
@@ -198,7 +207,7 @@ class BaseInteractor
       log_transaction
       DevelopmentApp::ProcessStateChangeEvent.call(id, table_name, status_change, @user.user_name, opts[:params])
     end
-    success_response((opts[:status_text] || status_change.to_s).capitalize)
+    success_response((opts[:status_text] || status_change.to_s).gsub('_', ' ').capitalize)
   end
 
   # Log the status of multiple records. Uses the context passed to the Interactor constructor.
@@ -212,5 +221,35 @@ class BaseInteractor
   # @return [void]
   def log_multiple_statuses(table_name, ids, status, comment: nil)
     repo.log_multiple_statuses(table_name, ids, status, user_name: @user.user_name, comment: comment)
+  end
+
+  # When expecting an id value from a `changed_value` parameter,
+  # validate for blank/integer.
+  #
+  # @param params [Hash] the request parameters.
+  # @return [DryValidationResponse]
+  def validate_changed_value_as_int(params)
+    Dry::Validation.Params do
+      required(:changed_value).maybe(:int?)
+    end.call(params)
+  end
+
+  # When expecting a string value from a `changed_value` parameter,
+  # validate for blank/string.
+  #
+  # @param params [Hash] the request parameters.
+  # @return [DryValidationResponse]
+  def validate_changed_value_as_str(params)
+    Dry::Validation.Params do
+      required(:changed_value).maybe(:str?)
+    end.call(params)
+  end
+
+  # Using an ip address, return a robot HTTP base_url (host + port).
+  #
+  # @param ip [string] the ip address of the robot.
+  # @return [string] the HTTP host address and port for the robot.
+  def robot_print_base_ulr(ip)
+    "http://#{ip}:2080/"
   end
 end

@@ -4,7 +4,7 @@
 
 class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
   route 'admin', 'dataminer' do |r|
-    context = { for_grid_queries: session[:dm_admin_path] == :grids, route_url: request.path }
+    context = { for_grid_queries: session[:dm_admin_path] == :grids, route_url: request.path, request_ip: request.ip }
     interactor = DataminerApp::DataminerInteractor.new(current_user, {}, context, {})
 
     r.is do
@@ -89,8 +89,37 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
       r.on 'edit' do
         r.is do
           @page = interactor.edit_report(id)
+          if @page.success
           store_locally(:dm_admin_page, @page)
           view('dataminer/admin/edit')
+          else
+            flash[:error] = @page.message
+            r.redirect '/dataminer/admin'
+          end
+        end
+
+        r.on 'colour_grid' do
+          @page = retrieve_from_local_store(:dm_admin_page)
+          store_locally(:dm_admin_page, @page)
+          rows = []
+          @page.report.external_settings[:colour_key].each do |k, v|
+            rows << { id: k, description: v, colour_rule: k }
+          end
+
+          cols = Crossbeams::DataGrid::ColumnDefiner.new.make_columns do |mk|
+            mk.col 'id', nil, hide: true
+            mk.col 'description', nil, editable: true, width: 500
+            mk.col 'colour_rule'
+          end
+
+          {
+            extraContext: { keyColumn: 'id' },
+            multiselect_ids: [],
+            fieldUpdateUrl: "/dataminer/admin/#{id}/save_colour_key_desc",
+            tree: nil,
+            columnDefs: cols,
+            rowDefs: rows
+          }.to_json
         end
 
         r.on 'columns_grid' do
@@ -181,7 +210,15 @@ class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
             update_grid_row(id, changes: res.instance, notice: res.message)
           end
         else
-          undo_grid_inline_edit(message: res.message, message_type: :warn)
+          undo_grid_inline_edit(message: res.message, message_type: :warning)
+        end
+      end
+      r.on 'save_colour_key_desc' do # JSON
+        res = interactor.save_colour_key_desc(id, params)
+        if res.success
+          show_json_notice(res.message)
+        else
+          undo_grid_inline_edit(message: res.message, message_type: :warning)
         end
       end
       r.on 'parameter' do

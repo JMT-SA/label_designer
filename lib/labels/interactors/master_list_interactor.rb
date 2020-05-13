@@ -17,6 +17,7 @@ module LabelApp
     def create_master_list(params)
       res = validate_master_list_params(params)
       return validation_failed_response(res) unless res.messages.empty?
+
       id = nil
       repo.transaction do
         id = repo.create_master_list(res)
@@ -32,6 +33,7 @@ module LabelApp
     def update_master_list(id, params)
       res = validate_master_list_params(params)
       return validation_failed_response(res) unless res.messages.empty?
+
       repo.transaction do
         repo.update_master_list(id, res)
         log_transaction

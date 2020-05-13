@@ -11,8 +11,6 @@ Sequel.migration do
       String :printer_language, size: 255
       DateTime :created_at, null: false
       DateTime :updated_at, null: false
-      #
-      # index [:code], name: :printers_unique_code, unique: true
     end
 
     pgt_created_at(:printers,

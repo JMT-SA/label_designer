@@ -20,6 +20,8 @@ module Crossbeams
 
       BASE = {
         WEBAPP => {
+          password: { can_be_changed_by_user: true }
+          # stock_adj: { sign_off: false },
           # stock_adj: { sign_off: false, approve: true, take_out_rubbish: true },
           # invoice: { complete: false, approve: { fruit: true, assets: false } }
         }
@@ -27,6 +29,8 @@ module Crossbeams
 
       DOCUMENTATION = {
         WEBAPP => {
+          password: { can_be_changed_by_user: 'Allow this user to change their own password' }
+          # stock_adj: { sign_off: 'Sign off on a stock adjustment' }
           # stock_adj: { sign_off: 'Sign off on a stock adjustment', approve: 'dummy appr', take_out_rubbish: 'xx' },
           # invoice: { complete: 'dummy complete', approve: { fruit: 'dummy fruit', assets: 'dummy asset' } }
         }

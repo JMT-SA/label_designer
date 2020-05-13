@@ -32,7 +32,7 @@ set :rack_env, :production # SET THESE UP IN deploy files (hm6, hm7, nosoft, sch
 
 # Default value for :linked_files is []
 # append :linked_files, 'config/database.yml', 'config/secrets.yml'
-append :linked_files, 'public/js/ag-enterprise-activation.js', '.env.local', 'config/mail_settings.rb', 'config/dataminer_connections.yml'
+append :linked_files, 'public/js/ag-enterprise-activation.js', '.env.local', 'config/mail_settings.rb', 'config/dataminer_connections.yml', 'config/export_data_config.yml'
 
 # Default value for linked_dirs is []
 # append :linked_dirs, 'log', 'tmp/pids', 'tmp/cache', 'tmp/sockets', 'public/system'
@@ -56,6 +56,39 @@ task :migrate do
     within release_path do
       with rack_env: fetch(:rack_env) do
         execute :rake, 'db:migrate'
+      end
+    end
+  end
+end
+
+desc 'Runs rake menu:migrate if migrations are set'
+task :menu_migrate do
+  on primary :db do
+    within release_path do
+      with rack_env: fetch(:rack_env) do
+        execute :rake, 'menu:migrate'
+      end
+    end
+  end
+end
+
+desc 'Runs rake db:mf_seeds'
+task :mf_seeds do
+  on primary :db do
+    within release_path do
+      with rack_env: fetch(:rack_env) do
+        execute :rake, 'db:mf_seeds'
+      end
+    end
+  end
+end
+
+desc 'Runs rake jobs:restart_screen'
+task :restart_que do
+  on primary :db do
+    within release_path do
+      with rack_env: fetch(:rack_env) do
+        execute :rake, 'jobs:restart_screen'
       end
     end
   end
@@ -103,7 +136,17 @@ namespace :devops do
     on roles(:app) do |_|
       upload! 'public/js/ag-enterprise-activation.js', "#{shared_path}/public/js/ag-enterprise-activation.js"
       upload! 'config/mail_settings.rb.example', "#{shared_path}/config/mail_settings.rb"
+      upload! 'config/export_data_config.yml.example', "#{shared_path}/config/export_data_config.yml"
+
+      # Copy over dataminer connections and automatically set up the "system" connection:
       upload! 'config/dataminer_connections.yml.example', "#{shared_path}/config/dataminer_connections.yml"
+      execute :sed, "-i 's/$DBNAME/#{fetch(:application)}/g' #{shared_path}/config/dataminer_connections.yml"
+      execute :sed, "-i 's/$CURRENT/#{current_path.to_s.gsub('/', '\/')}/g' #{shared_path}/config/dataminer_connections.yml"
+      execute :sed, "-i 's/$SHARED/#{shared_path.to_s.gsub('/', '\/')}/g' #{shared_path}/config/dataminer_connections.yml"
+      execute :mkdir, "#{shared_path}/sys_prepared_reports"
+      execute :mkdir, "#{shared_path}/app_reports"
+      execute :mkdir, "#{shared_path}/app_prepared_reports"
+
       execute :touch, "#{shared_path}/.env.local"
     end
   end
@@ -112,6 +155,9 @@ end
 namespace :deploy do
   after :updated, :migrate_and_precompile do
     invoke 'migrate'
+    # invoke 'menu_migrate'
+    invoke 'mf_seeds'
     invoke 'precompile'
+    invoke 'restart_que'
   end
 end

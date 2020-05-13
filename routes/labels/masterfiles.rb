@@ -7,7 +7,7 @@ class LabelDesigner < Roda
     # MASTER LISTS
     # --------------------------------------------------------------------------
     r.on 'master_lists', Integer do |id|
-      interactor = LabelApp::MasterListInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = LabelApp::MasterListInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:master_lists, id) do
@@ -41,7 +41,7 @@ class LabelDesigner < Roda
     end
 
     r.on 'master_lists' do
-      interactor = LabelApp::MasterListInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = LabelApp::MasterListInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
       r.on 'new' do    # NEW
         check_auth!('master lists', 'new')
         show_partial_or_page(r) { Labels::Masterfiles::MasterList::New.call(form_values: { list_type: params[:key] }, remote: fetch?(r)) }

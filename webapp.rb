@@ -16,6 +16,7 @@ class LabelDesigner < Roda
   include ErrorHelpers
   include MenuHelpers
   include DataminerHelpers
+  include RmdHelpers
 
   use Rack::Session::Cookie, secret: 'some_nice_long_random_string_DSKJH4378EYR7EGKUFH', key: '_lbld_session'
   use Rack::MethodOverride # Use with all_verbs plugin to allow 'r.delete' etc.
@@ -37,8 +38,21 @@ class LabelDesigner < Roda
   plugin :content_for, append: true
   plugin :symbolized_params    # - automatically converts all keys of params to symbols.
   plugin :flash
-  plugin :csrf, raise: true, skip_if: ->(req) { ENV['RACK_ENV'] == 'test' || AppConst::BYPASS_LOGIN_ROUTES.any? { |path| req.path == path } } # , :skip => ['POST:/report_error'] # FIXME: Remove the +raise+ param when going live!
+  plugin :csrf, raise: true, # , :skip => ['POST:/report_error'] # FIXME: Remove the +raise+ param when going live!
+                csrf_header: 'X-CSRF-Token',
+                skip_if: ->(req) do # rubocop:disable Style/Lambda
+                  ENV['RACK_ENV'] == 'test' || AppConst::BYPASS_LOGIN_ROUTES.any? do |path|
+                    if path.end_with?('*')
+                      req.path.match?(/#{path}/)
+                    else
+                      req.path == path
+                    end
+                  end
+                end
   plugin :json_parser
+  plugin :message_bus
+  plugin :status_handler
+  plugin :cookies, path: '/'
   plugin :rodauth do
     db DB
     enable :login, :logout # , :change_password
@@ -51,6 +65,12 @@ class LabelDesigner < Roda
     accounts_table :vw_active_users # Only active users can login.
     account_password_hash_column :password_hash
     template_opts(layout_opts: { path: 'views/layout_auth.erb' })
+    after_login do
+      # On successful login, see if the user had given a specific path that required the login and redirect to it.
+      path = request.cookies['pre_login_path']
+      response.delete_cookie('pre_login_path')
+      redirect(path) if path && scope.can_login_to_path?(path, account[:id])
+    end
   end
   unless ENV['RACK_ENV'] == 'development' && ENV['NO_ERR_HANDLE']
     plugin :error_mail, to: AppConst::ERROR_MAIL_RECIPIENTS,
@@ -66,7 +86,7 @@ class LabelDesigner < Roda
       # = if prod and unexpected exception type, just display "something whent wrong" and log
     end
   end
-  Dir['./routes/*.rb'].each { |f| require f }
+  Dir['./routes/*.rb'].sort.each { |f| require f }
 
   route do |r|
     r.assets unless ENV['RACK_ENV'] == 'production'
@@ -80,7 +100,7 @@ class LabelDesigner < Roda
     r.on 'webquery', String do |id|
       # A dummy user
       user = DevelopmentApp::User.new(id: 0, login_name: 'webquery', user_name: 'webquery', password_hash: 'dummy', email: nil, active: true)
-      interactor = DataminerApp::PreparedReportInteractor.new(user, {}, { route_url: request.path }, {})
+      interactor = DataminerApp::PreparedReportInteractor.new(user, {}, { route_url: request.path, request_ip: request.ip }, {})
       interactor.prepared_report_as_html(id)
     end
 
@@ -88,7 +108,7 @@ class LabelDesigner < Roda
     r.on 'xmlreport', String do |id|
       # A dummy user
       user = DevelopmentApp::User.new(id: 0, login_name: 'webquery', user_name: 'webquery', password_hash: 'dummy', email: nil, active: true)
-      interactor = DataminerApp::PreparedReportInteractor.new(user, {}, { route_url: request.path }, {})
+      interactor = DataminerApp::PreparedReportInteractor.new(user, {}, { route_url: request.path, request_ip: request.ip }, {})
       interactor.prepared_report_as_xml(id)
     end
     # Do the same as XML?
@@ -108,17 +128,27 @@ class LabelDesigner < Roda
     #   end
     # end
 
-    unless AppConst::BYPASS_LOGIN_ROUTES.any? { |path| request.path == path } # Might have to be more nuanced for params in path...
+    unless AppConst::BYPASS_LOGIN_ROUTES.any? do |path|
+      if path.end_with?('*')
+        request.path.match?(/#{path}/)
+      else
+        request.path == path
+      end
+    end
       r.rodauth
+      # Store this path before login so we can redirect after login. NB. Only a GET request!
+      response.set_cookie('pre_login_path', r.fullpath) unless rodauth.logged_in? || r.path == '/login' || !request.get? || fetch?(r)
       rodauth.require_authentication
       r.redirect('/login') if current_user.nil? # Session might have the incorrect user_id
     end
 
     r.root do
       # TODO: Config this, and maybe set it up per user.
-      if @registered_mobile_device
+      if @registered_mobile_device && !@hybrid_device
         r.redirect @rmd_start_page || '/rmd/home'
       else
+        # page = user_homepage
+        # r.redirect page unless page.nil?
         r.redirect('/list/labels/with_params?key=active')
       end
     end
@@ -169,11 +199,17 @@ class LabelDesigner < Roda
       view(inline: '<div class="crossbeams-error-note"><strong>Error</strong><br>The requested resource was not found.</div>')
     end
 
+    r.on 'terminus' do
+      r.message_bus
+      # view(inline: 'Maybe we show all unattended messages for a user here')
+    end
+
+
     # LABEL DESIGNER
     # ----------------------------------------------------------------------
 
     r.on 'label_designer' do
-      interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
       r.is do
         @label_edit_page = true
         view(inline: interactor.label_designer_page(label_name: params[:label_name],
@@ -184,7 +220,7 @@ class LabelDesigner < Roda
     end
 
     r.on 'save_label' do
-      interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = LabelApp::LabelInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
       r.on :id do |id|
         r.post do
           repo = LabelApp::LabelRepo.new
@@ -193,7 +229,7 @@ class LabelDesigner < Roda
                         png_image: Sequel.blob(interactor.image_from_param(params[:imageString])) }
           DB.transaction do
             repo.update_label(id, interactor.include_updated_by_in_changeset(changeset))
-            repo.log_action(user_name: current_user.user_name, context: 'update label', route_url: request.path)
+            repo.log_action(user_name: current_user.user_name, context: 'update label', route_url: request.path, request_ip: request.ip)
           end
 
           flash[:notice] = 'Updated'
@@ -202,8 +238,9 @@ class LabelDesigner < Roda
       end
 
       r.post do
+        # if session new_label_attr nil? redirect to list with an error message
         repo = LabelApp::LabelRepo.new
-        extra_attributes = session[:new_label_attributes]
+        extra_attributes = session[:new_label_attributes] ### WHAT IF THESE nil? (as happened at SRCC at 00:40) <session cleared? problem if cloned? OR double-send? - 1st end has session data and second has it replaced with nil...>
         extcols = interactor.select_extended_columns_params(extra_attributes)
         from_id = extra_attributes[:cloned_from_id]
         changeset = { label_json: params[:label],
@@ -229,13 +266,25 @@ class LabelDesigner < Roda
             from_lbl = repo.find_label(from_id)
             repo.log_status('labels', id, 'CLONED', comment: "from #{from_lbl.label_name}", user_name: current_user.user_name)
           end
-          repo.log_action(user_name: current_user.user_name, context: 'create label', route_url: request.path)
+          repo.log_action(user_name: current_user.user_name, context: 'create label', route_url: request.path, request_ip: request.ip)
         end
         session[:new_label_attributes] = nil
         flash[:notice] = 'Created'
         redirect_via_json "/labels/labels/labels/#{id}/edit"
       end
     end
+  end
+
+  status_handler(404) do
+    view(inline: '<div class="crossbeams-error-note"><strong>Error</strong><br>The requested resource was not found.</div>')
+  end
+
+  def render_asciidoc(content, image_dir = '/documentation_images')
+    <<~HTML
+      <div id="asciidoc-content">
+        #{Asciidoctor.convert(content, safe: :safe, attributes: { 'source-highlighter' => 'coderay', 'coderay-css' => 'style', 'imagesdir' => image_dir })}
+      </div>
+    HTML
   end
 end
 # rubocop:enable Metrics/ClassLength

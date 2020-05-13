@@ -7,7 +7,10 @@ class EnvVarRules # rubocop:disable Metrics/ClassLength
     { LOGSQLTOFILE: 'Dev mode: separate SQL calls out of logs and write to file "log/sql.log"' },
     { LOGFULLMESSERVERCALLS: 'Dev mode: Log full payload of HTTP calls to MesServer. Only do this if debugging.' },
     { RUN_FOR_RMD: 'Dev mode: Force the server to act as if it is being called from a Registered Mobile Device' },
-    { NO_ERR_HANDLE: 'Dev mode: Do not use the error handling built into the framework. Can be useful to debug without mail sending in the output.' }
+    { NO_ERR_HANDLE: 'Dev mode: Do not use the error handling built into the framework. Can be useful to debug without mail sending in the output.' },
+    { EMAIL_REQUIRES_REPLY_TO: 'Set to Y if user cannot send email directly. i.e. FROM must be system email, and REPLY-TO will be set to user email.' },
+    { LABEL_SIZES: 'Possible label sizes for designing in format "w,h;w,h;w,h...". e.g. 100,100;100,150;84,64' },
+    { CLM_BUTTON_CAPTION_FORMAT: 'A format for captions to display on label printer robot buttons. See AppConst for more.' }
   ].freeze
 
   NO_OVERRIDE = [
@@ -31,7 +34,8 @@ class EnvVarRules # rubocop:disable Metrics/ClassLength
     { SYSTEM_MAIL_SENDER: 'Email address for "FROM" address in the format NAME<email>' },
     { ERROR_MAIL_PREFIX: 'Prefix to be placed in subject of emails sent from exceptions.' },
     { ERROR_MAIL_RECIPIENTS: 'Comma-separated list of recipients of exception emails.' },
-    { CLIENT_CODE: 'Short, lowercase code to identify the implementation client. Used e.g. in defining per-client behaviour.' }
+    { CLIENT_CODE: 'Short, lowercase code to identify the implementation client. Used e.g. in defining per-client behaviour.' },
+    { URL_BASE: 'Base URL for this website - in the format http://xxxx' }
   ].freeze
 
   def print
@@ -62,6 +66,10 @@ class EnvVarRules # rubocop:disable Metrics/ClassLength
     STR
   end
 
+  def list_keys # rubocop:disable Metrics/AbcSize
+    (NO_OVERRIDE.map { |a| a.keys.first } + CAN_OVERRIDE.map { |a| a.keys.first } + MUST_OVERRIDE.map { |a| a.keys.first } + OPTIONAL.map { |a| a.keys.first }).sort.join("\n")
+  end
+
   def root_path
     @root_path ||= File.expand_path('..', __dir__)
   end
@@ -85,7 +93,7 @@ class EnvVarRules # rubocop:disable Metrics/ClassLength
   end
 
   def format(array)
-    array.map { |var| "#{var.keys.first.to_s.ljust(25)} : #{var.values.first}" }.join("\n")
+    array.map { |var| "#{var.keys.first.to_s.ljust(48)} : #{var.values.first}" }.join("\n")
   end
 
   def validate

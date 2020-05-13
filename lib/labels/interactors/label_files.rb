@@ -74,7 +74,7 @@ module LabelApp
       img[0].replace("<image_filename>#{fname}_#{index}.png</image_filename>")
     end
 
-    def zip_multi_label(label, fname, label_properties)
+    def zip_multi_label(label, fname, label_properties) # rubocop:disable Metrics/AbcSize
       combined_xml = make_combined_xml(label, fname)
       Zip::OutputStream.write_buffer do |zio|
         repo.sub_label_ids(label.id).each_with_index do |sub_label_id, index|

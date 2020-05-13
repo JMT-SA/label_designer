@@ -25,6 +25,20 @@ module SecurityApp
       !DB[query].first.nil?
     end
 
+    # If a user logged in after entering a specific path, check to see if the user has access to the path.
+    # (NB. this is a vague check: it will only check if the user has access to the program, not what level
+    # of access the user has - that should be taken care of by the authorization checks in the route)
+    def can_login_to_path?(user_id, path)
+      prog_funcs = DB[:program_functions].where(url: path).select(:program_id, :restricted_user_access, :id).all
+      return false if prog_funcs.empty?
+
+      if prog_funcs.any? { |r| r[:restricted_user_access] }
+        can_login_to_restricted_path?(user_id, prog_funcs)
+      else
+        can_login_to_program_path?(user_id, prog_funcs)
+      end
+    end
+
     def program_ids_for(functional_area_id, programs)
       query = <<~SQL
         SELECT id
@@ -67,7 +81,10 @@ module SecurityApp
     end
 
     def functional_area_id_for_name(functional_area_name)
-      DB[:functional_areas].where(functional_area_name: functional_area_name).first[:id]
+      id = DB[:functional_areas].where(functional_area_name: functional_area_name).get(:id)
+      raise ArgumentError, %(There is no functional area named "#{functional_area_name}") if id.nil?
+
+      id
     end
 
     def create_program(res, webapp)
@@ -227,6 +244,38 @@ module SecurityApp
 
     def existing_user_ids_for_program_function(program_function_id)
       DB[:program_functions_users].where(program_function_id: program_function_id).select_map(:user_id)
+    end
+
+    def find_homepage(id)
+      query = <<~SQL
+        SELECT pf.id, CONCAT_WS(': ', f.functional_area_name, p.program_name, pf.group_name, pf.program_function_name) AS menu_text
+        FROM program_functions pf
+        JOIN programs p ON p.id = pf.program_id
+        JOIN functional_areas f ON f.id =  p.functional_area_id
+        WHERE pf.id = ?
+      SQL
+      DB[query, id].first || {}
+    end
+
+    def for_select_homepages
+      query = <<~SQL
+        SELECT CONCAT_WS(': ', f.functional_area_name, p.program_name, pf.group_name, pf.program_function_name) AS menu_text, pf.id
+        FROM program_functions pf
+        JOIN programs p ON p.id = pf.program_id
+        JOIN functional_areas f ON f.id =  p.functional_area_id
+        ORDER BY f.functional_area_name, p.program_name, pf.group_name, pf.program_function_name
+      SQL
+      DB[query].select_map { %i[menu_text id] }
+    end
+
+    private
+
+    def can_login_to_restricted_path?(user_id, prog_funcs)
+      DB[:program_functions_users].where(user_id: user_id).where(program_function_id: prog_funcs.map { |p| p[:id] }).count.positive?
+    end
+
+    def can_login_to_program_path?(user_id, prog_funcs)
+      DB[:programs_users].where(user_id: user_id).where(program_id: prog_funcs.map { |p| p[:program_id] }).count.positive?
     end
   end
 end

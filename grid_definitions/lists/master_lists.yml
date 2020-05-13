@@ -23,6 +23,10 @@
   :style: :button
   :behaviour: :popup
 :conditions:
+  :label_type:
+    - :col: master_lists.list_type
+      :op: =
+      :val: label_type
   :commodity:
     - :col: master_lists.list_type
       :op: =

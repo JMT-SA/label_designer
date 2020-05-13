@@ -8,6 +8,9 @@
 .ag-theme-balham .ag-popup-editor {
   z-index: 30 !important;
 }
+.ag-theme-balham .ag-rich-select .ag-rich-select-list {
+  width: auto !important;
+}
 /* Style for cells in popup display of selected row */
 .selected-grid-row-display.ag-numeric-cell {
   text-align: right;
@@ -27,6 +30,14 @@
   /* color: aliceblue; -- for ag-theme-blue */
   color: #727384;
   vertical-align: sub;
+}
+.crossbeams-colour-key-list {
+  display: none;
+}
+.crossbeams-colour-key:hover ~ .crossbeams-colour-key-list {
+  display: block;
+  position: fixed;
+  z-index: 2;
 }
 .crossbeams-rowcount {
   /* color: white; -- for ag-theme-blue */
@@ -336,6 +347,16 @@ div.cbl-input.label-field {
   min-height: 4em;
 }
 
+.cbl-list-scroll-short {
+  height: 5rem;
+  overflow-y: auto;
+}
+
+.cbl-list-scroll-medium {
+  height: 11rem;
+  overflow-y: auto;
+}
+
 .crossbeams-field, .rodauth .form-group {
   display: flex;
 }
@@ -530,10 +551,21 @@ input[readonly] {
   padding:        4px;
   border: none;
 }
+.grid-row-view thead {
+  border: thin solid gray;
+}
+.grid-row-view th {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: darkgray;
+  padding: 0.25em 0;
+}
 
 /* START: Table row alternate background and hover background */
 tr.hover-row:hover {
-  background-color: #90EE90;
+  background-color: #B7E4FF;
   color: #000000;
 }
 tr.rowodd {
@@ -891,22 +923,23 @@ div.cbl-progress-bar-text {
   .cbl-input-required,
   .cbl-copy-wrapper,
   .multi-wrapper,
-  /* input, */
-  select{width: 100%;}
-  input[type="radio"],
-  input[type="checkbox"],
-  input[type="submit"]{
-  width: auto;
+    /* input, */
+    select{width: 100%;}
+    input[type="radio"],
+    input[type="checkbox"],
+    input[type="submit"]{
+    width: auto;
   }
   form .crossbeams-field{
-  display: flex;
-  flex-direction: column;
-  margin: 0 0 6px 0;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0.25em;
   }
   form .crossbeams-field label{
-  padding: 0 0 5px 0;
-  margin: 10px 0 0 0;
-  text-align: left;
+    padding: 0 0 5px 0;
+    margin: 0;
+    text-align: left;
   }
 }
 @media (max-width: 800px) {

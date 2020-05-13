@@ -6,7 +6,7 @@ module Labels
       class BatchPrint
         extend LabelVariableFields
 
-        def self.call(id, form_values: nil, form_errors: nil, remote: true)
+        def self.call(id, form_values: nil, form_errors: nil, remote: true) # rubocop:disable Metrics/AbcSize
           this_repo = LabelApp::LabelRepo.new
           repo      = LabelApp::PrinterRepo.new
           obj       = this_repo.find_label(id)

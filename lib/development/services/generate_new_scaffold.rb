@@ -10,9 +10,9 @@ module DevelopmentApp
     class ScaffoldConfig
       attr_reader :inflector, :table, :singlename, :new_applet, :applet, :program,
                   :table_meta, :label_field, :short_name, :has_short_name, :program_text,
-                  :nested_route, :new_from_menu, :text_name
+                  :nested_route, :new_from_menu, :text_name, :services, :jobs
 
-      def initialize(params, roda_class_name)
+      def initialize(params, roda_class_name) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
         @roda_class_name     = roda_class_name
         @inflector           = Dry::Inflector.new
         @table               = params[:table]
@@ -22,7 +22,7 @@ module DevelopmentApp
         @applet              = params[:applet]
         @new_applet          = @applet == 'other'
         @applet              = params[:other] if @applet == 'other'
-        @program_text        = params[:program].strip
+        @program_text        = params[:program].tr('_', ' ').strip
         @program             = @program_text.tr(' ', '_')
         @table_meta          = TableMeta.new(@table)
         @label_field         = params[:label_field] || @table_meta.likely_label_field
@@ -30,6 +30,8 @@ module DevelopmentApp
         @shared_factory_name = params[:shared_factory_name]
         @nested_route        = params[:nested_route_parent].empty? ? nil : params[:nested_route_parent]
         @new_from_menu       = params[:new_from_menu].nil? ? false : params[:new_from_menu]
+        @services            = params[:services].empty? ? [] : params[:services].split(',').map(&:strip)
+        @jobs                = params[:jobs].empty? ? [] : params[:jobs].split(',').map(&:strip)
       end
 
       def classnames # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
@@ -37,6 +39,8 @@ module DevelopmentApp
         classname     = @inflector.camelize(@singlename)
         applet_klass  = @inflector.camelize(@applet)
         program_klass = @inflector.camelize(@program)
+        job_classes = jobs.map { |j| class_name(j) }
+        srv_classes = services.map { |j| class_name(j) }
         {
           roda_class: @roda_class_name,
           module: modulename,
@@ -50,8 +54,18 @@ module DevelopmentApp
           namespaced_repo: "#{modulename}::#{@shared_repo_name.nil? || @shared_repo_name.empty? ? classname : @inflector.camelize(@shared_repo_name.sub(/Repo$/, ''))}Repo",
           interactor: "#{classname}Interactor",
           namespaced_interactor: "#{modulename}::#{classname}Interactor",
-          view_prefix: "#{applet_klass}::#{program_klass}::#{classname}"
+          view_prefix: "#{applet_klass}::#{program_klass}::#{classname}",
+          job_classes: job_classes,
+          service_classes: srv_classes
         }
+      end
+
+      def path_name(name)
+        inflector.underscore(name)
+      end
+
+      def class_name(name)
+        inflector.classify(name)
       end
 
       def filenames
@@ -65,6 +79,8 @@ module DevelopmentApp
                    else
                      @singlename
                    end
+        job_paths = jobs.map { |j| "lib/#{@applet}/jobs/#{path_name(j)}.rb" }
+        srv_paths = services.map { |j| "lib/#{@applet}/services/#{path_name(j)}.rb" }
         {
           applet: "lib/applets/#{@applet}_applet.rb",
           dm_query: "grid_definitions/dataminer_queries/#{@table}.yml",
@@ -91,7 +107,9 @@ module DevelopmentApp
             permission: "lib/#{@applet}/test/task_permission_checks/test_#{@singlename}.rb",
             repo: "lib/#{@applet}/test/repositories/test_#{repofile}_repo.rb",
             route: "test/routes/#{@applet}/#{@program}/test_#{@singlename}_routes.rb"
-          }
+          },
+          jobs: job_paths,
+          services: srv_paths
         }
       end
     end
@@ -124,8 +142,11 @@ module DevelopmentApp
       sources[:view]       = ViewMaker.call(opts)
       sources[:route]      = RouteMaker.call(opts)
       sources[:menu]       = MenuMaker.call(opts)
+      sources[:menu_mig]   = MenuMigrationMaker.call(opts)
       sources[:test]       = TestMaker.call(opts)
       sources[:applet]     = AppletMaker.call(opts) if opts.new_applet
+      sources[:services]   = ServiceMaker.call(opts) unless opts.services.nil?
+      sources[:jobs]       = JobMaker.call(opts) unless opts.jobs.nil?
 
       sources
     end
@@ -171,16 +192,18 @@ module DevelopmentApp
         jsonb: '{}'
       }.freeze
 
+      FAKER_STRING = 'Faker::Lorem.word'
+      FAKER_UNIQUE_STRING = 'Faker::Lorem.unique.word'
       FAKER_DATA_LOOKUP = {
-        integer: 'Faker::Number.number',
+        integer: 'Faker::Number.number(4)',
         string: 'Faker::Lorem.word',
         boolean: 'false',
         float: '1.0',
         datetime: "'2010-01-01 12:00'",
         date: "'2010-01-01'",
         decimal: 'Faker::Number.decimal',
-        integer_array: '[1, 2, 3]',
-        string_array: "['A', 'B', 'C']",
+        integer_array: 'BaseRepo.new.array_for_db_col([1, 2, 3])',
+        string_array: "BaseRepo.new.array_of_text_for_db_col(['A', 'B', 'C'])",
         jsonb: '{}'
       }.freeze
 
@@ -188,7 +211,8 @@ module DevelopmentApp
         integer: '(:int?)',
         string: '(:str?)',
         boolean: '(:bool?)',
-        datetime: '(:date_time?)',
+        # datetime: '(:date_time?)',
+        datetime: '(:time?)',
         date: '(:date?)',
         time: '(:time?)',
         float: '(:float?)',
@@ -202,7 +226,8 @@ module DevelopmentApp
         integer: ':integer',
         string: 'Types::StrippedString',
         boolean: ':bool',
-        datetime: ':date_time',
+        # datetime: ':date_time',
+        datetime: ':time',
         date: ':date',
         time: ':time',
         float: ':float',
@@ -210,6 +235,21 @@ module DevelopmentApp
         jsonb: ':hash',
         integer_array: ':array',
         string_array: ':array'
+      }.freeze
+
+      VALIDATION_OPTIONAL_TYPE_LOOKUP = {
+        # integer: ':integer',
+        # string: 'Types::StrippedString',
+        # boolean: ':bool',
+        # datetime: ':date_time',
+        datetime: '[:nil, :time]',
+        date: '[:nil, :date]',
+        time: '[:nil, :time]',
+        float: '[:nil, :float]',
+        decimal: '[:nil, :decimal]' # ,
+        # jsonb: ':hash',
+        # integer_array: ':array',
+        # string_array: ':array'
       }.freeze
 
       VALIDATION_ARRAY_LOOKUP = {
@@ -223,6 +263,7 @@ module DevelopmentApp
         @columns         = repo.table_columns(table)
         @column_names    = repo.table_col_names(table)
         @indexed_columns = repo.indexed_columns(table)
+        @unique_columns  = repo.unique_columns(table)
         @foreigns        = repo.foreign_keys(table)
         @col_lookup      = Hash[@columns]
         @fk_lookup       = {}
@@ -269,20 +310,30 @@ module DevelopmentApp
         DRY_TYPE_LOOKUP[@col_lookup[column][:type]] || "Types::??? (#{@col_lookup[column][:type]})"
       end
 
-      def column_dummy_data(column, faker: false, type: nil)
+      def column_dummy_data(column, faker: false, with_fk: true, type: nil)
         if column == likely_label_field
           'Faker::Lorem.unique.word'
-        elsif fk_lookup[column]
+        elsif with_fk && fk_lookup[column]
           "#{@inflector.singularize(fk_lookup[column][:table])}_id"
         elsif faker
-          FAKER_DATA_LOOKUP[type] || 'nil'
+          faker_data(column, type)
         else
           DUMMY_DATA_LOOKUP[@col_lookup[column][:type]] || "'??? (#{@col_lookup[column][:type]})'"
         end
       end
 
-      def column_dry_validation_type(column)
-        VALIDATION_TYPE_LOOKUP[@col_lookup[column][:type]] || "Types::??? (#{@col_lookup[column][:type]})"
+      def faker_data(column, type)
+        data = FAKER_DATA_LOOKUP[type] || 'nil'
+        data = FAKER_UNIQUE_STRING if data == FAKER_STRING && @unique_columns.include?(column)
+        data
+      end
+
+      def column_dry_validation_type(column, optional = false)
+        if optional
+          VALIDATION_OPTIONAL_TYPE_LOOKUP[@col_lookup[column][:type]] || VALIDATION_TYPE_LOOKUP[@col_lookup[column][:type]] || "Types::??? (#{@col_lookup[column][:type]})"
+        else
+          VALIDATION_TYPE_LOOKUP[@col_lookup[column][:type]] || "Types::??? (#{@col_lookup[column][:type]})"
+        end
       end
 
       def column_dry_validation_array_extra(column)
@@ -305,17 +356,18 @@ module DevelopmentApp
         @column_names.include?(:approved)
       end
 
-      def dependency_tree
+      def dependency_tree(lkp_tables = [])
         out = {}
         out[@table] = []
         columns.each do |col, attrs|
           next if attrs[:primary_key]
 
           hs = { name: col }.merge(attrs)
-          if fk_lookup[col]
+          if fk_lookup[col] && !lkp_tables.include?(fk_lookup[col][:table])
+            lkp_tables << fk_lookup[col][:table]
             hs[:ftbl] = fk_lookup[col][:table]
             this_meta = TableMeta.new(fk_lookup[col][:table])
-            out = out.merge(this_meta.dependency_tree)
+            out = out.merge(this_meta.dependency_tree(lkp_tables))
           end
           out[@table] << hs
         end
@@ -342,7 +394,7 @@ module DevelopmentApp
                 id = nil
                 repo.transaction do
                   id = repo.create_#{opts.singlename}(res)
-                  log_status('#{opts.table}', id, 'CREATED')
+                  log_status(:#{opts.table}, id, 'CREATED')
                   log_transaction
                 end
                 instance = #{opts.singlename}(id)
@@ -373,7 +425,7 @@ module DevelopmentApp
                 name = #{opts.singlename}(id).#{opts.label_field}
                 repo.transaction do
                   repo.delete_#{opts.singlename}(id)
-                  log_status('#{opts.table}', id, 'DELETED')
+                  log_status(:#{opts.table}, id, 'DELETED')
                   log_transaction
                 end
                 success_response("Deleted #{opts.classnames[:text_name].downcase} \#{name}")
@@ -478,7 +530,7 @@ module DevelopmentApp
                 }.freeze
 
                 def call
-                  return failed_response 'Record not found' unless @entity || task == :create
+                  return failed_response '#{opts.text_name} record not found' unless @entity || task == :create
 
                   check = CHECKS[task]
                   raise ArgumentError, "Task \\"\#{task}\\" is unknown for \#{self.class}" if check.nil?
@@ -648,9 +700,9 @@ module DevelopmentApp
           rules = [opts.table_meta.column_dry_validation_expect_type(col), max, opts.table_meta.column_dry_validation_array_extra(col)].compact.join(', ')
           rules = rules.sub(/,\s+{/, ' {')
           attr << if col == :id
-                    "optional(:#{col}, #{opts.table_meta.column_dry_validation_type(col)}).#{fill_opt}#{rules}"
+                    "optional(:#{col}, #{opts.table_meta.column_dry_validation_type(col, detail[:allow_null])}).#{fill_opt}#{rules}"
                   else
-                    "required(:#{col}, #{opts.table_meta.column_dry_validation_type(col)}).#{fill_opt}#{rules}"
+                    "required(:#{col}, #{opts.table_meta.column_dry_validation_type(col, detail[:allow_null])}).#{fill_opt}#{rules}"
                   end
         end
         attr
@@ -687,8 +739,8 @@ module DevelopmentApp
                             popup: true,
                             hide_if_true: 'completed',
                             auth: {
-                              function: opts.applet,
-                              program: opts.program,
+                              function: make_caption(opts.applet),
+                              program: opts.program_text,
                               permission: 'edit'
                             } }
         list[:actions] << { url: "/#{opts.applet}/#{opts.program}/#{opts.table}/$:id$/approve",
@@ -698,8 +750,8 @@ module DevelopmentApp
                             hide_if_false: 'completed',
                             hide_if_true: 'approved',
                             auth: {
-                              function: opts.applet,
-                              program: opts.program,
+                              function: make_caption(opts.applet),
+                              program: opts.program_text,
                               permission: 'approve'
                             } }
         list[:actions] << { url: "/#{opts.applet}/#{opts.program}/#{opts.table}/$:id$/reopen",
@@ -708,8 +760,8 @@ module DevelopmentApp
                             popup: true,
                             hide_if_false: 'approved',
                             auth: {
-                              function: opts.applet,
-                              program: opts.program,
+                              function: make_caption(opts.applet),
+                              program: opts.program_text,
                               permission: 'edit'
                             } }
         list[:actions] << { separator: true }
@@ -725,6 +777,10 @@ module DevelopmentApp
                                   style: :button,
                                   behaviour: :popup }
         list.to_yaml
+      end
+
+      def make_caption(value)
+        opts.inflector.humanize(value.to_s).gsub(/\s\D/, &:upcase)
       end
     end
 
@@ -777,7 +833,7 @@ module DevelopmentApp
               # #{opts.table.upcase.tr('_', ' ')}
               # --------------------------------------------------------------------------
               r.on '#{opts.table}', Integer do |id|
-                interactor = #{opts.classnames[:namespaced_interactor]}.new(current_user, {}, { route_url: request.path }, {})
+                interactor = #{opts.classnames[:namespaced_interactor]}.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
 
                 # Check for notfound:
                 r.on !interactor.exists?(:#{opts.table}, id) do
@@ -887,7 +943,7 @@ module DevelopmentApp
       def plain_new_routes
         <<~RUBY
           r.on '#{opts.table}' do
-            interactor = #{opts.classnames[:namespaced_interactor]}.new(current_user, {}, { route_url: request.path }, {})
+            interactor = #{opts.classnames[:namespaced_interactor]}.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
             r.on 'new' do    # NEW
               check_auth!('#{opts.program_text}', 'new')#{on_new_lastgrid.chomp}
               show_partial_or_page(r) { #{opts.classnames[:view_prefix]}::New.call(remote: fetch?(r)) }
@@ -912,7 +968,7 @@ module DevelopmentApp
         <<~RUBY
           r.on '#{opts.nested_route}', Integer do |id|
             r.on '#{opts.table}' do
-              interactor = #{opts.classnames[:namespaced_interactor]}.new(current_user, {}, { route_url: request.path }, {})
+              interactor = #{opts.classnames[:namespaced_interactor]}.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
               r.on 'new' do    # NEW
                 check_auth!('#{opts.program_text}', 'new')#{on_new_lastgrid.chomp}
                 show_partial_or_page(r) { #{opts.classnames[:view_prefix]}::New.call(id, remote: fetch?(r)) }
@@ -974,7 +1030,7 @@ module DevelopmentApp
 
       def create_success
         if opts.new_from_menu
-          row_keys = opts.table_meta.columns_without(%i[created_at updated_at active]).map(&:to_s).join("\n    ")
+          row_keys = opts.table_meta.columns_without(%i[created_at updated_at]).map(&:to_s).join("\n    ")
           <<~RUBY
             if fetch?(r)
               row_keys = %i[
@@ -988,7 +1044,7 @@ module DevelopmentApp
             end
           RUBY
         else
-          row_keys = opts.table_meta.columns_without(%i[created_at updated_at active]).map(&:to_s).join("\n  ")
+          row_keys = opts.table_meta.columns_without(%i[created_at updated_at]).map(&:to_s).join("\n  ")
           <<~RUBY
             row_keys = %i[
               #{row_keys}
@@ -1077,6 +1133,10 @@ module DevelopmentApp
 
       private
 
+      def make_caption(value)
+        opts.inflector.humanize(value.to_s).gsub(/\s\D/, &:upcase)
+      end
+
       def fields_to_use(for_show = false)
         cols = if for_show
                  %i[id created_at updated_at]
@@ -1093,8 +1153,8 @@ module DevelopmentApp
           next unless fk
 
           tm = TableMeta.new(fk[:table])
-          singlename  = opts.inflector.singularize(fk[:table].to_s)
-          klassname   = opts.inflector.camelize(singlename)
+          singlename = opts.inflector.singularize(fk[:table].to_s)
+          klassname = opts.inflector.camelize(singlename)
           fk_repo = "#{opts.classnames[:module]}::#{klassname}Repo"
           code = tm.likely_label_field
           flds << "# #{f}_label = #{fk_repo}.new.find_#{singlename}(@form_object.#{f})&.#{code}"
@@ -1107,11 +1167,13 @@ module DevelopmentApp
             this_col = opts.table_meta.col_lookup[f]
             if this_col[:type] == :boolean
               "fields[:#{f}] = { renderer: :label, as_boolean: true }"
+            elsif this_col[:type] == :datetime
+              "fields[:#{f}] = { renderer: :label, format: :without_timezone_or_seconds }"
             else
               "fields[:#{f}] = { renderer: :label }"
             end
           else
-            "fields[:#{f}] = { renderer: :label, with_value: #{f}_label, caption: '#{f.to_s.chomp('_id').split('_').map(&:capitalize).join(' ')}' }"
+            "fields[:#{f}] = { renderer: :label, with_value: #{f}_label, caption: '#{make_caption(f.to_s.chomp('_id'))}' }"
           end
         end
       end
@@ -1144,9 +1206,9 @@ module DevelopmentApp
         tm = TableMeta.new(fk[:table])
         required = can_be_null ? '' : ', required: true'
         if tm.active_column_present?
-          "#{field}: { renderer: :select, options: #{fk_repo}.new.for_select_#{fk[:table]}, disabled_options: #{fk_repo}.new.for_select_inactive_#{fk[:table]}, caption: '#{field.to_s.chomp('_id')}'#{required} }"
+          "#{field}: { renderer: :select, options: #{fk_repo}.new.for_select_#{fk[:table]}, disabled_options: #{fk_repo}.new.for_select_inactive_#{fk[:table]}, caption: '#{make_caption(field.to_s.chomp('_id'))}'#{required} }"
         else
-          "#{field}: { renderer: :select, options: #{fk_repo}.new.for_select_#{fk[:table]}, caption: '#{field.to_s.chomp('_id').split('_').map(&:capitalize).join(' ')}'#{required} }"
+          "#{field}: { renderer: :select, options: #{fk_repo}.new.for_select_#{fk[:table]}, caption: '#{make_caption(field.to_s.chomp('_id'))}'#{required} }"
         end
       end
 
@@ -1185,10 +1247,10 @@ module DevelopmentApp
 
       private
 
-      def columnise
+      def columnise(with_fk: true)
         attr = []
         opts.table_meta.columns_without(%i[created_at updated_at active]).each do |col|
-          attr << "#{col}: #{opts.table_meta.column_dummy_data(col)}"
+          attr << "#{col}: #{opts.table_meta.column_dummy_data(col, with_fk: with_fk)}"
         end
         attr << 'active: true' if opts.table_meta.active_column_present?
         attr
@@ -1223,7 +1285,6 @@ module DevelopmentApp
       def test_interactor
         ent = columnise.join(",\n        ")
         req_col = opts.table_meta.likely_label_field || '???'
-        str_col = opts.table_meta.string_field
         <<~RUBY
           # frozen_string_literal: true
 
@@ -1274,14 +1335,9 @@ module DevelopmentApp
               def test_update_#{opts.singlename}_fail
                 id = create_#{opts.singlename}
                 attrs = interactor.send(:repo).find_hash(:#{opts.table}, id).reject { |k, _| %i[id #{req_col}].include?(k) }
-                value = attrs[:#{str_col}]
-                attrs[:#{str_col}] = 'a_change'
                 res = interactor.update_#{opts.singlename}(id, attrs)
                 refute res.success, "\#{res.message} : \#{res.errors.inspect}"
                 assert_equal ['is missing'], res.errors[:#{req_col}]
-                after = interactor.send(:repo).find_hash(:#{opts.table}, id)
-                refute_equal 'a_change', after[:#{str_col}]
-                assert_equal value, after[:#{str_col}]
               end
 
               def test_delete_#{opts.singlename}
@@ -1351,7 +1407,7 @@ module DevelopmentApp
           s = <<~RUBY
             def create_#{opts.inflector.singularize(table)}(opts = {})
                   #{show_lkp(lkps)}default = {
-                    #{fields.map { |f| render_field(f) }.join(",\n        ")}
+                    #{fields.map { |f| render_field(f, table) }.join(",\n        ")}
                   }
                   DB[:#{table}].insert(default.merge(opts))
                 end
@@ -1365,22 +1421,23 @@ module DevelopmentApp
       def show_lkp(lkps)
         return '' if lkps.empty?
 
-        "#{lkps.join("\n          ")}\n\n      "
+        "#{lkps.join("\n      ")}\n\n      "
       end
 
-      def render_field(field)
+      def render_field(field, table)
         if field[:ftbl]
           "#{field[:name]}: #{opts.inflector.singularize(field[:ftbl])}_id"
         elsif field[:name] == :active
           "#{field[:name]}: true"
         else
-          "#{field[:name]}: #{opts.table_meta.column_dummy_data(field[:name], faker: true, type: field[:type])}"
+          tab = TableMeta.new(table)
+          "#{field[:name]}: #{tab.column_dummy_data(field[:name], faker: true, type: field[:type])}"
         end
       end
 
       def test_permission
         perm_check = "#{opts.classnames[:module]}::TaskPermissionCheck::#{opts.classnames[:class]}"
-        ent = columnise.join(",\n        ")
+        ent = columnise(with_fk: false).join(",\n        ")
         <<~RUBY
           # frozen_string_literal: true
 
@@ -1791,7 +1848,7 @@ module DevelopmentApp
           module #{opts.classnames[:applet]}
             module #{opts.classnames[:program]}
               module #{opts.classnames[:class]}
-                class Complete
+                class Approve
                   def self.call(id)
                     ui_rule = UiRules::Compiler.new(:#{opts.singlename}, :approve, id: id)
                     rules   = ui_rule.compile
@@ -1824,7 +1881,7 @@ module DevelopmentApp
           module #{opts.classnames[:applet]}
             module #{opts.classnames[:program]}
               module #{opts.classnames[:class]}
-                class Complete
+                class Reopen
                   def self.call(id)
                     ui_rule = UiRules::Compiler.new(:#{opts.singlename}, :reopen, id: id)
                     rules   = ui_rule.compile
@@ -2002,7 +2059,89 @@ module DevelopmentApp
       end
     end
 
-    # generate a blank service?
+    class ServiceMaker < BaseService
+      attr_reader :opts
+      def initialize(opts)
+        @opts = opts
+      end
+
+      def call
+        files = []
+        opts.classnames[:service_classes].each do |klass|
+          files << text(klass)
+        end
+        files
+      end
+
+      private
+
+      def text(klass)
+        <<~RUBY
+          # frozen_string_literal: true
+
+          module #{opts.classnames[:applet]}App
+            class #{klass} < BaseService
+              attr_reader :id, :repo
+
+              def initialize(id)
+                @id = id
+                @repo = #{opts.classnames[:repo]}.new
+              end
+
+              def call
+                repo.do_work
+                success_response('#{klass} was successful')
+              end
+            end
+          end
+        RUBY
+      end
+    end
+
+    class JobMaker < BaseService
+      attr_reader :opts
+      def initialize(opts)
+        @opts = opts
+      end
+
+      def call
+        files = []
+        opts.classnames[:job_classes].each do |klass|
+          files << text(klass)
+        end
+        files
+      end
+
+      private
+
+      def text(klass)
+        <<~RUBY
+          # frozen_string_literal: true
+
+          module #{opts.classnames[:applet]}App
+            module Job
+              class #{klass} < BaseQueJob
+                def run(id)
+                  repo = #{opts.classnames[:repo]}.new
+                  thing = repo.find_thing(id)
+
+                  repo.transaction do
+                    do_work
+                    finish
+                  end
+                end
+
+                private
+
+                def do_work
+                  # work..
+                end
+              end
+            end
+          end
+        RUBY
+      end
+    end
 
     class AppletMaker < BaseService
       attr_reader :opts
@@ -2015,19 +2154,146 @@ module DevelopmentApp
           # frozen_string_literal: true
 
           root_dir = File.expand_path('..', __dir__)
-          Dir["\#{root_dir}/#{opts.applet}/entities/*.rb"].each { |f| require f }
-          Dir["\#{root_dir}/#{opts.applet}/interactors/*.rb"].each { |f| require f }
-          # Dir["\#{root_dir}/#{opts.applet}/jobs/*.rb"].each { |f| require f }
-          Dir["\#{root_dir}/#{opts.applet}/repositories/*.rb"].each { |f| require f }
-          # Dir["\#{root_dir}/#{opts.applet}/services/*.rb"].each { |f| require f }
-          # Dir["\#{root_dir}/#{opts.applet}/task_permission_checks/*.rb"].each { |f| require f }
-          Dir["\#{root_dir}/#{opts.applet}/ui_rules/*.rb"].each { |f| require f }
-          Dir["\#{root_dir}/#{opts.applet}/validations/*.rb"].each { |f| require f }
-          Dir["\#{root_dir}/#{opts.applet}/views/**/*.rb"].each { |f| require f }
+          Dir["\#{root_dir}/#{opts.applet}/entities/*.rb"].sort.each { |f| require f }
+          Dir["\#{root_dir}/#{opts.applet}/interactors/*.rb"].sort.each { |f| require f }
+          #{job_comment}Dir["\#{root_dir}/#{opts.applet}/jobs/*.rb"].sort.each { |f| require f }
+          Dir["\#{root_dir}/#{opts.applet}/repositories/*.rb"].sort.each { |f| require f }
+          #{srv_comment}Dir["\#{root_dir}/#{opts.applet}/services/*.rb"].sort.each { |f| require f }
+          # Dir["\#{root_dir}/#{opts.applet}/task_permission_checks/*.rb"].sort.each { |f| require f }
+          Dir["\#{root_dir}/#{opts.applet}/ui_rules/*.rb"].sort.each { |f| require f }
+          Dir["\#{root_dir}/#{opts.applet}/validations/*.rb"].sort.each { |f| require f }
+          Dir["\#{root_dir}/#{opts.applet}/views/**/*.rb"].sort.each { |f| require f }
 
           module #{opts.classnames[:module]}
           end
         RUBY
+      end
+
+      def job_comment
+        return '# ' if opts.jobs.nil?
+
+        ''
+      end
+
+      def srv_comment
+        return '# ' if opts.services.nil?
+
+        ''
+      end
+    end
+
+    class MenuMigrationMaker < BaseService
+      attr_reader :opts
+      def initialize(opts)
+        @opts = opts
+      end
+
+      def titleize(str)
+        str.split(' ').map(&:capitalize).join(' ')
+      end
+
+      def make_caption(value)
+        opts.inflector.humanize(value.to_s).gsub(/\s\D/, &:upcase)
+      end
+
+      def call
+        menu_required = check_for_menu_required
+        case menu_required
+        when :function
+          make_function_menu
+        when :program
+          make_program_menu
+        else
+          make_progfunc_menu
+        end
+      end
+
+      def make_function_menu
+        <<~RUBY
+          # Save this as something like [db/menu/#{Time.now.strftime('%Y%m%d%H%M')}_#{opts.applet}.rb]
+
+          # Then run [bundle exec rake menu:migrate]
+
+          Crossbeams::MenuMigrations::Migrator.migration('#{opts.classnames[:roda_class]}') do
+            up do
+              add_functional_area '#{make_caption(opts.applet)}'
+              add_program '#{make_caption(opts.program_text)}', functional_area: '#{make_caption(opts.applet)}', seq: 1
+              #{opts.new_from_menu ? '' : '# '}add_program_function 'New #{make_caption(opts.singlename)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}', url: '/#{opts.applet}/#{opts.program}/#{opts.table}/new', seq: 1
+              add_program_function 'List #{make_caption(opts.table)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}', url: '/list/#{opts.table}', seq: 2
+              # add_program_function 'Search #{make_caption(opts.table)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}', url: '/search/#{opts.table}', seq: 3
+            end
+
+            down do
+              # drop_program_function 'Search #{make_caption(opts.singlename)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}'
+              # drop_program_function 'List #{make_caption(opts.singlename)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}'
+              # drop_program_function 'New #{make_caption(opts.singlename)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}'
+              # drop_program '#{make_caption(opts.program_text)}', functional_area: '#{make_caption(opts.applet)}'
+              drop_functional_area '#{make_caption(opts.applet)}'
+            end
+          end
+        RUBY
+      end
+
+      def make_program_menu
+        <<~RUBY
+          # Save this as something like [db/menu/#{Time.now.strftime('%Y%m%d%H%M')}_#{opts.program}.rb]
+          # Or add it to the existing migration for functional area #{make_caption(opts.applet)}.
+
+          # Then run [bundle exec rake menu:migrate]
+
+          Crossbeams::MenuMigrations::Migrator.migration('#{opts.classnames[:roda_class]}') do
+            up do
+              add_program '#{make_caption(opts.program_text)}', functional_area: '#{make_caption(opts.applet)}', seq: 1
+              #{opts.new_from_menu ? '' : '# '}add_program_function 'New #{make_caption(opts.singlename)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}', url: '/#{opts.applet}/#{opts.program}/#{opts.table}/new', seq: 1
+              add_program_function 'List #{make_caption(opts.table)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}', url: '/list/#{opts.table}', seq: 2
+              # add_program_function 'Search #{make_caption(opts.table)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}', url: '/search/#{opts.table}', seq: 3
+            end
+
+            down do
+              # drop_program_function 'Search #{make_caption(opts.table)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}'
+              # drop_program_function 'List #{make_caption(opts.table)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}'
+              # drop_program_function 'New #{make_caption(opts.singlename)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}'
+              drop_program '#{make_caption(opts.program_text)}', functional_area: '#{make_caption(opts.applet)}'
+            end
+          end
+        RUBY
+      end
+
+      def make_progfunc_menu
+        <<~RUBY
+          # Save this as something like [db/menu/#{Time.now.strftime('%Y%m%d%H%M')}_#{opts.singlename}.rb]
+          # Or add it to the existing migration for functional area #{make_caption(opts.applet)}.
+          # Or add it to the existing migration for program #{make_caption(opts.program_text)}.
+
+          # Then run [bundle exec rake menu:migrate]
+
+          Crossbeams::MenuMigrations::Migrator.migration('#{opts.classnames[:roda_class]}') do
+            up do
+              #{opts.new_from_menu ? '' : '# '}add_program_function 'New #{make_caption(opts.singlename)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}', url: '/#{opts.applet}/#{opts.program}/#{opts.table}/new', seq: 1
+              add_program_function 'List #{make_caption(opts.table)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}', url: '/list/#{opts.table}', seq: 2
+              # add_program_function 'Search #{make_caption(opts.table)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}', url: '/search/#{opts.table}', seq: 3
+            end
+
+            down do
+              # drop_program_function 'Search #{make_caption(opts.table)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}'
+              drop_program_function 'List #{make_caption(opts.table)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}'
+              #{opts.new_from_menu ? '' : '# '}drop_program_function 'New #{make_caption(opts.singlename)}', functional_area: '#{make_caption(opts.applet)}', program: '#{make_caption(opts.program_text)}'
+            end
+          end
+        RUBY
+      end
+
+      def check_for_menu_required
+        return :function unless DB.select(1).where(DB[:functional_areas].where(functional_area_name: make_caption(opts.applet)).exists).one?
+        return :program unless DB.select(1)
+                                 .where(DB[:programs]
+                                 .where(program_name: make_caption(opts.program_text), functional_area_id: DB[:functional_areas]
+                                 .where(functional_area_name: make_caption(opts.applet))
+                                 .select(:id))
+                                 .exists)
+                                 .one?
+
+        :program_function
       end
     end
 
@@ -2041,44 +2307,54 @@ module DevelopmentApp
         str.split(' ').map(&:capitalize).join(' ')
       end
 
+      def make_caption(value)
+        opts.inflector.humanize(value.to_s).gsub(/\s\D/, &:upcase)
+      end
+
       def call
         <<~SQL
-          INSERT INTO functional_areas (functional_area_name) VALUES ('#{titleize(opts.applet)}');
+          -- FUNCTIONAL AREA #{make_caption(opts.applet)}
+          INSERT INTO functional_areas (functional_area_name) VALUES ('#{make_caption(opts.applet)}');
 
+          -- PROGRAM: #{make_caption(opts.program_text)}
           INSERT INTO programs (program_name, program_sequence, functional_area_id)
-          VALUES ('#{titleize(opts.program_text)}', 1, (SELECT id FROM functional_areas
-                                                        WHERE functional_area_name = '#{titleize(opts.applet)}'));
+          VALUES ('#{make_caption(opts.program_text)}', 1, (SELECT id FROM functional_areas
+                                                        WHERE functional_area_name = '#{make_caption(opts.applet)}'));
 
+          -- LINK program to webapp
           INSERT INTO programs_webapps(program_id, webapp) VALUES (
                 (SELECT id FROM programs
-                 WHERE program_name = '#{titleize(opts.program_text)}'
+                 WHERE program_name = '#{make_caption(opts.program_text)}'
                    AND functional_area_id = (SELECT id FROM functional_areas
-                                             WHERE functional_area_name = '#{titleize(opts.applet)}')),
+                                             WHERE functional_area_name = '#{make_caption(opts.applet)}')),
                  '#{opts.classnames[:roda_class]}');
 
           -- NEW menu item
+          -- PROGRAM FUNCTION New #{opts.classnames[:class]}
           #{opts.new_from_menu ? '' : '/*'}
           INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
-          VALUES ((SELECT id FROM programs WHERE program_name = '#{titleize(opts.program_text)}'
+          VALUES ((SELECT id FROM programs WHERE program_name = '#{make_caption(opts.program_text)}'
                    AND functional_area_id = (SELECT id FROM functional_areas
-                                             WHERE functional_area_name = '#{titleize(opts.applet)}')),
-                   'New #{opts.classnames[:class]}', '/#{opts.applet}/#{opts.program}/#{opts.table}/new', 1);
+                                             WHERE functional_area_name = '#{make_caption(opts.applet)}')),
+                   'New #{make_caption(opts.singlename)}', '/#{opts.applet}/#{opts.program}/#{opts.table}/new', 1);
           #{opts.new_from_menu ? '' : '*/'}
 
           -- LIST menu item
+          -- PROGRAM FUNCTION #{opts.table.capitalize}
           INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
-          VALUES ((SELECT id FROM programs WHERE program_name = '#{titleize(opts.program_text)}'
+          VALUES ((SELECT id FROM programs WHERE program_name = '#{make_caption(opts.program_text)}'
                    AND functional_area_id = (SELECT id FROM functional_areas
-                                             WHERE functional_area_name = '#{titleize(opts.applet)}')),
-                   '#{opts.table.capitalize}', '/list/#{opts.table}', 2);
+                                             WHERE functional_area_name = '#{make_caption(opts.applet)}')),
+                   'List #{make_caption(opts.table)}', '/list/#{opts.table}', 2);
 
           -- SEARCH menu item
+          -- PROGRAM FUNCTION Search #{opts.table.capitalize}
           /*
           INSERT INTO program_functions (program_id, program_function_name, url, program_function_sequence)
-          VALUES ((SELECT id FROM programs WHERE program_name = '#{titleize(opts.program_text)}'
+          VALUES ((SELECT id FROM programs WHERE program_name = '#{make_caption(opts.program_text)}'
                    AND functional_area_id = (SELECT id FROM functional_areas
-                                             WHERE functional_area_name = '#{titleize(opts.applet)}')),
-                   'Search #{opts.table.capitalize}', '/search/#{opts.table}', 2);
+                                             WHERE functional_area_name = '#{make_caption(opts.applet)}')),
+                   'Search #{make_caption(opts.table)}', '/search/#{opts.table}', 2);
           */
         SQL
       end

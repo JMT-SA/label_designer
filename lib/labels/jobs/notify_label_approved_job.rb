@@ -25,7 +25,7 @@ module LabelApp
 
     def build_list
       repo = DevelopmentApp::UserRepo.new
-      @list = repo.email_addresses(user_email_group: AppConst::EMAIL_GROUP_LABEL_PUBLISHERS)
+      @list = repo.email_addresses(user_email_group: AppConst::EMAIL_GROUP_LABEL_PUBLISHERS).reject { |_, email| email.nil_or_empty? }
     end
 
     def lookup_label(label_id)

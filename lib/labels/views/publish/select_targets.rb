@@ -15,18 +15,6 @@ module Labels
             page.form do |form|
               form.action '/labels/publish/batch/select_labels'
               form.add_field :printer_type
-#               form.add_text <<~HTML
-#               <output id="fs1" name="op">res</output>
-# <select name="batch[printer_type2]" id="batch_printer_type2" class="searchable-select">
-# <optgroup label="Prin1">
-#             <option value="Argox" selected="">Argox</option>
-#             </optgroup>
-# <optgroup label="Prin-2">
-# <option value="Datamax">Datamax</option>
-# <option value="Zebra">Zebra</option>
-#             </optgroup>
-#             </select>
-#               HTML
               form.add_field :target_destinations
             end
           end

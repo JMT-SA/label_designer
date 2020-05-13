@@ -37,27 +37,32 @@ module LabelApp
 
       def edit_check
         return failed_response 'Label has been completed' if completed?
+
         all_ok
       end
 
       def delete_check
         return failed_response 'Label has been completed' if completed?
+
         all_ok
       end
 
       def complete_check
         return failed_response 'Label has already been completed' if completed?
+
         all_ok
       end
 
       def approve_check
         return failed_response 'Label has not been completed' unless completed?
         return failed_response 'Label has already been approved' if approved?
+
         all_ok
       end
 
       def reopen_check
         return failed_response 'Label has not been approved' unless approved?
+
         all_ok
       end
 

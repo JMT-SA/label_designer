@@ -88,13 +88,15 @@ module LabelApp
       lkp = {}
       tokens.each { |token| lkp[token] = config[token][:resolver] }
       composite_resolver = varname
-      tokens.each { |t| composite_resolver.gsub!(t, lkp[t]) }
+      # Sort tokens in descending order of length to avoid e.g. gsubbing ISO Weekday using ISO Week's value.
+      tokens.sort_by { |t| t.length * -1 }.each { |t| composite_resolver.gsub!(t, lkp[t]) }
 
       { group: 'Any', resolver: composite_resolver, applications: ['ANY'] }
     end
 
     def display_varname(varname)
       return varname unless varname.start_with?('CMP:')
+
       varname.gsub(/CMP:|[${}]/, '')
     end
 

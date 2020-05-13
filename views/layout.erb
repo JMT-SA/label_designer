@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <%= csrf_metatag %>
 
-    <title><%= ENV['APP_CAPTION'] %></title>
+    <title><%= AppConst::APP_CAPTION %></title>
 
     <!-- FAVICON start -->
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
@@ -21,10 +21,8 @@
     <link rel="stylesheet" href="/css/jackbox.css">
     <link rel="stylesheet" href="/css/tachyons.min.css">
     <link rel="stylesheet" href="/css/sweetalert2.min.css">
-    <link rel="stylesheet" href="/css/jquery.contextMenu.min.css?seq=1">
-    <link rel="stylesheet" href="/css/menu.css">
-    <link rel="stylesheet" href="/css/skin.css">
-    <link rel="stylesheet" href="/css/choices.min.css">
+    <link rel="stylesheet" href="/css/jquery.contextMenu.min.css">
+    <link rel="stylesheet" href="/css/choices.min.css?seq=1">
     <link rel="stylesheet" href="/css/multi.min.css">
     <%= assets(:css) %>
     <%= content_for :late_style %>
@@ -35,7 +33,7 @@
   <header>
     <div class="system-name">
       <a href="/" class="dib f5 f4-ns fw6 mt0 mb2 link mid-gray" title="Home">
-        <%= ENV['APP_CAPTION'] %>
+        <%= AppConst::APP_CAPTION %>
         <div class="dib">
           <small class="nowrap f6 mt2 mt3-ns pr2 black-70 fw2">v<%= ENV['VERSION'] %></small>
         </div>
@@ -43,9 +41,6 @@
 </div>
       <div id="notification-area">
         <% if current_user %>
-          <input id="menuSearch" type="search" placeholder="Search menu" />
-          <ul id="menuSearchResults">
-          </ul>
           <!-- [current resource] -->
           <% if session[:act_as_user_id] %>
             <span class="ml2 mr2 f6 link mb2 br2 ph3 pv2 dib white bg-silver"><%= actor_user.user_name %> acting as <strong><%= current_user.user_name %></strong></span>
@@ -59,6 +54,11 @@
     <%= partial 'menu' %>
 </header>
     <div id="container" class="container">
+      <% if @documentation_page %>
+        <form action="/search_developer_documentation" class="absolute">
+          <input id="search_term" type="search" name="search_term" placeholder="Search documentation" />
+        </form>
+      <% end %>
       <%= yield %>
     </div>
 
@@ -90,15 +90,15 @@
       <p>NOSOFT 2017
         <% if ENV['RACK_ENV'] == 'development' %>
           <% asset_type = assets_paths(:css).any? { |p| p.include?('scss') } ? :bug : :show %>
-          ASSETS: <%= Crossbeams::Layout::Icon.new(asset_type).render %>
+          <span class="ml4">ASSETS: <%= Crossbeams::Layout::Icon.new(asset_type).render %></span>
+          <span class="ml4">DB: <%= AppConst::SHOW_DB_NAME %></span>
         <% end %>
     </footer>
 
-    <script src="/js/lodash.js"></script>
     <% if @label_edit_page %>
       <script src="/js/konva.min.js?seq=1"></script>
     <% else %>
-      <script src="/js/ag-grid-enterprise.min.js?seq=1"></script>
+      <script src="/js/ag-grid-enterprise.min.js?seq=2"></script>
       <script src="/js/ag-enterprise-activation.js?seq=1"></script>
   <% end %>
 
@@ -108,15 +108,19 @@
     <script src="/js/jquery.contextMenu.min.js"></script>
     <script src="/js/sweetalert2.min.js"></script>
     <script src="/js/Sortable.min.js"></script>
+    <script src="/js/svg-inject.min.js"></script>
+    <script src="/js/crossbeams-error.js"></script>
     <script src="/js/crossbeams-local-storage.js"></script>
-    <script src="/js/crossbeams-utils.js?seq=11"></script>
-    <script src="/js/crossbeams-layout.js?seq=10"></script>
-    <script src="/js/crossbeams-grid-loader.js?seq=17"></script>
-    <script src="/js/crossbeams-data-miner-params.js?seq=1"></script>
-    <script src="/js/crossbeams-menu-builder.js?seq=1"></script>
-    <script src="/js/choices.min.js"></script>
+    <script src="/js/crossbeams-utils.js?seq=19"></script>
+    <script src="/js/crossbeams-layout.js?seq=18"></script>
+    <script src="/js/crossbeams-grid-loader.js?seq=26"></script>
+    <script src="/js/crossbeams-data-miner-params.js?seq=2"></script>
+    <script src="/js/crossbeams-menu-builder.js?seq=2"></script>
+    <script src="/js/choices.min.js?seq=1"></script>
     <script src="/js/multi.min.js"></script>
     <script src="/js/a11y-dialog-cbeam.js"></script>
+    <script src="/js/message-bus.js"></script>
+    <script src="/js/message-bus-ajax.js"></script>
     <script>
       let crossbeamsDialogLevel1;
       let crossbeamsDialogLevel2;
@@ -137,12 +141,58 @@
 
       Jackbox.init();
       <% if flash[:notice] %>
-        Jackbox.success('<%= flash[:notice].tr("'", "`") %>');
+        crossbeamsUtils.showSuccess('<%= flash[:notice].tr("'", "`").tr("\n", ' ') %>');
       <% end %>
       <% if flash[:error] %>
-        Jackbox.error('<%= flash[:error].tr("'", "`") %>', { time: 20 });
+        crossbeamsUtils.showError('<%= flash[:error].tr("'", "`").tr("\n", ' ') %>', 20);
       <% end %>
 
+      // MessageBus handling --- START
+      MessageBus.baseUrl = "/terminus/";
+      const logged_in_user = '<%= current_user ? current_user.login_name : "unknown" %>';
+
+      MessageBus.subscribe("/terminus", function(msg){
+        console.log('MSG', msg);
+        if (msg.targetUser && msg.targetUser !== 'broadcast' && msg.targetUser !== logged_in_user) {
+          return;
+        }
+        switch (msg.messageType) {
+          case 'warning':
+            crossbeamsUtils.showWarning(msg.message);
+            return;
+          case 'error':
+            crossbeamsUtils.showError(msg.message);
+            return;
+          default:
+            crossbeamsUtils.showInformation(msg.message);
+        }
+      });
+      // MessageBus handling --- END
+
+      // Responsive Menu -- START
+      const toggleMenu = document.querySelector(".navigation button");
+      const menu = document.querySelector("#menu");
+
+      // Toggle the mobile menu button
+      toggleMenu.addEventListener("click", function () {
+        const open = JSON.parse(toggleMenu.getAttribute("aria-expanded"));
+        toggleMenu.setAttribute("aria-expanded", !open);
+        menu.hidden = !menu.hidden;
+      });
+
+      // Javascript to react to media query change:
+      function menuForMinWidth(mediaQuery) {
+        if (mediaQuery.matches) {
+          menu.hidden = false;
+        } else {
+          menu.hidden = true;
+        }
+      }
+
+      var min45 = window.matchMedia("(min-width: 45rem)")
+      menuForMinWidth(min45) // Call listener function at run time
+      min45.addListener(menuForMinWidth) // Attach listener function on state changes
+      // Responsive Menu -- START
     </script>
     <script src="/js/crossbeams-menu-handler.js"></script>
     <%= content_for :late_javascript %>

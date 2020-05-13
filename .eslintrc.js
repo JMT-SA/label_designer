@@ -10,11 +10,7 @@ module.exports = {
     }
   },
   "rules": {
-    "no-param-reassign": [ "error", { "props": false } ],
-    // "no-console": [ 0 ],
-    // "no-alert": [ 0 ],
-    // "func-names": [ 0 ],
-    // "max-len": [ 0 ],
+    "no-param-reassign": [ "error", { "props": false } ]
   },
   "env": {
     "browser": true,
@@ -30,6 +26,7 @@ module.exports = {
     "Selectr": false,
     "Sortable": false,
     "multi": false,
+    "HttpError": false,
     "crossbeamsRmdScan": false,
     "crossbeamsDialogLevel1": false,
     "crossbeamsDialogLevel2": false,

@@ -51,9 +51,7 @@ module LabelApp
     def update_label(id, params) # rubocop:disable Metrics/AbcSize
       parms, extcols = unwrap_extended_columns_params(params)
       ext_res = validate_extended_columns(:labels, params)
-      p ext_res.messages.empty?
       res = validate_label_params(parms)
-      p res.messages
       return mixed_validation_failed_response(res, ext_res) unless res.messages.empty? && ext_res.messages.empty?
 
       repo.transaction do
@@ -235,7 +233,7 @@ module LabelApp
       repo.update_label(id, sample_data: repo.hash_for_jsonb_col(params))
 
       mes_repo = MesserverApp::MesserverRepo.new
-      mes_repo.print_label(instance.label_name, params, quantity, printer_code)
+      mes_repo.print_published_label(instance.label_name, params, quantity, printer_code)
     end
 
     def email_preview(id, params) # rubocop:disable Metrics/AbcSize

@@ -6,7 +6,7 @@ class LabelDesigner < Roda
     # LOGGED ACTION DETAILS
     # --------------------------------------------------------------------------
     r.on 'logged_actions', Integer do |id|
-      interactor = DevelopmentApp::LoggingInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = DevelopmentApp::LoggingInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
 
       # Check for notfound:
       r.on !interactor.exists?(Sequel[:audit][:logged_actions], id) do
@@ -30,6 +30,30 @@ class LabelDesigner < Roda
       r.on 'diff' do
         left, right = interactor.diff_action(id)
         show_partial { Development::Logging::LoggedAction::Diff.call(id, left, right) }
+      end
+
+      r.on 'transaction_sql' do
+        check_auth!('logging', 'read')
+        sql = interactor.transaction_sql(id)
+        show_partial { Development::Logging::LoggedAction::TransactionSql.call(id, sql) }
+      end
+    end
+
+    # EXPORT DATA EVENT LOGS
+    # --------------------------------------------------------------------------
+    r.on 'export_data_event_logs', Integer do |id|
+      interactor = DevelopmentApp::ExportDataEventLogInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
+
+      # Check for notfound:
+      r.on !interactor.exists?(:export_data_event_logs, id) do
+        handle_not_found(r)
+      end
+
+      r.is do
+        r.get do       # SHOW
+          check_auth!('logging', 'read')
+          show_partial { Development::Logging::ExportDataEventLog::Show.call(id) }
+        end
       end
     end
 

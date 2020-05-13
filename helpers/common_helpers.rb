@@ -44,7 +44,7 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
       content = render_partial { form }
       update_dialog_content(content: content, error: res.message)
     else
-      flash[:error] = res.message
+      flash[:error] = res.message&.tr("\n", ' ')
       stash_page(form)
       route.redirect url || '/'
     end
@@ -217,6 +217,21 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
     @current_user ||= DevelopmentApp::UserRepo.new.find(:users, DevelopmentApp::User, session[:act_as_user_id] || session[:user_id])
   end
 
+  def user_homepage
+    return nil unless current_user&.profile
+    return nil if current_user.profile['homepage_id'].nil_or_empty?
+
+    SecurityApp::MenuRepo.new.find_program_function(current_user.profile['homepage_id']).url
+  end
+
+  # A fixed user to be used for logging activities not initiated by users.
+  # e.g. when set in a route that does not require login.
+  #
+  # @return [User] the system user.
+  def system_user
+    DevelopmentApp::User.new(id: nil, login_name: 'system', user_name: 'System', password_hash: nil, email: nil, active: true)
+  end
+
   # The user acting as another user.
   #
   # @return [User, nil] the logged-in user acting as another user.
@@ -265,6 +280,26 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
 
   def check_auth!(programs, sought_permission, functional_area_id = nil)
     raise Crossbeams::AuthorizationError unless authorised?(programs, sought_permission, functional_area_id)
+  end
+
+  # Called by RodAuth after successful login to check if user
+  # has access to the program that the path belongs to.
+  def can_login_to_path?(path, user_id)
+    prog_repo = SecurityApp::MenuRepo.new
+    prog_repo.can_login_to_path?(user_id, path)
+  end
+
+  # URL for use in a back button link (using the request's referer).
+  # If the referer is the result of a search query, the back button goes to the
+  # parameters page.
+  #
+  # @return [string] - the URL
+  def back_button_url
+    url = request.referer
+    return '/' if url.nil?
+
+    url = url.sub(%r{/run$}, '?back=y') if url.include?('/search/') && url.end_with?('/run')
+    url
   end
 
   def set_last_grid_url(url, route = nil)
@@ -337,10 +372,12 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   #
   # @param new_location [string] - the new url.
   # @param log_url [string] - the url to log in the console.
+  # @param download [boolean] - is this report to be downloaded? (set true for XLS, CSV, RTF). Defaults to false.
   # @return [JSON] a JSON response.
-  def change_window_location_via_json(new_location, log_url = nil)
+  def change_window_location_via_json(new_location, log_url = nil, download: false)
     res = { location: new_location }
     res[:log_url] = log_url unless log_url.nil?
+    res[:download] = true if download
     res.to_json
   end
 
@@ -413,6 +450,12 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
     res.to_json
   end
 
+  # Change the contents of a currently-displayed dialog.
+  #
+  # @param content [string] the HTML content to be rendered.
+  # @param notice [nil, string] an optional notice to flash in the page.
+  # @param error [nil, string] an optional error message to flash in the page.
+  # @return [JSON] the commands for the front end to apply.
   def update_dialog_content(content:, notice: nil, error: nil)
     res = { replaceDialog: { content: content } }
     res[:flash] = { notice: notice } if notice
@@ -420,12 +463,34 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
     res.to_json
   end
 
-  def dialog_error(content, notice: nil, error: nil)
-    update_dialog_content(content: wrap_content_in_style(content, :error), notice: notice, error: error)
+  # Display an error message in a dialog.
+  #
+  # @param content [string] the error message.
+  # @param notice [nil, string] an optional notice to flash in the page.
+  # @param error [nil, string] an optional error message to flash in the page.
+  # @param hide_caption [boolean] hide the "Error" caption. Default is false.
+  # @return [JSON] the commands for the front end to apply.
+  def dialog_error(content, notice: nil, error: nil, hide_caption: false)
+    if hide_caption
+      update_dialog_content(content: wrap_content_in_style(content, :error, caption: ''), notice: notice, error: error)
+    else
+      update_dialog_content(content: wrap_content_in_style(content, :error), notice: notice, error: error)
+    end
   end
 
-  def dialog_warning(content, notice: nil, error: nil)
-    update_dialog_content(content: wrap_content_in_style(content, :warning), notice: notice, error: error)
+  # Display a warning message in a dialog.
+  #
+  # @param content [string] the warning message.
+  # @param notice [nil, string] an optional notice to flash in the page.
+  # @param error [nil, string] an optional error message to flash in the page.
+  # @param hide_caption [boolean] hide the "Warning" caption. Default is false.
+  # @return [JSON] the commands for the front end to apply.
+  def dialog_warning(content, notice: nil, error: nil, hide_caption: false)
+    if hide_caption
+      update_dialog_content(content: wrap_content_in_style(content, :warning, caption: ''), notice: notice, error: error)
+    else
+      update_dialog_content(content: wrap_content_in_style(content, :warning), notice: notice, error: error)
+    end
   end
 
   def json_replace_select_options(dom_id, options_array, message: nil, keep_dialog_open: false)
@@ -452,6 +517,10 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
     json_actions(OpenStruct.new(type: :replace_list_items, dom_id: dom_id, items: Array(items)), message, keep_dialog_open: keep_dialog_open)
   end
 
+  def json_set_readonly(dom_id, readonly, message: nil, keep_dialog_open: false)
+    json_actions(OpenStruct.new(type: :set_readonly, dom_id: dom_id, readonly: readonly), message, keep_dialog_open: keep_dialog_open)
+  end
+
   def json_hide_element(dom_id, reclaim_space: true, message: nil, keep_dialog_open: false)
     json_actions(OpenStruct.new(type: :hide_element, dom_id: dom_id, reclaim_space: reclaim_space), message, keep_dialog_open: keep_dialog_open)
   end
@@ -464,8 +533,16 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
     json_actions(OpenStruct.new(type: :clear_form_validation, dom_id: dom_id), message, keep_dialog_open: keep_dialog_open)
   end
 
+  def json_set_required(dom_id, required, message: nil, keep_dialog_open: false)
+    json_actions(OpenStruct.new(type: :set_required, dom_id: dom_id, required: required), message, keep_dialog_open: keep_dialog_open)
+  end
+
+  def json_set_checked(dom_id, checked, message: nil, keep_dialog_open: false)
+    json_actions(OpenStruct.new(type: :set_checked, dom_id: dom_id, checked: checked), message, keep_dialog_open: keep_dialog_open)
+  end
+
   def build_json_action(action) # rubocop:disable Metrics/AbcSize
-    # rubocop:disable Layout/AlignHash
+    # rubocop:disable Layout/HashAlignment
     {
       replace_input_value:    ->(act) { action_replace_input_value(act) },
       change_select_value:    ->(act) { action_change_select_value(act) },
@@ -473,14 +550,19 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
       replace_select_options: ->(act) { action_replace_select_options(act) },
       replace_multi_options:  ->(act) { action_replace_multi_options(act) },
       replace_list_items:     ->(act) { action_replace_list_items(act) },
+      set_readonly:           ->(act) { action_set_readonly(act) },
       hide_element:           ->(act) { action_hide_element(act) },
       show_element:           ->(act) { action_show_element(act) },
       add_grid_row:           ->(act) { action_add_grid_row(attrs: act.attrs) },
       update_grid_row:        ->(act) { action_update_grid_row(act.ids, changes: act.changes) },
       delete_grid_row:        ->(act) { action_delete_grid_row(act.id) },
-      clear_form_validation:  ->(act) { action_clear_form_validation(act) }
+      clear_form_validation:  ->(act) { action_clear_form_validation(act) },
+      set_required:           ->(act) { action_set_required(act) },
+      set_checked:            ->(act) { action_set_checked(act) }
+      # redirect:               ->(act) { action_redirect(act) }       // url
+      # replace_dialog:         ->(act) { action_replace_dialog(act) } // url
     }[action.type].call(action)
-    # rubocop:enable Layout/AlignHash
+    # rubocop:enable Layout/HashAlignment
   end
 
   def action_replace_select_options(action)
@@ -507,6 +589,10 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
     { replace_list_items: { id: action.dom_id, items: action.items } }
   end
 
+  def action_set_readonly(action)
+    { set_readonly: { id: action.dom_id, readonly: action.readonly } }
+  end
+
   def action_hide_element(action)
     { hide_element: { id: action.dom_id, reclaim_space: action.reclaim_space.nil? ? true : action.reclaim_space } }
   end
@@ -518,6 +604,18 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   def action_clear_form_validation(action)
     { clear_form_validation: { form_id: action.dom_id } }
   end
+
+  def action_set_required(action)
+    { set_required: { id: action.dom_id, required: action.required } }
+  end
+
+  def action_set_checked(action)
+    { set_checked: { id: action.dom_id, checked: action.checked } }
+  end
+
+  # def action_redirect(action)
+  #   { redirect: { url: action.url } }
+  # end
 
   def json_actions(actions, message = nil, keep_dialog_open: false)
     res = { actions: Array(actions).map { |a| build_json_action(a) } }
@@ -531,7 +629,7 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   # @param message [string] an optional message to display.
   # @param message_type [symbol] the message style : :info, :error, :warning or :notice
   # @return [json] the JSON command to undo the edit.
-  def undo_grid_inline_edit(message: nil, message_type: :warn)
+  def undo_grid_inline_edit(message: nil, message_type: :warning)
     res = { undoEdit: true }
     res[:flash] = { message_type => message } unless message.nil?
     res.to_json
@@ -556,22 +654,24 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   #
   # @param key [Symbol] the key to be used for later retrieval.
   # @param value [Object] the value to stash (use simple Objects)
+  # @param ip_address [string] the ip address of the client (defaults to the ip address from the request)
   # @return [void]
-  def store_locally(key, value)
+  def store_locally(key, value, ip_address = nil)
     raise ArgumentError, 'store_locally: key must be a Symbol' unless key.is_a? Symbol
 
-    store = LocalStore.new(current_user.id)
+    store = LocalStore.new(current_user.id, ip_address || request.ip)
     store.write(key, value)
   end
 
   # Return a stored value for the current user from local storage (and remove it - read once).
   #
   # @param key [Symbol] the key that was used when stored.
+  # @param ip_address [string] the ip address of the client (defaults to the ip address from the request)
   # @return [Object] the retrieved value.
-  def retrieve_from_local_store(key)
+  def retrieve_from_local_store(key, ip_address = nil)
     raise ArgumentError, 'store_locally: key must be a Symbol' unless key.is_a? Symbol
 
-    store = LocalStore.new(current_user.id)
+    store = LocalStore.new(current_user.id, ip_address || request.ip)
     store.read_once(key)
   end
 
@@ -601,5 +701,18 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   def webquery_url_for(report_id)
     port = request.port == '80' || request.port.nil? ? '' : ":#{request.port}"
     "http://#{request.host}#{port}/webquery/#{report_id}"
+  end
+
+  # Take a Crossbeams::Response and present it as an error message.
+  # For a validation error, the errors are listed in the returned message.
+  #
+  # @param res [Crossbeams::Response] the response object.
+  # @return [String] the formatted message.
+  def unwrap_failed_response(res)
+    if res.errors.empty?
+      CGI.escapeHTML(res.message)
+    else
+      "#{CGI.escapeHTML(res.message)} - #{res.errors.map { |fld, errs| p "#{fld} #{errs.map { |e| CGI.escapeHTML(e.to_s) }.join(', ')}" }.join('; ')}"
+    end
   end
 end

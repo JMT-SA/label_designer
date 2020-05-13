@@ -10,6 +10,8 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
   const offlineStatus = document.getElementById('rmd-offline-status');
   const scannableInputs = document.querySelectorAll('[data-scanner]');
   const cameraScan = document.getElementById('cameraScan');
+  const cameraLight = document.getElementById('cameraLight');
+  let cameraLightState = false;
   let webSocket;
 
   //
@@ -44,31 +46,6 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
   };
 
   /**
-   * Disable a button and change its caption.
-   * @param {element} button the button to disable.
-   * @param {string} disabledText the text to use to replace the caption.
-   * @returns {void}
-   */
-  const disableButton = (button, disabledText) => {
-    button.dataset.enableWith = button.value;
-    button.value = disabledText;
-    button.classList.remove('dim');
-    button.classList.add('o-50');
-  };
-
-  /**
-   * Remove disabled state from a button.
-   * @param {element} element the button to re-enable.
-   * @returns {void}
-   */
-  const revertDisabledButton = (element) => {
-    element.disabled = false;
-    element.value = element.dataset.enableWith;
-    element.classList.add('dim');
-    element.classList.remove('o-50');
-  };
-
-  /**
    * Get a lookup value to display on the form
    * next to the field that was scanned.
    * @param {element} the element that has just
@@ -78,7 +55,7 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
   const lookupScanField = (element, scanPack) => {
     const url = `/rmd/utilities/lookup/${scanPack.scanType}/${scanPack.scanField}/${element.value}`;
     const label = document.getElementById(`${element.id}_scan_lookup`);
-    console.log('lbl', label);
+    const hiddenVal = document.getElementById(`${element.id}_scan_lookup_hidden`);
     if (label === null) return null;
 
     fetch(url, {
@@ -111,35 +88,12 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
         }
       } else {
         label.innerHTML = data.showField;
+        hiddenVal.value = data.showField;
       }
     }).catch((data) => {
       console.info('==ERROR==', data); // eslint-disable-line no-console
     });
     return null;
-  };
-
-  /**
-   * When an input is invalid according to HTML5 rules and
-   * the submit button has been disabled, we need to re-enable it
-   * so the user can re-submit the form once the error has been
-   * corrected.
-   */
-  document.addEventListener('invalid', (e) => {
-    window.setTimeout(() => {
-      const sel = '[data-disable-with][disabled], [data-briefly-disable-with][disabled]';
-      e.target.form.querySelectorAll(sel).forEach(el => revertDisabledButton(el));
-    }, 0); // Disable the button with a delay so the form still submits...
-  }, true);
-
-  /**
-   * Prevent multiple clicks of submit buttons.
-   * @returns {void}
-   */
-  const preventMultipleSubmits = (element) => {
-    disableButton(element, element.dataset.disableWith);
-    window.setTimeout(() => {
-      element.disabled = true;
-    }, 0); // Disable the button with a delay so the form still submits...
   };
 
   /**
@@ -164,14 +118,52 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
           return;
         }
       }
-      // Disable a button on click
-      if (event.target.dataset && event.target.dataset.disableWith) {
-        preventMultipleSubmits(event.target);
+      // On reset button clicked, clear all lookup results
+      if (event.target.dataset && event.target.dataset.resetRmdForm) {
+        event.target.form.querySelectorAll('[data-lookup-result]').forEach((node) => {
+          node.innerHTML = node.dataset.resetValue;
+        });
+        event.target.form.querySelectorAll('[data-lookup-hidden]').forEach((node) => {
+          node.value = node.dataset.resetValue === '&nbsp;' ? '' : node.dataset.resetValue;
+        });
+      }
+      // Clear button clicked - clear the input next to it.
+      if (event.target.closest('[data-rmd-clear]')) {
+        const scanInput = event.target.closest('[data-rmd-clear]');
+        const toClear = scanInput.previousElementSibling;
+        const id = toClear.id;
+        let lkpInput;
+        if (toClear) {
+          toClear.value = null;
+          toClear.readOnly = false;
+          lkpInput = document.getElementById(`${id}_scan_lookup`);
+          if (lkpInput) {
+            lkpInput.innerHTML = '&nbsp;';
+          }
+          lkpInput = document.getElementById(`${id}_scan_lookup_hidden`);
+          if (lkpInput) {
+            lkpInput.value = '';
+          }
+        }
       }
     });
+
     if (cameraScan) {
       cameraScan.addEventListener('click', () => {
         webSocket.send('Type=key248_all');
+      });
+    }
+
+    if (cameraLight) {
+      cameraLight.addEventListener('click', () => {
+        // webSocket.send('Type=key253_flashlight'); // toggle?
+        if (cameraLightState) {
+          webSocket.send('Type=key253_flashlight_off');
+          cameraLightState = false;
+        } else {
+          webSocket.send('Type=key253_flashlight_on');
+          cameraLightState = true;
+        }
       });
     }
   };
@@ -183,7 +175,8 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
    * @param {string} val - the scanned value.
    * @returns {object} success: boolean, value: the value, scanType: the type, error: string.
    */
-  const unpackScanValue = (val) => {
+  const unpackScanValue = (rawVal) => {
+    const val = rawVal.split(/\r\n|\r|\n/)[0]; // remove newlines
     const res = { success: false };
     // If we can scan any barcode, return whatever was scanned:
     if (publicAPIs.bypassRules) {
@@ -195,15 +188,16 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
     }
     const matches = [];
     let rxp;
-    this.rules.filter(r => this.expectedScanTypes.indexOf(r.type) !== -1).forEach((rule) => {
-      rxp = RegExp(rule.regex);
-      if (rxp.test(val)) {
-        matches.push(rule.type);
-        res.value = RegExp.lastParen;
-        res.scanType = rule.type;
-        res.scanField = rule.field;
-      }
-    });
+    publicAPIs.rules.filter(r => publicAPIs.expectedScanTypes.indexOf(r.type) !== -1)
+      .forEach((rule) => {
+        rxp = RegExp(rule.regex);
+        if (rxp.test(val)) {
+          matches.push(rule.type);
+          res.value = RegExp.lastParen;
+          res.scanType = rule.type;
+          res.scanField = rule.field;
+        }
+      });
     if (matches.length !== 1) {
       res.error = matches.length === 0 ? `${val} does not match any scannable rules` : 'Too many rules match';
     } else {
@@ -217,20 +211,28 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
    */
   const startScanner = () => {
     const wsUrl = 'ws://127.0.0.1:2115';
+    // const wsUrl = 'ws://192.168.50.10:2115';
+    let connectedState = false;
 
     if (webSocket !== undefined && webSocket.readyState !== WebSocket.CLOSED) { return; }
     webSocket = new WebSocket(wsUrl);
 
     webSocket.onopen = function onopen() {
+      connectedState = true;
       publicAPIs.logit('Connected...');
     };
 
     webSocket.onclose = function onclose() {
+      connectedState = false;
       publicAPIs.logit('Connection Closed...');
+      // delay for a second and try again...
+      setTimeout(startScanner, 1000);
     };
 
     webSocket.onerror = function onerror(event) {
-      publicAPIs.logit('Connection ERROR', event);
+      if (connectedState) { // Ignore websocket errors if we are not connected.
+        publicAPIs.logit('Connection ERROR', event);
+      }
     };
 
     webSocket.onmessage = function onmessage(event) {
@@ -244,6 +246,12 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
         scannableInputs.forEach((e) => {
           if (e.value === '' && cnt === 0 && (publicAPIs.bypassRules || e.dataset.scanRule === scanPack.scanType)) {
             e.value = scanPack.value;
+            const evt = new Event('change', {
+              bubbles: true,
+            });
+            e.dispatchEvent(evt);
+
+            e.readOnly = true;
             const field = document.getElementById(`${e.id}_scan_field`);
             if (field) {
               field.value = scanPack.scanField;
@@ -282,9 +290,10 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
    * show settings in use for this page.
    */
   publicAPIs.showSettings = () => ({
-    expectedScanTypes: this.expectedScanTypes,
-    rules: this.rules,
-    rulesForThisPage: this.rules.filter(r => this.expectedScanTypes.indexOf(r.type) !== -1),
+    expectedScanTypes: publicAPIs.expectedScanTypes,
+    rules: publicAPIs.rules,
+    rulesForThisPage:
+      publicAPIs.rules.filter(r => publicAPIs.expectedScanTypes.indexOf(r.type) !== -1),
   });
 
   /**
@@ -297,10 +306,11 @@ const crossbeamsRmdScan = (function crossbeamsRmdScan() { // eslint-disable-line
    * @param {boolean} bypassRules - should the rules be ignored (scan any barcode).
    */
   publicAPIs.init = (rules, bypassRules) => {
-    this.rules = rules;
+    publicAPIs.rules = rules;
     publicAPIs.bypassRules = bypassRules;
-    this.expectedScanTypes = Array.from(document.querySelectorAll('[data-scan-rule]')).map(a => a.dataset.scanRule);
-    this.expectedScanTypes = this.expectedScanTypes.filter((it, i, ar) => ar.indexOf(it) === i);
+    publicAPIs.expectedScanTypes = Array.from(document.querySelectorAll('[data-scan-rule]')).map(a => a.dataset.scanRule);
+    publicAPIs.expectedScanTypes =
+      publicAPIs.expectedScanTypes.filter((it, i, ar) => ar.indexOf(it) === i);
 
     setupListeners();
 

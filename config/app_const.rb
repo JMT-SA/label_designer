@@ -1,7 +1,28 @@
 # frozen_string_literal: true
 
 # A class for defining global constants in a central place.
-class AppConst
+class AppConst # rubocop:disable Metrics/ClassLength
+  def self.development?
+    ENV['RACK_ENV'] == 'development'
+  end
+
+  # Any value that starts with y, Y, t or T is considered true.
+  # All else is false.
+  def self.check_true(val)
+    val.match?(/^[TtYy]/)
+  end
+
+  # Take an environment variable and interpret it
+  # as a boolean.
+  def self.make_boolean(key, required: false)
+    val = if required
+            ENV.fetch(key)
+          else
+            ENV.fetch(key, 'f')
+          end
+    check_true(val)
+  end
+
   # Helper to create hash of label sizes from a 2D array.
   def self.make_label_size_hash(array)
     Hash[array.map { |w, h| ["#{w}x#{h}", { 'width': w, 'height': h }] }].freeze
@@ -9,6 +30,12 @@ class AppConst
 
   # Client-specific code
   CLIENT_CODE = ENV.fetch('CLIENT_CODE')
+  SHOW_DB_NAME = ENV.fetch('DATABASE_URL').rpartition('@').last
+  URL_BASE = ENV.fetch('URL_BASE')
+  APP_CAPTION = ENV.fetch('APP_CAPTION')
+
+  # General
+  DEFAULT_KEY = 'DEFAULT'
 
   # Constants for roles:
   ROLE_IMPLEMENTATION_OWNER = 'IMPLEMENTATION_OWNER'
@@ -79,9 +106,54 @@ class AppConst
   ERROR_MAIL_RECIPIENTS = ENV.fetch('ERROR_MAIL_RECIPIENTS')
   ERROR_MAIL_PREFIX = ENV.fetch('ERROR_MAIL_PREFIX')
   SYSTEM_MAIL_SENDER = ENV.fetch('SYSTEM_MAIL_SENDER')
+  EMAIL_REQUIRES_REPLY_TO = make_boolean('EMAIL_REQUIRES_REPLY_TO')
   EMAIL_GROUP_LABEL_APPROVERS = 'label_approvers'
   EMAIL_GROUP_LABEL_PUBLISHERS = 'label_publishers'
   USER_EMAIL_GROUPS = [EMAIL_GROUP_LABEL_APPROVERS, EMAIL_GROUP_LABEL_PUBLISHERS].freeze
 
+  # CLM_BUTTON_CAPTION_FORMAT
+  #
+  # This string provides a format for captions to display on buttons
+  # of robots that print carton labels.
+  # The string can contain any text and fruitspec tokens that are
+  # delimited by $: and $. e.g. 'Count: $:actual_count_for_pack$'
+  #
+  # The possible fruitspec tokens are:
+  # HBL: 'COUNT: $:actual_count_for_pack$'
+  # UM : 'SIZE: $:size_reference$'
+  # * actual_count_for_pack
+  # * basic_pack_code
+  # * commodity_code
+  # * mark_code
+  # * marketing_variety_code
+  # * org_code
+  # * size_count_value
+  # * size_reference
+  # * standard_pack_code
+  # * target_market_group_name
+  CLM_BUTTON_CAPTION_FORMAT = ENV['CLM_BUTTON_CAPTION_FORMAT']
+
+  # pi Robots can display 6 lines of text, while T2n robots can only display 4.
+  # If all robots on site are homogenous, set the value here.
+  # Else it will be looked up from the module name.
+  ROBOT_DISPLAY_LINES = ENV.fetch('ROBOT_DISPLAY_LINES', 0).to_i
+
   BIG_ZERO = BigDecimal('0')
+  # The maximum size of an integer in PostgreSQL
+  MAX_DB_INT = 2_147_483_647
+
+  # ISO 2-character country codes
+  ISO_COUNTRY_CODES = %w[
+    AF AL DZ AS AD AO AI AQ AG AR AM AW AU AT AZ BS BH BD BB BY BE BZ BJ
+    BM BT BO BQ BA BW BV BR IO BN BG BF BI CV KH CM CA KY CF TD CL CN CX
+    CC CO KM CD CG CK CR HR CU CW CY CZ CI DK DJ DM DO EC EG SV GQ ER EE
+    SZ ET FK FO FJ FI FR GF PF TF GA GM GE DE GH GI GR GL GD GP GU GT GG
+    GN GW GY HT HM VA HN HK HU IS IN ID IR IQ IE IM IL IT JM JP JE JO KZ
+    KE KI KP KR KW KG LA LV LB LS LR LY LI LT LU MO MG MW MY MV ML MT MH
+    MQ MR MU YT MX FM MD MC MN ME MS MA MZ MM NA NR NP NL NC NZ NI NE NG
+    NU NF MP NO OM PK PW PS PA PG PY PE PH PN PL PT PR QA MK RO RU RW RE
+    BL SH KN LC MF PM VC WS SM ST SA SN RS SC SL SG SX SK SI SB SO ZA GS
+    SS ES LK SD SR SJ SE CH SY TW TJ TZ TH TL TG TK TO TT TN TR TM TC TV
+    UG UA AE GB UM US UY UZ VU VE VN VG VI WF EH YE ZM ZW AX
+  ].freeze
 end

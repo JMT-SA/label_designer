@@ -8,7 +8,7 @@ class LabelDesigner < Roda
     # USERS
     # --------------------------------------------------------------------------
     r.on 'users', Integer do |id|
-      interactor = DevelopmentApp::UserInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = DevelopmentApp::UserInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:users, id) do
@@ -106,7 +106,7 @@ class LabelDesigner < Roda
       end
     end
     r.on 'users' do
-      interactor = DevelopmentApp::UserInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = DevelopmentApp::UserInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
       r.on 'new' do    # NEW
         check_auth!('masterfiles', 'user_maintenance')
         show_partial_or_page(r) { Development::Masterfiles::User::New.call(remote: fetch?(r)) }
@@ -154,7 +154,7 @@ class LabelDesigner < Roda
     # USER EMAIL GROUPS
     # --------------------------------------------------------------------------
     r.on 'user_email_groups', Integer do |id|
-      interactor = DevelopmentApp::UserEmailGroupInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = DevelopmentApp::UserEmailGroupInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
 
       # Check for notfound:
       r.on !interactor.exists?(:user_email_groups, id) do
@@ -192,7 +192,7 @@ class LabelDesigner < Roda
     end
 
     r.on 'user_email_groups' do
-      interactor = DevelopmentApp::UserEmailGroupInteractor.new(current_user, {}, { route_url: request.path }, {})
+      interactor = DevelopmentApp::UserEmailGroupInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
       r.on 'new' do    # NEW
         check_auth!('masterfiles', 'new')
         show_partial_or_page(r) { Development::Masterfiles::UserEmailGroup::New.call(remote: fetch?(r)) }

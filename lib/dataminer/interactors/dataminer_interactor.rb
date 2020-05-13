@@ -67,6 +67,8 @@ module DataminerApp
           hs[:width]        = 100 if col.width.nil?
         end
 
+        hs[:cellRenderer] = 'crossbeamsGridFormatters.iconFormatter' if col.name == 'icon'
+
         # hs[:cellClassRules] = {"grid-row-red": "x === 'Fred'"} if col.name == 'author'
 
         page.col_defs << hs
@@ -127,7 +129,7 @@ module DataminerApp
       rpt_list = if for_grids
                    repo.list_all_grid_reports
                  else
-                   repo.list_all_reports
+                   repo.list_all_reports(true)
                  end
       col_defs = Crossbeams::DataGrid::ColumnDefiner.new.make_columns do |mk|
         mk.action_column do |act|
@@ -182,10 +184,12 @@ module DataminerApp
       repo = ReportRepo.new
 
       page.rpt = Crossbeams::Dataminer::Report.new(page.caption)
-      begin
-        page.rpt.sql = page.sql
-      rescue StandardError => e
-        err = e.message
+      page.rpt.sql = page.sql
+      colour_key = calculate_colour_key(page.rpt)
+      if colour_key.nil?
+        page.rpt.external_settings.delete(:colour_key)
+      else
+        page.rpt.external_settings[:colour_key] = colour_key
       end
       # Check for existing file name...
       err = 'A file with this name already exists' if File.exist?(File.join(repo.admin_report_path(page.database), page.filename))
@@ -202,7 +206,7 @@ module DataminerApp
       end
     end
 
-    def convert_report(params)
+    def convert_report(params) # rubocop:disable Metrics/AbcSize
       yml = params[:yml]
       dbname = params[:database]
       hash = YAML.load(yml) # rubocop:disable Security/YAMLLoad
@@ -210,11 +214,14 @@ module DataminerApp
       rpt = DmConverter.new(repo.admin_report_path(dbname)).convert_hash(hash, params[:filename])
       success_response('Converted to a new report', rpt)
     rescue StandardError => e
+      ErrorMailer.send_exception_email(e, subject: self.class.name, message: decorate_mail_message('convert_report'))
       failed_response(e.message)
     end
 
     def edit_report(id) # rubocop:disable Metrics/AbcSize
-      page = OpenStruct.new(id: id, report: repo.lookup_report(id, true))
+      return failed_response('Cannot edit a system report') if unmodifiable_system_report(id)
+
+      page = OpenStruct.new(success: true, id: id, report: repo.lookup_report(id, true))
 
       page.filename = File.basename(repo.lookup_file_name(id, true))
 
@@ -224,33 +231,41 @@ module DataminerApp
         mk.col 'caption', nil, editable: true, pinned: 'left'
         mk.col 'namespaced_name'
         mk.col 'data_type', nil, editable: true, cellEditor: 'select', cellEditorParams: {
-          values: %w[string boolean integer number date datetime]
+          values: %w[string boolean integer number date datetime],
+          width: 100
         }
         mk.integer 'width', nil, editable: true # , cellEditor: 'numericCellEditor', cellEditorType: 'integer'
         mk.col 'format', nil, editable: true, cellEditor: 'select', cellEditorParams: {
-          values: ['', 'delimited_1000', 'delimited_1000_4']
+          values: ['', 'delimited_1000', 'delimited_1000_4', 'datetime_with_secs'],
+          width: 100
         }
         mk.boolean 'hide', 'Hide?', editable: true, cellEditor: 'select', cellEditorParams: {
-          values: [true, false]
+          values: %w[true false],
+          width: 60
         }
         mk.boolean 'groupable', 'Can group by?', editable: true, cellEditor: 'select', cellEditorParams: {
-          values: [true, false]
+          values: %w[true false],
+          width: 60
         }
         mk.col 'pinned', nil, editable: true, cellEditor: 'select', cellEditorParams: {
           values: ['', 'left', 'right']
         }
         mk.integer 'group_by_seq', 'Group Seq', tooltip: 'If the grid opens grouped, this is the grouping level', editable: true # , cellEditor: 'numericCellEditor'
         mk.boolean 'group_sum', 'Sum?', editable: true, cellEditor: 'select', cellEditorParams: {
-          values: [true, false]
+          values: %w[true false],
+          width: 60
         }
         mk.boolean 'group_avg', 'Avg?', editable: true, cellEditor: 'select', cellEditorParams: {
-          values: [true, false]
+          values: %w[true false],
+          width: 60
         }
         mk.boolean 'group_min', 'Min?', editable: true, cellEditor: 'select', cellEditorParams: {
-          values: [true, false]
+          values: %w[true false],
+          width: 60
         }
         mk.boolean 'group_max', 'Max?', editable: true, cellEditor: 'select', cellEditorParams: {
-          values: [true, false]
+          values: %w[true false],
+          width: 60
         }
       end
       page.row_defs = []
@@ -287,26 +302,47 @@ module DataminerApp
       report.save(yp)
       success_response('Report saved', report)
     rescue StandardError => e
+      ErrorMailer.send_exception_email(e, subject: self.class.name, message: decorate_mail_message('save_report'))
       failed_response(e.message)
     end
 
     def delete_report(id)
+      return failed_response('Cannot delete a system report') if unmodifiable_system_report(id)
+
       filename = repo.lookup_file_name(id, true)
       File.delete(filename)
       success_response('Report has been deleted')
     rescue StandardError => e
+      ErrorMailer.send_exception_email(e, subject: self.class.name, message: decorate_mail_message('delete_report'))
       failed_response(e.message)
     end
 
-    def save_report_sql(id, params)
+    def save_report_sql(id, params) # rubocop:disable Metrics/AbcSize
       report = repo.lookup_admin_report(id)
       report.sql = params[:report][:sql]
       filename = repo.lookup_file_name(id, true)
-      yp       = Crossbeams::Dataminer::YamlPersistor.new(filename)
+      colour_key = calculate_colour_key(report)
+      if colour_key.nil?
+        report.external_settings.delete(:colour_key)
+      else
+        report.external_settings[:colour_key] = colour_key
+      end
+      yp = Crossbeams::Dataminer::YamlPersistor.new(filename)
       report.save(yp)
       success_response('SQL saved', report)
-    rescue StandardError => e
-      failed_response(e.message)
+    end
+
+    def calculate_colour_key(report)
+      col = report.columns['colour_rule']
+      return nil if col.nil?
+
+      old_values = report.external_settings[:colour_key] || {}
+      css_classes = Hash[col.case_string_values.map { |a| [a, 'No description'] }]
+      css_classes.each_key do |k|
+        str = old_values[k]
+        css_classes[k] = str unless str.nil?
+      end
+      css_classes
     end
 
     def save_report_column_order(id, params) # rubocop:disable Metrics/AbcSize
@@ -320,6 +356,7 @@ module DataminerApp
       report.save(yp)
       success_response('Columns reordered', report)
     rescue StandardError => e
+      ErrorMailer.send_exception_email(e, subject: self.class.name, message: decorate_mail_message('save_report_column_order'))
       failed_response(e.message)
     end
 
@@ -351,20 +388,30 @@ module DataminerApp
         send_changes = false
       end
 
-      if value.nil? && attrib == 'caption' # Cannot be nil...
-        res = { status: 'error', message: "Caption for #{params[:key_val]} cannot be blank" }
-      else
-        filename = repo.lookup_file_name(id, true)
-        yp = Crossbeams::Dataminer::YamlPersistor.new(filename)
-        report.save(yp)
-        res = if send_changes
-                { status: 'ok', message: "Changed #{attrib} for #{params[:key_val]}",
-                  changedFields: { group_avg: false, group_min: false, group_max: false, group_none: 'A TEST' } }
-              else
-                { status: 'ok', message: "Changed #{attrib} for #{params[:key_val]}" }
-              end
-      end
-      success_response('OK', res)
+      return failed_response("Caption for #{params[:key_val]} cannot be blank") if value.nil? && attrib == 'caption'
+
+      filename = repo.lookup_file_name(id, true)
+      yp = Crossbeams::Dataminer::YamlPersistor.new(filename)
+      report.save(yp)
+      # res = "Changed #{attrib} for #{params[:key_val]}"
+      # res = if send_changes # TODO: change value of other fields in grid... >> use update_grid_in_place?
+      #         # { status: 'ok', message: "Changed #{attrib} for #{params[:key_val]}",
+      #         #   changedFields: { group_avg: false, group_min: false, group_max: false, group_none: 'A TEST' } }
+      #         { group_avg: false, group_min: false, group_max: false, group_none: 'A TEST' }
+      #       else
+      #         nil # "Changed #{attrib} for #{params[:key_val]}"
+      #       end
+      res = { group_avg: false, group_min: false, group_max: false, group_none: 'A TEST' } if send_changes
+      success_response("Changed #{attrib} for #{params[:key_val]}", res)
+    end
+
+    def save_colour_key_desc(id, params)
+      report = repo.lookup_admin_report(id)
+      report.external_settings[:colour_key][params[:key_val]] = params[:column_value]
+      filename = repo.lookup_file_name(id, true)
+      yp = Crossbeams::Dataminer::YamlPersistor.new(filename)
+      report.save(yp)
+      success_response('Saved new description')
     end
 
     def create_parameter(id, params) # rubocop:disable Metrics/AbcSize
@@ -410,7 +457,7 @@ module DataminerApp
       ar
     end
 
-    def delete_parameter(id, param_id)
+    def delete_parameter(id, param_id) # rubocop:disable Metrics/AbcSize
       report = repo.lookup_admin_report(id)
       report.query_parameter_definitions.delete_if { |p| p.column == param_id }
       filename = repo.lookup_file_name(id, true)
@@ -418,6 +465,7 @@ module DataminerApp
       report.save(yp)
       success_response('Parameter has been deleted', report)
     rescue StandardError => e
+      ErrorMailer.send_exception_email(e, subject: self.class.name, message: decorate_mail_message('delete_parameter'))
       failed_response(e.message)
     end
 
@@ -431,9 +479,9 @@ module DataminerApp
       crosstab_hash ||= {}
       # {"col"=>"users.department_id", "op"=>"=", "opText"=>"is", "val"=>"17", "text"=>"Finance", "caption"=>"Department"}
       input_parameters = ::JSON.parse(params[:json_var])
-      parms   = []
+      parms = []
       # Check if this should become an IN parmeter (list of equal checks for a column.
-      eq_sel  = input_parameters.select { |p| p['op'] == '=' }.group_by { |p| p['col'] }
+      eq_sel = input_parameters.select { |p| p['op'] == '=' }.group_by { |p| p['col'] }
       in_sets = {}
       in_keys = []
       eq_sel.each do |col, qp|
@@ -466,9 +514,14 @@ module DataminerApp
 
         CrosstabApplier.new(repo.db_connection_for(db_conn), rpt, params, crosstab_hash).convert_report if params[:crosstab]
         rpt
-        # rescue StandardError => e
-        #   return "ERROR: #{e.message}"
       end
+    end
+
+    private
+
+    def unmodifiable_system_report(id)
+      rpt_loc = ReportRepo::ReportLocation.new(id)
+      rpt_loc.db == 'system' && !AppConst.development?
     end
 
     # ------------------------------------------------------------------------------------------------------

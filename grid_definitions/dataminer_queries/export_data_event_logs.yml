@@ -1,0 +1,173 @@
+---
+:caption: Export Data Event Logs
+:sql: "SELECT\r\n  \"export_data_event_logs\".\"id\",\r\n  \"export_data_event_logs\".\"export_key\",\r\n
+  \ \"export_data_event_logs\".\"event_log\",\r\n  \"export_data_event_logs\".\"started_at\",\r\n
+  \ \"export_data_event_logs\".\"completed_at\",\r\n  \"export_data_event_logs\".\"complete\",\r\n
+  \ \"export_data_event_logs\".\"failed\",\r\n  \"export_data_event_logs\".\"error_message\",\r\n
+  \ \"export_data_event_logs\".\"created_at\",\r\n  \"export_data_event_logs\".\"updated_at\"\r\nFROM\r\n
+  \ \"export_data_event_logs\"\r\nORDER BY\r\n  id DESC"
+:limit: 
+:offset: 
+:external_settings: {}
+:columns:
+  id:
+    :name: id
+    :sequence_no: 1
+    :caption: Id
+    :namespaced_name: export_data_event_logs.id
+    :data_type: :integer
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  export_key:
+    :name: export_key
+    :sequence_no: 2
+    :caption: Export key
+    :namespaced_name: export_data_event_logs.export_key
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  event_log:
+    :name: event_log
+    :sequence_no: 3
+    :caption: Event log
+    :namespaced_name: export_data_event_logs.event_log
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  started_at:
+    :name: started_at
+    :sequence_no: 4
+    :caption: Started at
+    :namespaced_name: export_data_event_logs.started_at
+    :data_type: :datetime
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  completed_at:
+    :name: completed_at
+    :sequence_no: 5
+    :caption: Completed at
+    :namespaced_name: export_data_event_logs.completed_at
+    :data_type: :datetime
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  complete:
+    :name: complete
+    :sequence_no: 6
+    :caption: Complete
+    :namespaced_name: export_data_event_logs.complete
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  failed:
+    :name: failed
+    :sequence_no: 7
+    :caption: Failed
+    :namespaced_name: export_data_event_logs.failed
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  error_message:
+    :name: error_message
+    :sequence_no: 8
+    :caption: Error message
+    :namespaced_name: export_data_event_logs.error_message
+    :data_type: :string
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  created_at:
+    :name: created_at
+    :sequence_no: 9
+    :caption: Created at
+    :namespaced_name: export_data_event_logs.created_at
+    :data_type: :datetime
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  updated_at:
+    :name: updated_at
+    :sequence_no: 10
+    :caption: Updated at
+    :namespaced_name: export_data_event_logs.updated_at
+    :data_type: :datetime
+    :width: 
+    :format: 
+    :hide: true
+    :pinned: 
+    :groupable: false
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+:query_parameter_definitions: []

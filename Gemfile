@@ -1,10 +1,15 @@
 source 'https://rubygems.org'
+gem 'asciidoctor'
+gem 'awesome_print'
 gem 'bcrypt'
 gem 'dotenv'
-gem 'dry-inflector'
-gem 'dry-struct'
-gem 'dry-validation'
+gem 'dry-inflector', '0.1.2'
+gem 'dry-struct', '0.6.0'
+gem 'dry-types', '0.14.0'
+gem 'dry-validation', '0.13.0'
+gem 'finite_machine'
 gem 'mail'
+gem 'message_bus'
 gem 'nokogiri'
 gem 'pg'
 gem 'puma'
@@ -12,6 +17,7 @@ gem 'que', '1.0.0.beta3'
 gem 'rack_csrf'
 gem 'rake'
 gem 'roda'
+gem 'roda-message_bus'
 gem 'roda-symbolized_params'
 gem 'rodauth'
 gem 'rouge'
@@ -26,15 +32,14 @@ gem 'yard'
 gem 'crossbeams-dataminer', git: 'https://github.com/NoSoft-SA/crossbeams-dataminer.git'
 gem 'crossbeams-label_designer', git: 'https://github.com/NoSoft-SA/crossbeams-label_designer.git'
 gem 'crossbeams-layout', git: 'https://github.com/NoSoft-SA/crossbeams-layout.git'
+gem 'crossbeams-menu_migrations', git: 'https://github.com/NoSoft-SA/crossbeams-menu_migrations.git'
 gem 'roda-data_grid', git: 'https://github.com/NoSoft-SA/roda-data_grid.git'
-# gem 'crossbeams-dataminer'
-# gem 'crossbeams-label_designer'
-# gem 'crossbeams-layout'
-# gem 'roda-data_grid'
-# gem 'crossbeams-dataminer',      path: File.expand_path('../crossbeams-dataminer', __dir__)
-# gem 'crossbeams-label_designer', path: File.expand_path('../crossbeams-label_designer', __dir__)
-# gem 'crossbeams-layout',         path: File.expand_path('../crossbeams-layout', __dir__)
-# gem 'roda-data_grid',            path: File.expand_path('../roda-data_grid', __dir__)
+
+# gem 'crossbeams-dataminer',       path: File.expand_path('../crossbeams-dataminer', __dir__)
+# gem 'crossbeams-label_designer',  path: File.expand_path('../crossbeams-label_designer', __dir__)
+# gem 'crossbeams-layout',          path: File.expand_path('../crossbeams-layout', __dir__)
+# gem 'crossbeams-menu_migrations', path: File.expand_path('../crossbeams-menu_migrations', __dir__)
+# gem 'roda-data_grid',             path: File.expand_path('../roda-data_grid', __dir__)
 
 group :test do
   gem 'faker'

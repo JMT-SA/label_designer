@@ -7,7 +7,7 @@ class LabelDesigner < Roda
   route 'publish', 'labels' do |r|
     # BATCH PUBLISH
     # --------------------------------------------------------------------------
-    interactor = LabelApp::PublishInteractor.new(current_user, {}, { route_url: request.path }, {})
+    interactor = LabelApp::PublishInteractor.new(current_user, {}, { route_url: request.path, request_ip: request.ip }, {})
 
     r.on 'batch' do
       r.is do
@@ -64,6 +64,10 @@ class LabelDesigner < Roda
           { updateMessage: { content: res.message, continuePolling: true } }.to_json
         end
       end
+    end
+
+    r.on 'publish_summary', Integer do |label_publish_log_id|
+      show_partial { Labels::Publish::Publish::Summary.call(label_publish_log_id) }
     end
   end
 end

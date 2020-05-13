@@ -1,12 +1,18 @@
 # frozen_string_literal: true
 
 class BaseQueJob < Que::Job
+  include Crossbeams::MessageBus
+
   self.queue = AppConst::QUEUE_NAME
 
   Que.error_notifier = proc do |error, job|
-    # Hand off to mailer...
     p ">>> ERROR FOR JOB #{job}"
-    p error.message
+    puts error.full_message
+    p "Err count: #{job[:error_count]}"
+
+    # Hand off to mailer on first trigger of error. Obviously do not send an email if the error arose during email sending.
+    do_not_send = job[:error_count].positive? || job[:job_class] == 'DevelopmentApp::SendMailJob'
+    ErrorMailer.send_exception_email(error, subject: "Job #{job[:job_class]} error: #{error.message}", job_context: job) unless do_not_send
 
     # Do whatever you want with the error object or job row here. Note that the
     # job passed is not the actual job object, but the hash representing the job
@@ -92,6 +98,7 @@ class BaseQueJob < Que::Job
       .where(job_class: name)
       .where(jsonb_col.contains(Sequel.pg_jsonb(args)))
       .where(finished_at: nil)
+      .where(expired_at: nil)
       .count.nonzero?.nil?
   end
 

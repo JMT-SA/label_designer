@@ -5,6 +5,11 @@
     :text: Publish notifications
     :icon: list
     :popup: true
+  - :url: "/labels/publish/publish_summary/$:label_publish_log_id$"
+    :text: View publish summary
+    :title: View publish summary
+    :icon: view-show
+    :popup: true
 :conditions:
   :standard:
     - :col: d.label_id

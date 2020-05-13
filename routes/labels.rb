@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-Dir['./routes/labels/*.rb'].each { |f| require f }
+Dir['./routes/labels/*.rb'].sort.each { |f| require f }
 
 class LabelDesigner < Roda
   route('labels') do |r|

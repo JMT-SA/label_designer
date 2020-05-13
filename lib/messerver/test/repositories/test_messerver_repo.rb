@@ -15,7 +15,7 @@ module MesserverApp
     end
 
     def test_printer_list
-      pl = { 'PrinterList' => ['PRN-01', 'PRN-02'] }
+      pl = { 'PrinterList' => %w[PRN-01 PRN-02] }
       MesserverRepo.any_instance.stubs(:request_uri).returns(success_response('ok', OpenStruct.new(body: pl.to_yaml, response_code: '200')))
       res = repo.printer_list
       assert res.success
@@ -32,7 +32,7 @@ module MesserverApp
     end
 
     def test_publish_target_list
-      pl = { 'PublishServerList' => ['Server-01', 'Server-02'] }
+      pl = { 'PublishServerList' => %w[Server-01 Server-02] }
       MesserverRepo.any_instance.stubs(:request_uri).returns(success_response('ok', OpenStruct.new(body: pl.to_yaml, response_code: '200')))
       res = repo.publish_target_list
       assert res.success
@@ -65,7 +65,7 @@ module MesserverApp
     end
 
     def test_send_publish_status
-      pl = { 'Data' => ['Server-01-OK', 'Server-02-OK'] }
+      pl = { 'Data' => %w[Server-01-OK Server-02-OK] }
       MesserverRepo.any_instance.stubs(:request_uri).returns(success_response('ok', OpenStruct.new(body: pl.to_yaml, response_code: '200')))
       res = repo.send_publish_status('Zebra', 'a/path/to/file')
       assert res.success
@@ -114,22 +114,22 @@ module MesserverApp
       end
     end
 
-    def test_print_label
+    def test_print_published_label
       fails = [
         { method_return: failed_response('ok', response_code: '404'), instance: {}, msg: 'The label was not found. Has it been published yet?' },
         { method_return: failed_response('No printer', response_code: '503'), instance: { response_code: '503' }, msg: 'No printer' }
       ]
 
       (fails + standard_http_fails).each do |rule|
-        MesserverRepo.any_instance.stubs(:post_print).returns(rule[:method_return])
-        res = repo.print_label('name', [], 2, 'PRN-01')
+        MesserverRepo.any_instance.stubs(:post_print_or_preview).returns(rule[:method_return])
+        res = repo.print_published_label('name', [], 2, 'PRN-01')
         refute res.success
         assert_equal rule[:msg], res.message
         assert_equal rule[:instance], res.instance
       end
 
-      MesserverRepo.any_instance.stubs(:post_print).returns(success_response('ok', OpenStruct.new(body: 'SOMETHING', response_code: '200')))
-      res = repo.print_label('name', [], 2, 'PRN-01')
+      MesserverRepo.any_instance.stubs(:post_print_or_preview).returns(success_response('ok', OpenStruct.new(body: 'SOMETHING', response_code: '200')))
+      res = repo.print_published_label('name', [], 2, 'PRN-01')
       assert res.success
       assert_equal 'Printed label', res.message
       assert_equal 'SOMETHING', res.instance
