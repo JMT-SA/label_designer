@@ -12,7 +12,7 @@ Crossbeams::MenuMigrations::Migrator.migration('LabelDesigner') do
     add_functional_area 'Development'
     add_program 'Generators', functional_area: 'Development'
     add_program_function 'New Scaffold', functional_area: 'Development', program: 'Generators', url: '/development/generators/scaffolds/new'
-    add_program_function 'Documentation', functional_area: 'Development', program: 'Generators', url: '/developer_documentation/start', seq: 2
+    # add_program_function 'Documentation', functional_area: 'Development', program: 'Generators', url: '/developer_documentation/start', seq: 2
 
     add_program 'Masterfiles', functional_area: 'Development', seq: 2
     add_program_function 'Users', functional_area: 'Development', program: 'Masterfiles', url: '/list/users'
