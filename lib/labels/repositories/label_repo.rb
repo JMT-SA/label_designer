@@ -124,6 +124,10 @@ module LabelApp
       end
     end
 
+    def label_publishing_user_name(label_publish_log_id)
+      get(:label_publish_logs, label_publish_log_id, :user_name)
+    end
+
     private
 
     # Re-combine F-numbers:
