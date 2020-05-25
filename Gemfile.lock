@@ -159,7 +159,7 @@ GEM
     pry-doc (0.13.4)
       pry (~> 0.11)
       yard (~> 0.9.11)
-    puma (3.11.4)
+    puma (3.12.6)
     que (1.0.0.beta3)
     rack (2.2.2)
     rack-console (1.3.1)
