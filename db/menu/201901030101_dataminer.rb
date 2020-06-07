@@ -1,4 +1,4 @@
-Crossbeams::MenuMigrations::Migrator.migration('Nspack') do
+Crossbeams::MenuMigrations::Migrator.migration('LabelDesigner') do
   up do
     add_functional_area 'Dataminer'
     add_program 'Reports', functional_area: 'Dataminer'
