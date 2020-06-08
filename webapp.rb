@@ -18,7 +18,7 @@ class LabelDesigner < Roda
   include DataminerHelpers
   include RmdHelpers
 
-  use Rack::Session::Cookie, secret: 'some_nice_long_random_string_DSKJH4378EYR7EGKUFH', key: '_lbld_session'
+  use Rack::Session::Cookie, secret: 'some_nice_long_random_string_DSKJH4378EYR7EGKUFH', key: '_lbld_session', same_site: :lax
   use Rack::MethodOverride # Use with all_verbs plugin to allow 'r.delete' etc.
 
   plugin :data_grid, path: File.dirname(__FILE__),
