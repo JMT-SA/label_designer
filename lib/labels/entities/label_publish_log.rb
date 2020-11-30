@@ -11,6 +11,7 @@ module LabelApp
     attribute :complete, Types::Bool
     attribute :failed, Types::Bool
     attribute :created_at, Types::Time
-    attribute :publish_summary, Types::JSON::Hash.optional
+    # attribute :publish_summary, Types::JSON::Hash.optional
+    attribute :publish_summary, Types::Hash.optional
   end
 end

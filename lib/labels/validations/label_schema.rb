@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
 module LabelApp
-  LabelSchema = Dry::Validation.Params do
-    optional(:id).filled(:int?)
-    required(:label_name).filled(:str?)
-    optional(:label_dimension).filled(:str?)
-    optional(:px_per_mm).filled(:str?)
-    required(:container_type).filled(:str?)
-    required(:commodity).filled(:str?)
-    required(:market).filled(:str?)
-    required(:language).filled(:str?)
-    optional(:category).maybe(:str?)
-    optional(:sub_category).maybe(:str?)
-    optional(:multi_label).maybe(:bool?)
-    optional(:variable_set, Types::StrippedString).filled(:str?)
+  LabelSchema = Dry::Schema.Params do
+    optional(:id).filled(:integer)
+    required(:label_name).filled(Types::StrippedString)
+    optional(:label_dimension).filled(:string)
+    optional(:px_per_mm).filled(:string)
+    required(:container_type).filled(:string)
+    required(:commodity).filled(:string)
+    required(:market).filled(:string)
+    required(:language).filled(:string)
+    optional(:category).maybe(:string)
+    optional(:sub_category).maybe(:string)
+    optional(:multi_label).maybe(:bool)
+    optional(:variable_set).filled(Types::StrippedString)
   end
 end

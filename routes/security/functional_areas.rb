@@ -302,7 +302,8 @@ class LabelDesigner < Roda
         if res.success
           if fetch?(r)
             add_grid_row(attrs: { id: res.instance.id,
-                                  security_group_name: res.instance[:security_group_name] },
+                                  security_group_name: res.instance[:security_group_name],
+                                  permissions: '' },
                          notice: res.message)
           else
             flash[:notice] = res.message

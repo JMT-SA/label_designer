@@ -19,6 +19,7 @@ require_relative 'config/environment'
 require 'base64'
 require 'pstore'
 require 'net/http'
+require 'net/ping'
 require 'uri'
 require 'pry' if ENV.fetch('RACK_ENV') == 'development'
 

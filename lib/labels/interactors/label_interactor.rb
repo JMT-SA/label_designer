@@ -17,7 +17,7 @@ module LabelApp
     def pre_create_label(params)
       extcols = select_extended_columns_params(params, delete_prefix: false)
       res = validate_label_params(params)
-      return validation_failed_response(res) unless res.messages.empty?
+      return validation_failed_response(res) if res.failure?
 
       attrs = {
         container_type: params[:container_type],
@@ -34,7 +34,7 @@ module LabelApp
     def create_label(params) # rubocop:disable Metrics/AbcSize
       extcols = select_extended_columns_params(params)
       res = validate_label_params(params)
-      return validation_failed_response(res) unless res.messages.empty?
+      return validation_failed_response(res) if res.failure?
 
       id = nil
       repo.transaction do
@@ -52,7 +52,7 @@ module LabelApp
       parms, extcols = unwrap_extended_columns_params(params)
       ext_res = validate_extended_columns(:labels, params)
       res = validate_label_params(parms)
-      return mixed_validation_failed_response(res, ext_res) unless res.messages.empty? && ext_res.messages.empty?
+      return mixed_validation_failed_response(res, ext_res) unless res.success? && ext_res.messages.empty?
 
       repo.transaction do
         repo.update_label(id, include_updated_by_in_changeset(add_extended_columns_to_changeset(res, repo, extcols)))
@@ -71,7 +71,7 @@ module LabelApp
         else
           repo.delete_label(id)
         end
-        log_status('labels', id, 'DELETED')
+        log_status(:labels, id, 'DELETED')
         log_transaction
       end
       success_response("Deleted label #{instance.label_name}")
@@ -80,7 +80,7 @@ module LabelApp
     def archive_label(id)
       repo.transaction do
         repo.update_label(id, active: false)
-        log_status('labels', id, 'ARCHIVED')
+        log_status(:labels, id, 'ARCHIVED')
         log_transaction
       end
       instance = label(id)
@@ -90,7 +90,7 @@ module LabelApp
     def un_archive_label(id)
       repo.transaction do
         repo.update_label(id, active: true)
-        log_status('labels', id, 'UN-ARCHIVED')
+        log_status(:labels, id, 'UN-ARCHIVED')
         log_transaction
       end
       instance = label(id)
@@ -100,7 +100,7 @@ module LabelApp
     def link_multi_label(id, sub_label_ids)
       repo.transaction do
         repo.link_multi_label(id, sub_label_ids)
-        log_status('labels', id, 'SUB_LABELS_LINKED')
+        log_status(:labels, id, 'SUB_LABELS_LINKED')
       end
       success_response('Linked sub-labels for a multi-label')
     end
@@ -132,7 +132,7 @@ module LabelApp
 
     def prepare_clone_label(id, params)
       res = validate_clone_label_params(params)
-      return validation_failed_response(res) unless res.messages.empty?
+      return validation_failed_response(res) if res.failure?
 
       instance = label(id)
       attrs = {
@@ -263,7 +263,7 @@ module LabelApp
         }
         mail_opts[:cc] = params[:cc] if params[:cc]
         DevelopmentApp::SendMailJob.enqueue(mail_opts)
-        log_status('labels', id, 'EMAILED FOR APPROVAL', comment: "to #{params[:to]}")
+        log_status(:labels, id, 'EMAILED FOR APPROVAL', comment: "to #{params[:to]}")
         success_response('Email has been queued for sending. Please check your inbox for a copy.')
       else
         failed_response(res.message)

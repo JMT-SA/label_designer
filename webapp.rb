@@ -52,8 +52,8 @@ class LabelDesigner < Roda
   plugin :json_parser
   plugin :message_bus
   plugin :status_handler
-  plugin :cookies, path: '/'
-  plugin :rodauth do
+  plugin :cookies, path: '/', same_site: :lax
+  plugin :rodauth, csrf: :rack_csrf do
     db DB
     enable :login, :logout # , :change_password
     logout_route 'a_dummy_route' # Override 'logout' route so that we have control over it.
@@ -64,7 +64,7 @@ class LabelDesigner < Roda
     login_column :login_name
     accounts_table :vw_active_users # Only active users can login.
     account_password_hash_column :password_hash
-    template_opts(layout_opts: { path: 'views/layout_auth.erb' })
+    template_opts(layout_opts: { path: File.join(ENV['ROOT'], 'views/layout_auth.erb') })
     after_login do
       # On successful login, see if the user had given a specific path that required the login and redirect to it.
       path = request.cookies['pre_login_path']
@@ -182,13 +182,26 @@ class LabelDesigner < Roda
                                      :choices,
                                      :sortable,
                                      :konva,
-                                     :lodash,
                                      :multi,
                                      :sweetalert)
       @layout = Crossbeams::Layout::Page.build do |page, _|
         page.section do |section|
           section.add_text('Gem and Javascript library versions', wrapper: :h2)
           section.add_table(versions.to_a, versions.columns, alignment: { version: :right })
+        end
+      end
+      view('crossbeams_layout_page')
+    end
+
+    r.is 'client_settings' do
+      require './config/env_var_rules'
+      en = EnvVarRules.new
+      settings = en.client_settings
+      @layout = Crossbeams::Layout::Page.build do |page, _|
+        page.section do |section|
+          section.add_text('Client Settings', wrapper: :h2)
+          section.add_text('Note: some values have spaces inserted after commas to make the display wrap better. Be aware of this if copying a setting from here.', wrapper: :em)
+          section.add_table(settings, %i[key env_val const_val], header_captions: { env_val: 'Environment variable value', const_val: 'Value in AppConst' })
         end
       end
       view('crossbeams_layout_page')
@@ -261,10 +274,10 @@ class LabelDesigner < Roda
         DB.transaction do
           id = repo.create_label(interactor.include_created_by_in_changeset(interactor.add_extended_columns_to_changeset(changeset, repo, extcols)))
           if from_id.nil?
-            repo.log_status('labels', id, 'CREATED', user_name: current_user.user_name)
+            repo.log_status(:labels, id, 'CREATED', user_name: current_user.user_name)
           else
             from_lbl = repo.find_label(from_id)
-            repo.log_status('labels', id, 'CLONED', comment: "from #{from_lbl.label_name}", user_name: current_user.user_name)
+            repo.log_status(:labels, id, 'CLONED', comment: "from #{from_lbl.label_name}", user_name: current_user.user_name)
           end
           repo.log_action(user_name: current_user.user_name, context: 'create label', route_url: request.path, request_ip: request.ip)
         end

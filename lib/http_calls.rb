@@ -13,6 +13,17 @@ module Crossbeams
       @read_timeout = read_timeout
     end
 
+    # See if a host is reachable via ping.
+    #
+    # @param url_or_host [string] the url, hostname or ip address to check.
+    # @return [boolean] True if the ping succeeded.
+    def can_ping?(url_or_host)
+      uri = URI.parse(url_or_host)
+      pe = Net::Ping::External.new(uri.host || uri.path)
+      pe.timeout = 1
+      pe.ping?
+    end
+
     def json_post(url, params, headers = {}) # rubocop:disable Metrics/AbcSize
       uri, http = setup_http(url)
       http.use_ssl = use_ssl if use_ssl
@@ -152,11 +163,13 @@ module Crossbeams
       [uri, http]
     end
 
-    def format_response(response, context)
+    def format_response(response, context) # rubocop:disable Metrics/AbcSize
       return @responder.format_response(response, context) if @responder
 
       if response.code == '200'
         success_response(response.code, response)
+      elsif response.code == '429'
+        failed_response("The destination server has received too many requests at this time. (quota exceeded) The response code is #{response.code}", response.code)
       else
         msg = response.code.start_with?('5') ? 'The destination server encountered an error.' : 'The request was not successful.'
         send_error_email(response, context)

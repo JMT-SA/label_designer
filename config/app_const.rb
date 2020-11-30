@@ -14,11 +14,14 @@ class AppConst # rubocop:disable Metrics/ClassLength
 
   # Take an environment variable and interpret it
   # as a boolean.
-  def self.make_boolean(key, required: false)
+  #
+  # If required is true, the variable MUST have a value.
+  # If default_true is true, the value will be set to true if the variable has no value.
+  def self.make_boolean(key, required: false, default_true: false)
     val = if required
             ENV.fetch(key)
           else
-            ENV.fetch(key, 'f')
+            ENV.fetch(key, default_true ? 't' : 'f')
           end
     check_true(val)
   end
@@ -60,6 +63,8 @@ class AppConst # rubocop:disable Metrics/ClassLength
   SHARED_CONFIG_HOST_PORT = ENV.fetch('SHARED_CONFIG_HOST_PORT')
   LABEL_VARIABLE_SETS = ENV.fetch('LABEL_VARIABLE_SETS').strip.split(',')
   LABEL_PUBLISH_NOTIFY_URLS = ENV.fetch('LABEL_PUBLISH_NOTIFY_URLS', '').split(',')
+  BATCH_PRINT_MAX_LABELS = ENV.fetch('BATCH_PRINT_MAX_LABELS', 20).to_i
+  PREVIEW_PRINTER_TYPE = ENV.fetch('PREVIEW_PRINTER_TYPE', 'zebra')
 
   # Label sizes. The arrays contain width then height.
   DEFAULT_LABEL_DIMENSION = ENV.fetch('DEFAULT_LABEL_DIMENSION', '84x64')
@@ -137,6 +142,12 @@ class AppConst # rubocop:disable Metrics/ClassLength
   # If all robots on site are homogenous, set the value here.
   # Else it will be looked up from the module name.
   ROBOT_DISPLAY_LINES = ENV.fetch('ROBOT_DISPLAY_LINES', 0).to_i
+  ROBOT_MSG_SEP = '###'
+
+  # Max number of passenger instances - used for designating high, busy or over usage
+  MAX_PASSENGER_INSTANCES = ENV.fetch('MAX_PASSENGER_INSTANCES', 30).to_i
+  # Lowest state for passenger usage to send emails. Can be INFO, BUSY or HIGH.
+  PASSENGER_USAGE_LEVEL = ENV.fetch('PASSENGER_USAGE_LEVEL', 'INFO')
 
   BIG_ZERO = BigDecimal('0')
   # The maximum size of an integer in PostgreSQL
