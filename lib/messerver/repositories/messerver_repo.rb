@@ -82,7 +82,7 @@ module MesserverApp
       res = post_print_or_preview(print_published_label_uri(host), label_template_name, vars, quantity: quantity, printer: printer)
       unless res.success
         res = if res.instance[:response_code].to_s == '404'
-                failed_response('The label was not found. Has it been published yet?')
+                failed_response("The label (#{label_template_name}) or printer was not found. Has it been published yet?")
               else
                 res
               end
@@ -95,7 +95,7 @@ module MesserverApp
       res = post_print_or_preview(preview_published_label_uri, label_template_name, vars, printer_type: printer_type)
       unless res.success
         res = if res.instance[:response_code].to_s == '404'
-                failed_response('The label was not found. Has it been published yet?')
+                failed_response("The label (#{label_template_name}) or printer was not found. Has it been published yet?")
               else
                 res
               end
@@ -104,8 +104,8 @@ module MesserverApp
       success_response('Preview label', res.instance.body)
     end
 
-    def bulk_registration_mode(mes_module, start = true)
-      request_uri(bulk_registration_mode_uri(mes_module, start))
+    def bulk_registration_mode(mes_module, start: true)
+      request_uri(bulk_registration_mode_uri(mes_module, start: start))
     end
 
     private
@@ -278,18 +278,21 @@ module MesserverApp
     end
 
     def format_response(response, context = nil) # rubocop:disable Metrics/AbcSize
-      if response.code == '200'
+      case response.code
+      when '200'
         if response.body&.include?('204 No content')
           send_error_email(response, context)
           failed_response('The server returned an empty response', response_code: '204')
         else
           success_response(response.code, response)
         end
-      elsif response.code == '503' # The printer is unavailable
+      when '503' # The printer is unavailable
         failed_response(response.body, response_code: response.code)
       else
         msg = response.code.start_with?('5') ? 'The destination server encountered an error.' : 'The request was not successful.'
         send_error_email(response, context)
+        puts "MesServer Context: #{context}" unless context.nil?
+        puts "MesServer Response: code=#{response.code}, body=#{response.body}"
         failed_response("#{msg} The response code is #{response.code}", response_code: response.code)
       end
     end
@@ -348,7 +351,7 @@ module MesserverApp
       URI.parse("#{AppConst::LABEL_SERVER_URI}LabelPreview")
     end
 
-    def bulk_registration_mode_uri(mes_module, start = true)
+    def bulk_registration_mode_uri(mes_module, start: true)
       URI.parse("#{AppConst::LABEL_SERVER_URI}?Type=SetCardRegistrationState&Name=#{mes_module}&Status=#{start}")
     end
 

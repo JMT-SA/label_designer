@@ -8,7 +8,7 @@ module LabelApp
 
     def make_label_zip(label, vars = nil)
       property_vars = vars ? vars.map { |k, v| "\n#{k}=#{v}" }.join : "\nF1=Variable Test Value"
-      fname = label.label_name.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-')
+      fname = label.label_name.strip.gsub(%r{[/:*?"\\<>|\r\n]}i, '-')
       label_properties = %(Client: Name="NoSoft"\nF0=nsld:#{fname}#{property_vars}) # For testing only
       stringio = if label.multi_label
                    zip_multi_label(label, fname, label_properties)
@@ -35,7 +35,7 @@ module LabelApp
       [label.label_name, stringio.string]
     end
 
-    def import_file(tempfile, attrs)
+    def import_file(tempfile, attrs) # rubocop:disable Metrics/AbcSize
       Zip::InputStream.open(tempfile) do |io|
         while (entry = io.get_next_entry)
           case entry.name

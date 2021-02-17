@@ -163,6 +163,11 @@ class TestBaseRepo < MiniTestWithHooks
     actual = BaseRepo.new.select_values_in_order(:users, :id, order: :id, where: { id: [1, 2] }, descending: true)
     expect = DB[:users].where(id: [1, 2]).reverse(:id).select_map(:id)
     assert_equal expect, actual
+
+    # Handle nil order_by gracefully as no order_by
+    actual = BaseRepo.new.select_values_in_order(:users, :id, order: nil, where: { id: [1, 2] })
+    expect = DB[:users].where(id: [1, 2]).select_map(:id)
+    assert_equal expect, actual
   end
 
   def test_hash_for_jsonb_col
@@ -282,6 +287,24 @@ class TestBaseRepo < MiniTestWithHooks
     users = repo.for_select_users
     assert_equal ['User 0', 'usr_0'], users.first
     assert_equal ['User 9', 'usr_9'], users.last
+  end
+
+  def test_for_select_where
+    klass = Class.new(BaseRepo)
+    klass.build_for_select(:users, value: :login_name, order_by: :login_name)
+    repo = klass.new
+    users = repo.for_select_users(where: { login_name: %w[usr_0 usr_1 usr_2] })
+    assert_equal 'usr_0', users.first
+    assert_equal 'usr_2', users.last
+  end
+
+  def test_for_select_exclude
+    klass = Class.new(BaseRepo)
+    klass.build_for_select(:users, value: :login_name, order_by: :login_name)
+    repo = klass.new
+    users = repo.for_select_users(exclude: { login_name: %w[usr_0 usr_1 usr_2] })
+    assert_equal 'usr_3', users.first
+    assert_equal 'usr_9', users.last
   end
 
   def test_crud_calls_without_wrapper

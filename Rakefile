@@ -80,6 +80,7 @@ namespace :menu do
       end
       key = match[1]
       raise "Invalid filename prefix: #{key} for #{file}" if key.length != 12
+      raise "Invalid filename: #{file} (must be all lowercase)" if file != file.downcase
 
       begin
         Time.parse(key)
@@ -419,5 +420,12 @@ namespace :db do
       RUBY
     end
     puts "Created migration #{fn}"
+  end
+end
+
+namespace :cap do
+  desc 'List Capistrano deploy targets'
+  task :deploy_targets do
+    puts Dir['./config/deploy/*.rb'].map { |a| a.sub('./config/deploy/', '') }.map { |a| a.sub(/\.rb$/, '') }.sort.join("\n")
   end
 end

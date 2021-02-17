@@ -74,8 +74,11 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
       raise ArgumentError, "Sub_table #{sub_table} must be a Symbol" unless sub_table.is_a?(Symbol)
       raise ArgumentError, "Sub_table #{sub_table} cannot be joined via a join table AND an id keys array" if rule.key?(:id_keys_column) && (rule.key?(:join_table) || rule.key?(:uses_join_table))
 
-      rule.each_key { |k| raise ArgumentError, "Unknown sub-table key: #{k}" unless VALID_SUB_KEYS.include?(k) }
-      rule.each_key { |k| validate_sub_table_rule!(k, rule) }
+      rule.each_key do |k|
+        raise ArgumentError, "Unknown sub-table key: #{k}" unless VALID_SUB_KEYS.include?(k)
+
+        validate_sub_table_rule!(k, rule)
+      end
     end
   end
 
@@ -100,7 +103,7 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
     end
   end
 
-  def validate_sub_table_rule!(key, rule) # rubocop:disable Metrics/CyclomaticComplexity
+  def validate_sub_table_rule!(key, rule)
     case key
     when :columns
       validate_columns!(rule)

@@ -112,7 +112,8 @@ class LabelDesigner < Roda
       r.on 'xls' do
         caption, xls = render_excel_rows(id, params)
         response.headers['content_type'] = 'application/vnd.ms-excel'
-        response.headers['Content-Disposition'] = "attachment; filename=\"#{caption.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-') + '.xls'}\""
+        fn = caption.strip.gsub(%r{[/:*?"\\<>|\r\n]}i, '-')
+        response.headers['Content-Disposition'] = %(attachment; filename="#{fn}.xls")
         response.write(xls) # NOTE: could this use streaming to start downloading quicker?
       end
     end

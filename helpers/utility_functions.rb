@@ -137,13 +137,14 @@ module UtilityFunctions # rubocop:disable Metrics/ModuleLength
   # @param hash [hash] the hash with keys to symbolize.
   # @return [hash]
   def symbolize_keys(hash)
-    if hash.is_a?(Hash)
+    case hash
+    when Hash
       Hash[
         hash.map do |k, v|
           [k.respond_to?(:to_sym) ? k.to_sym : k, symbolize_keys(v)]
         end
       ]
-    elsif hash.is_a?(Array)
+    when Array
       hash.map { |a| symbolize_keys(a) }
     else
       hash
@@ -201,7 +202,7 @@ module UtilityFunctions # rubocop:disable Metrics/ModuleLength
   #
   # @param size [integer] the size in bytes
   # @return [string] the human-readable version of the size
-  def filesize(size) # rubocop:disable Metrics/AbcSize
+  def filesize(size)
     units = %w[B KiB MiB GiB TiB Pib EiB]
 
     return '0.0 B' if size.zero?
@@ -261,5 +262,82 @@ module UtilityFunctions # rubocop:disable Metrics/ModuleLength
   # @return [string] rendered SVG.
   def icon(name, options = {})
     Crossbeams::Layout::Icon.new(name, options).render
+  end
+
+  # Create a text table in an array from an array of hashes
+  # e.g. To display the output in a console:
+  #
+  #    puts make_text_table(recs).join("\n")
+  #
+  # @param recs [Array] an array of hashes (e.g. from DB query)
+  # @param times [Array] optional array of Symbols for all Time columns to be stripped of timezone offset
+  # @param numbers [Array] optional array of Symbols for all numeric columns to be formatted with commas and decimals
+  # @param rjust [Array] optional array of Symbols for all columns to be right-justified
+  # @return [Array] an array representing rows in a text table.
+  def make_text_table(recs, heads: {}, times: [], numbers: [], rjust: []) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+    return [] if recs.length.zero?
+
+    heads = mt_calculate_col_widths_and_headings(recs, heads, times, numbers)
+    out = []
+    line = mt_make_line(heads)
+    out << line
+    cols = heads.map { |_, value| " #{value[:head].ljust(value[:width])} |" }
+    out << "|#{cols.join}"
+    out << line
+    recs.each do |rec|
+      cols = rec.map do |key, value|
+        v = case key
+            when *times
+              (value.nil? ? '' : value.strftime('%Y-%m-%d %H:%M:%S')).ljust(heads[key][:width])
+            when *numbers
+              UtilityFunctions.delimited_number(value).rjust(heads[key][:width])
+            when *rjust
+              value.to_s.rjust(heads[key][:width])
+            else
+              value.to_s.ljust(heads[key][:width])
+            end
+        " #{v} |"
+      end
+      out << "|#{cols.join}"
+    end
+    out << line
+    out
+  end
+
+  def mt_calculate_col_widths_and_headings(recs, heads, times, numbers)
+    heads = mt_col_headings(recs, heads)
+
+    recs.each do |rec|
+      rec.each do |key, val|
+        v = case key
+            when *times
+              val.nil? ? '' : val.strftime('%Y-%m-%d %H:%M:%S')
+            when *numbers
+              UtilityFunctions.delimited_number(val)
+            else
+              val.to_s
+            end
+        heads[key][:width] = v.length if v.length > heads[key][:width]
+      end
+    end
+    heads
+  end
+
+  def mt_col_headings(recs, heads)
+    headings = {}
+
+    recs.first.each_key do |col|
+      headings[col] = {
+        head: heads[col] || col.to_s.capitalize.gsub('_', ' '),
+        width: (heads[col] || col).length
+      }
+    end
+    headings
+  end
+
+  def mt_make_line(heads)
+    headline = ['+']
+    heads.each { |_, value| headline << "-#{'-' * value[:width]}-+" }
+    headline.join
   end
 end

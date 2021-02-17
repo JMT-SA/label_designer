@@ -120,6 +120,14 @@ class TestCommonHelpers < Minitest::Test
     res = build_json_action(OpenStruct.new(type: :clear_form_validation, dom_id: 'html_dom_tag_id'))
     expect = { clear_form_validation: { form_id: 'html_dom_tag_id' } }
     assert_equal expect, res
+
+    res = build_json_action(OpenStruct.new(type: :launch_dialog, content: 'html_for_dlg'))
+    expect = { launch_dialog: { content: 'html_for_dlg', title: nil } }
+    assert_equal expect, res
+
+    res = build_json_action(OpenStruct.new(type: :launch_dialog, content: 'html_for_dlg', title: 'text'))
+    expect = { launch_dialog: { content: 'html_for_dlg', title: 'text' } }
+    assert_equal expect, res
   end
 
   def test_json_actions

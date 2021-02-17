@@ -1,5 +1,5 @@
 environment 'production'
-root_dir = File.expand_path('../../', __FILE__)
+root_dir = File.expand_path('..', __dir__)
 bind "unix://#{root_dir}/tmp/sockets/label-designer-puma.sock"
 directory root_dir
 # pidfile '/home/nsld/label_designer/tmp/puma/pid'

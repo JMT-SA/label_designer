@@ -120,9 +120,10 @@ module SecurityApp
       table_records(table, id).each do |rec| # should sort orgs by parent_id null first
         values = []
         column_names.each do |col|
-          values << if col == :party_id
+          values << case col
+                    when :party_id
                       '(SELECT MAX(id) FROM parties)'
-                    elsif col == :parent_id
+                    when :parent_id
                       parent_code = DB[:organizations].where(id: rec[col]).get(:short_description)
                       "(SELECT id FROM  organizations WHERE short_description = '#{parent_code}')"
                     else
@@ -142,7 +143,7 @@ module SecurityApp
       combined_party(:people, 'P', id)
     end
 
-    def party_roles(id) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
+    def party_roles(id) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
       table = :party_roles
       @columns = Hash[dev_repo.table_columns(table)]
       column_names = dev_repo.table_col_names(table).reject { |c| %i[id active created_at updated_at].include?(c) }

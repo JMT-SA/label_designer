@@ -49,12 +49,11 @@ module DataminerApp
 
       rpt.limit  = params[:limit].to_i  if params[:limit] != ''
       rpt.offset = params[:offset].to_i if params[:offset] != ''
-      begin
-        rpt.apply_params(parms)
 
-        CrosstabApplier.new(repo.db_connection_for(db_name), rpt, params, crosstab_hash).convert_report if params[:crosstab]
-        rpt
-      end
+      rpt.apply_params(parms)
+
+      CrosstabApplier.new(repo.db_connection_for(db_name), rpt, params, crosstab_hash).convert_report if params[:crosstab]
+      rpt
     end
 
     def report_parameters(id, params)
@@ -71,7 +70,7 @@ module DataminerApp
       page
     end
 
-    def prepared_report_list_grid(for_user = false) # rubocop:disable Metrics/AbcSize
+    def prepared_report_list_grid(for_user: false) # rubocop:disable Metrics/AbcSize
       rpt_list = if for_user
                    PreparedReportRepo.new.list_all_reports_for_user(@user)
                  else
@@ -242,9 +241,10 @@ module DataminerApp
 
     def json_var_as_text(json_var)
       json_var.map do |param|
-        if param['op'] == 'between'
+        case param['op']
+        when 'between'
           "#{param['caption']} #{param['opText']} #{param['text']} AND #{param['textTo']}"
-        elsif param['op'] == 'is_null' || param['op'] == 'notnull'
+        when 'is_null', 'notnull'
           "#{param['caption']} #{param['opText']}"
         else
           "#{param['caption']} #{param['opText']} #{param['text']}"
@@ -295,7 +295,7 @@ module DataminerApp
         s << '<record>'
         rpt.ordered_columns.each do |k|
           # ... could use properties of column for format, datatype etc. in a schema?
-          s << "<#{k.caption.split(' ').map(&:capitalize).join}>#{record[k.name.to_sym]}</#{k.caption.split(' ').map(&:capitalize).join}>"
+          s << "<#{k.caption.split.map(&:capitalize).join}>#{record[k.name.to_sym]}</#{k.caption.split.map(&:capitalize).join}>"
         end
         s << '</record>'
       end
@@ -306,9 +306,8 @@ module DataminerApp
     # Also if a number is too long, the spreadsheet will convert to scientific notation,
     # so we prefix long numbers with "'" too.
     def format_for_spreadsheet(str)
-      if str =~ /^\d+$/ && str.length > 1
-        return "'#{str}" if str.start_with?('0') || str.length > 10
-      end
+      return "'#{str}" if str =~ /^\d+$/ && str.length > 1 && (str.start_with?('0') || str.length > 10)
+
       str
     end
   end

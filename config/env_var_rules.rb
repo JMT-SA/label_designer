@@ -70,7 +70,7 @@ class EnvVarRules # rubocop:disable Metrics/ClassLength
     (NO_OVERRIDE.map { |a| a.keys.first } + CAN_OVERRIDE.map { |a| a.keys.first } + MUST_OVERRIDE.map { |a| a.keys.first } + OPTIONAL.map { |a| a.keys.first }).sort.join("\n")
   end
 
-  def client_settings # rubocop:disable Metrics/AbcSize
+  def client_settings # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
     one_hash = {}
     NO_OVERRIDE.each { |h| one_hash[h.keys.first] = h.values.first }
     CAN_OVERRIDE.each { |h| one_hash[h.keys.first] = h.values.first }

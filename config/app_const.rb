@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
 # A class for defining global constants in a central place.
-class AppConst # rubocop:disable Metrics/ClassLength
+class AppConst
   def self.development?
     ENV['RACK_ENV'] == 'development'
+  end
+
+  def self.test?
+    ENV['RACK_ENV'] == 'test'
   end
 
   # Any value that starts with y, Y, t or T is considered true.
@@ -32,10 +36,26 @@ class AppConst # rubocop:disable Metrics/ClassLength
   end
 
   # Client-specific code
+  CLIENT_SET = {
+    'srcc' => 'Sundays River Citrus Company',
+    'tad' => 'Two A Day',
+    'kr' => 'Kromco'
+  }.freeze
   CLIENT_CODE = ENV.fetch('CLIENT_CODE')
+  raise 'CLIENT_CODE must be lowercase.' unless CLIENT_CODE == CLIENT_CODE.downcase
+  raise "Unknown CLIENT_CODE - #{CLIENT_CODE}" unless CLIENT_SET.keys.include?(CLIENT_CODE)
+
   SHOW_DB_NAME = ENV.fetch('DATABASE_URL').rpartition('@').last
   URL_BASE = ENV.fetch('URL_BASE')
+  URL_BASE_IP = ENV.fetch('URL_BASE_IP')
   APP_CAPTION = ENV.fetch('APP_CAPTION')
+
+  NEW_FEATURE_LBL_PREPROCESS = make_boolean('NEW_FEATURE_LBL_PREPROCESS')
+  if NEW_FEATURE_LBL_PREPROCESS
+    puts '>>> NB. MesServer version MUST be GREATER than or equal to 3.57d.............'
+  else
+    puts '>>> NB. MesServer version MUST be LESS than or equal to 3.55.............'
+  end
 
   # General
   DEFAULT_KEY = 'DEFAULT'
@@ -57,6 +77,8 @@ class AppConst # rubocop:disable Metrics/ClassLength
 
   # MesServer
   LABEL_SERVER_URI = ENV.fetch('LABEL_SERVER_URI')
+  raise 'LABEL_SERVER_URI must end with a "/"' unless LABEL_SERVER_URI.end_with?('/')
+
   POST_FORM_BOUNDARY = 'AaB03x'
 
   # Labels
@@ -126,14 +148,18 @@ class AppConst # rubocop:disable Metrics/ClassLength
   # The possible fruitspec tokens are:
   # HBL: 'COUNT: $:actual_count_for_pack$'
   # UM : 'SIZE: $:size_reference$'
+  # SR : '$:size_ref_or_count$ $:product_chars$ $:target_market_group_name$'
   # * actual_count_for_pack
   # * basic_pack_code
   # * commodity_code
+  # * grade_code
   # * mark_code
   # * marketing_variety_code
   # * org_code
+  # * product_chars
   # * size_count_value
   # * size_reference
+  # * size_ref_or_count
   # * standard_pack_code
   # * target_market_group_name
   CLM_BUTTON_CAPTION_FORMAT = ENV['CLM_BUTTON_CAPTION_FORMAT']

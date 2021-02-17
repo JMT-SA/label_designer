@@ -4,6 +4,7 @@ module LabelApp
   module TaskPermissionCheck
     class Label < BaseService
       attr_reader :task, :entity
+
       def initialize(task, label_id = nil)
         @task = task
         @repo = LabelRepo.new

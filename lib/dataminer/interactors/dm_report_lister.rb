@@ -23,7 +23,7 @@ class DmReportLister
   end
 
   def get_report_list(options = { from_cache: false, persist: false })
-    make_list(options[:from_cache])
+    make_list(from_cache: options[:from_cache])
     persist_list if options[:persist]
     report_lookup.map { |id, lkp| { id: id, file: lkp[:file], caption: lkp[:caption], crosstab: lkp[:crosstab] } }
   end
@@ -40,7 +40,7 @@ class DmReportLister
 
   attr_reader :path, :report_lookup
 
-  def make_list(from_cache = false) # rubocop:disable Metrics/AbcSize
+  def make_list(from_cache: false) # rubocop:disable Metrics/AbcSize
     @report_lookup = {}
     if from_cache
       @report_lookup = YAML.load_file(File.join(path, '.dm_report_list.yml'))

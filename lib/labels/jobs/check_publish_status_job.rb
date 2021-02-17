@@ -23,7 +23,7 @@ module LabelApp
 
     def response_is_200_or_204(res)
       return false unless res.success
-      return false if res.instance&.is_a?(Hash) && res.instancee[:response_code].to_s == '204'
+      return false if res.instance.is_a?(Hash) && res.instancee[:response_code].to_s == '204'
 
       true
     end

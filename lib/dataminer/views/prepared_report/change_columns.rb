@@ -4,7 +4,7 @@ module DM
   module Report
     module PreparedReport
       class ChangeColumns
-        def self.call(id, instance, report, remote = true) # rubocop:disable Metrics/AbcSize
+        def self.call(id, instance, report, remote: true) # rubocop:disable Metrics/AbcSize
           ui_rule = UiRules::Compiler.new(:prepared_report, :change_columns, instance: instance, report: report)
           rules   = ui_rule.compile
           cols = report.ordered_columns.reject(&:hide).map { |column| ["#{column.name} (#{column.caption})", column.name] }

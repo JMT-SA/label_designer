@@ -2,7 +2,7 @@
 
 module UiRules
   class TransactionRule < Base
-    def generate_rules # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+    def generate_rules # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
       @repo = DevelopmentApp::LoggingRepo.new
 
       if @mode == :list

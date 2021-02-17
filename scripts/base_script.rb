@@ -23,8 +23,11 @@ ENV['RACK_ENV'] ||= 'development'
 require 'bundler'
 Bundler.require(:default, ENV.fetch('RACK_ENV', 'development'))
 
+root = File.expand_path('..', __dir__)
 require_relative '../config/environment'
+Dir["#{root}/lib/client_rules/*.rb"].sort.each { |f| require f }
 require_relative '../config/app_const'
+require_relative '../helpers/utility_functions'
 require_relative '../lib/crossbeams_errors'
 require_relative '../lib/crossbeams_responses'
 require_relative '../lib/error_mailer'
@@ -49,7 +52,7 @@ class BaseScript
   # This in turn calls the inheriting class' run method.
   #
   # @return [exit status]
-  def exec # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+  def exec # rubocop:disable Metrics/AbcSize
     res = run
     if debug_mode
       puts '---'
@@ -183,8 +186,10 @@ class EgScript < BaseScript
   end
 end
 
-Dir['./scripts/*.rb'].sort.each { |f| require f unless f.match?(/base_script/) }
+if __FILE__ == $PROGRAM_NAME
+  Dir['./scripts/*.rb'].sort.each { |f| require f unless f.match?(/base_script/) }
 
-klass = ARGV.shift
-script = Module.const_get(klass).send(:new, ARGV)
-script.exec
+  klass = ARGV.shift
+  script = Module.const_get(klass).send(:new, ARGV)
+  script.exec
+end

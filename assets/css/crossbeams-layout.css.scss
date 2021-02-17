@@ -699,6 +699,11 @@ input[readonly] {
   padding:        4px;
   border: thin solid gray;
 }
+.thinbordertable td.pad {
+  vertical-align: top;
+  padding:        .5rem;
+  border: thin solid gray;
+}
 .thinbordertable td.noborder {
   vertical-align: top;
   padding:        4px;

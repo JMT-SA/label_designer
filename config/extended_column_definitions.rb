@@ -113,7 +113,7 @@ module Crossbeams
         errs
       end
 
-      def verify_validation(table, client_code, rule) # rubocop:disable Metrics/AbcSize
+      def verify_validation(table, client_code, rule)
         errs = []
         val = VALIDATIONS[table][client_code]
         val = VALIDATIONS[table][AppConst::DEFAULT_KEY] if val.nil?

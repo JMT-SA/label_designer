@@ -16,4 +16,8 @@ module Crossbeams
   # The task is not permitted.
   class TaskNotPermittedError < StandardError
   end
+
+  # a Service failed.
+  class ServiceError < StandardError
+  end
 end

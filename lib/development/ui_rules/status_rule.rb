@@ -2,7 +2,7 @@
 
 module UiRules
   class StatusRule < Base
-    def generate_rules # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+    def generate_rules # rubocop:disable Metrics/AbcSize
       @dev_repo = DevelopmentApp::DevelopmentRepo.new
       @repo = DevelopmentApp::StatusRepo.new
       make_form_object

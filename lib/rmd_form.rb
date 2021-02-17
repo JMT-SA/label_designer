@@ -86,7 +86,7 @@ module Crossbeams
     # @param options (Hash) options for the field
     # @option options [Boolean] :hide_on_load should this element be hidden when the form loads?
     # @return [void]
-    def add_toggle(name, label, options = {}) # rubocop:disable Metrics/AbcSize
+    def add_toggle(name, label, options = {})
       @current_field = name
       @fields << <<~HTML
         <tr id="#{form_name}_#{name}_row"#{field_error_state}#{initial_visibilty(options)}><th align="left"><label for="#{form_name}_#{name}">#{label}</label>#{field_error_message}</th>
@@ -143,7 +143,7 @@ module Crossbeams
     # @option options [Boolean] :hide_on_load should this element be hidden when the form loads?
     # @option options [String] :value_class a string of css class(es) to wrap around the label value.
     # @return [void]
-    def add_label(name, label, value, hidden_value = nil, options = {}) # rubocop:disable Metrics/AbcSize
+    def add_label(name, label, value, hidden_value = nil, options = {})
       tr_css_class = options[:as_table_cell] ? ' class="hover-row"' : ''
       td_css_class = options[:as_table_cell] ? ' class="rmd-table-cell"' : ''
       v_classes = [options[:value_class]]
@@ -376,7 +376,7 @@ module Crossbeams
       ' data-lookup="Y"'
     end
 
-    def lookup_display(name, options) # rubocop:disable Metrics/AbcSize
+    def lookup_display(name, options)
       return '' unless options[:lookup]
 
       <<~HTML
@@ -642,7 +642,7 @@ module Crossbeams
       res.join(' ')
     end
 
-    def build_behaviour(rule) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+    def build_behaviour(rule) # rubocop:disable Metrics/AbcSize
       return %(data-change-values="#{split_change_affects(rule[:change_affects])}") if rule[:change_affects]
       return %(data-enable-on-values="#{rule[:enable_on_change].join(',')}") if rule[:enable_on_change]
       return %(data-observe-selected=#{build_observe_selected(rule[:populate_from_selected])}) if rule[:populate_from_selected]

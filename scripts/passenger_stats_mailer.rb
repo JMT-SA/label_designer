@@ -6,8 +6,7 @@
 class PassengerStatsMailer < BaseScript
   attr_reader :in_dir, :out_dir, :cnt, :processed_files
 
-  def run # rubocop:disable Metrics/AbcSize
-    status = check_status
+  def run(status = check_status)
     procs = status[/^Processes.+$/].split(':').last.strip.to_i
     max = AppConst::MAX_PASSENGER_INSTANCES
     curr = if procs == max

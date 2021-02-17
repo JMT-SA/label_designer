@@ -241,13 +241,61 @@ const crossbeamsUtils = {
   },
 
   /**
+   * Get the focusable children of the given element
+   * (code copied and modified from A11Y dialog)
+   *
+   * @param {Element} node
+   * @returns {Array<Element>}
+   */
+  getFocusableChildren: function getFocusableChildren(node) {
+    const focusableElements = [
+      // 'a[href]',
+      'area[href]',
+      'input:not([disabled]):not([type="submit"])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      // 'button:not([disabled])',
+      'iframe',
+      'object',
+      'embed',
+      '[contenteditable]',
+      '[tabindex]:not([tabindex^="-"])'];
+    const elementSet = Array.from((node || document).querySelectorAll(focusableElements.join(',')));
+    return elementSet.filter(child => !!(child.offsetWidth || child.offsetHeight || child.getClientRects().length));
+  },
+
+  /**
+   * Set the focus on the first focusable child of the given element
+   * (code copied and modified from A11Y dialog)
+   *
+   * @param {Element} node
+   * @returns {void}
+   */
+  setDialogFocus: function setDialogFocus(node) {
+    const focusableChildren = crossbeamsUtils.getFocusableChildren(node);
+
+    if (focusableChildren.length) {
+      // NoSoft: Do not focus on the close button if there is another input to focus on...
+      if (focusableChildren.length > 1 && focusableChildren[0].hasAttribute('data-a11y-dialog-hide')) {
+        focusableChildren[1].focus();
+      } else {
+        focusableChildren[0].focus();
+      }
+    }
+  },
+
+  /**
    * Replace the content of the active dialog window.
    * @param {string} data - the new content.
    * @returns {void}
    */
-  setDialogContent: function setDialogContent(data) {
+  setDialogContent: function setDialogContent(data, title) {
     const dlg = document.getElementById(this.activeDialogContent());
     dlg.innerHTML = data;
+    const head = document.getElementById(this.activeDialogTitle());
+    if (title) {
+      head.innerHTML = title;
+    }
     crossbeamsUtils.makeMultiSelects();
     crossbeamsUtils.makeSearchableSelects();
     crossbeamsUtils.applySelectEvents();
@@ -268,6 +316,41 @@ const crossbeamsUtils = {
       const pollInterval = pollable.dataset.pollMessageInterval;
       crossbeamsUtils.pollMessage(pollable, pollUrl, pollInterval);
     });
+    crossbeamsUtils.setDialogFocus(dlg);
+  },
+
+  /**
+   * Launch a new dialog
+   * @param {string} data - the dialog content.
+   * @returns {void}
+   */
+  launchDialogContent: function launchDialogContent(data, title) {
+    document.getElementById(this.nextDialogTitle()).innerHTML = title || '';
+    const dlg = document.getElementById(this.nextDialogContent());
+    dlg.innerHTML = data;
+
+    crossbeamsUtils.makeMultiSelects();
+    crossbeamsUtils.makeSearchableSelects();
+    crossbeamsUtils.applySelectEvents();
+    const grids = dlg.querySelectorAll('[data-grid]');
+    grids.forEach((grid) => {
+      const gridId = grid.getAttribute('id');
+      const gridEvent = new CustomEvent('gridLoad', { detail: gridId });
+      document.dispatchEvent(gridEvent);
+    });
+    const sortable = Array.from(dlg.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
+    sortable.forEach(elem => crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix,
+                                                              elem.dataset.sortableGroup));
+
+    // Repeating request: Check if there are any areas in the content that should be modified by polling...
+    const pollsters = dlg.querySelectorAll('[data-poll-message-url]');
+    pollsters.forEach((pollable) => {
+      const pollUrl = pollable.dataset.pollMessageUrl;
+      const pollInterval = pollable.dataset.pollMessageInterval;
+      crossbeamsUtils.pollMessage(pollable, pollUrl, pollInterval);
+    });
+    crossbeamsUtils.nextDialog().show();
+    // Focus is handled by A11Y dialog lib.
   },
 
   /**
@@ -307,7 +390,7 @@ const crossbeamsUtils = {
           document.getElementById(this.activeDialogTitle()).innerHTML = '<span class="light-red">Error</span>';
         }
         if (data.replaceDialog) {
-          crossbeamsUtils.setDialogContent(data.replaceDialog.content);
+          crossbeamsUtils.setDialogContent(data.replaceDialog.content, data.replaceDialog.title);
           if (data.flash.type && data.flash.type === 'permission') {
             crossbeamsUtils.showWarning(data.flash.error, 20);
           } else {
@@ -329,7 +412,7 @@ const crossbeamsUtils = {
       } else if (data.actions) {
         crossbeamsUtils.processActions(data.actions);
       } else if (data.replaceDialog) {
-        crossbeamsUtils.setDialogContent(data.replaceDialog.content);
+        crossbeamsUtils.setDialogContent(data.replaceDialog.content, data.replaceDialog.title);
       }
     }).catch((data) => {
       crossbeamsUtils.fetchErrorHandler(data);
@@ -817,17 +900,17 @@ const crossbeamsUtils = {
   },
 
   addGridRow: function addGridRow(action) {
-    crossbeamsGridEvents.addRowToGrid(action.addRowToGrid.changes);
+    crossbeamsGridEvents.addRowToGrid(action.addRowToGrid.changes, action.addRowToGrid.gridId);
   },
 
   updateGridRow: function updateGridRow(action) {
     action.updateGridInPlace.forEach((gridRow) => {
-      crossbeamsGridEvents.updateGridInPlace(gridRow.id, gridRow.changes);
+      crossbeamsGridEvents.updateGridInPlace(gridRow.id, gridRow.changes, gridRow.gridId);
     });
   },
 
   deleteGridRow: function deleteGridRow(action) {
-    crossbeamsGridEvents.removeGridRowInPlace(action.removeGridRowInPlace.id);
+    crossbeamsGridEvents.removeGridRowInPlace(action.removeGridRowInPlace.id, action.removeGridRowInPlace.gridId);
   },
 
   /**
@@ -886,7 +969,10 @@ const crossbeamsUtils = {
         crossbeamsUtils.deleteGridRow(action);
       }
       if (action.replace_dialog) {
-        crossbeamsUtils.setDialogContent(action.replace_dialog.content);
+        crossbeamsUtils.setDialogContent(action.replace_dialog.content, action.replace_dialog.title);
+      }
+      if (action.launch_dialog) {
+        crossbeamsUtils.launchDialogContent(action.launch_dialog.content, action.launch_dialog.title);
       }
     });
   },

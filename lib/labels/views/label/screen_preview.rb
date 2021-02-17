@@ -6,7 +6,7 @@ module Labels
       class ScreenPreview
         extend LabelVariableFields
 
-        def self.call(id, form_values: nil, form_errors: nil, remote: true)
+        def self.call(id, form_values: nil, form_errors: nil, remote: true) # rubocop:disable Metrics/AbcSize
           label, rules, xml_vars = vars_for_label(id) do |rule_base|
             rule_base[:fields] = {}
             rule_base[:name] = 'label'

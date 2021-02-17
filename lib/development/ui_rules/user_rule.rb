@@ -2,7 +2,7 @@
 
 module UiRules
   class UserRule < Base
-    def generate_rules # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity , Metrics/CyclomaticComplexity
+    def generate_rules # rubocop:disable Metrics/AbcSize
       @repo = DevelopmentApp::UserRepo.new
       build_permission_tree if @mode == :permission_tree
 
@@ -77,14 +77,15 @@ module UiRules
     def make_form_object # rubocop:disable Metrics/AbcSize
       make_new_form_object && return if @mode == :new
 
-      @form_object = if @mode == :details
+      @form_object = case @mode
+                     when :details
                        OpenStruct.new(@repo.find_user(@options[:id]).to_h.merge(password: nil,
                                                                                 old_password: nil,
                                                                                 password_confirmation: nil))
-                     elsif @mode == :change_password
+                     when :change_password
                        OpenStruct.new(@repo.find_user(@options[:id]).to_h.merge(password: nil,
                                                                                 password_confirmation: nil))
-                     elsif @mode == :permission_tree
+                     when :permission_tree
                        perms = {}
                        @tree_fields.each { |tree| perms[tree[:field]] = tree[:value] }
                        OpenStruct.new(@repo.find_user(@options[:id]).to_h.merge(perms))

@@ -61,6 +61,8 @@ class LibraryVersions
   end
 
   def jasper(_)
+    return { library: 'Jruby Jasper', version: 'not checked during test' } if AppConst.test?
+
     repo = DevelopmentApp::JasperReportRepo.new
     { library: 'Jruby Jasper', version: repo.jasper_version }
   rescue StandardError => e
@@ -86,7 +88,7 @@ class LibraryVersions
   end
 
   def selectr_version
-    format_lib('Selectr', File.readlines('public/js/selectr.min.js', encoding: 'UTF-8')[1].chomp.split(' ').last)
+    format_lib('Selectr', File.readlines('public/js/selectr.min.js', encoding: 'UTF-8')[1].chomp.split.last)
   end
 
   def choices_version

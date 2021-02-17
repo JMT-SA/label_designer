@@ -165,7 +165,7 @@ module LabelApp
       label(id).px_per_mm.to_f / 2.0
     end
 
-    def png_image(id)
+    def background_image(id)
       instance = label(id)
       instance.png_image
     end
@@ -207,7 +207,7 @@ module LabelApp
       validation_failed_response(OpenStruct.new(messages: { label_name: ['This label already exists'] }))
     end
 
-    def do_preview(id, screen_or_print, vars) # rubocop:disable Metrics/AbcSize
+    def do_preview(id, screen_or_print, vars)
       instance = label(id)
       # Store the input variables:
       # repo.update_label(id, sample_data: "{#{vars.map { |k, v| %("#{k}":"#{v}") }.join(',')}}")
@@ -318,12 +318,38 @@ module LabelApp
       HTML
     end
 
-    PNG_REGEXP = %r{\Adata:([-\w]+/[-\w\+\.]+)?;base64,(.*)}m.freeze
+    PNG_REGEXP = %r{\Adata:([-\w]+/[-\w+.]+)?;base64,(.*)}m.freeze
     def image_from_param(param)
       data_uri_parts = param.match(PNG_REGEXP) || []
       # extension = MIME::Types[data_uri_parts[1]].first.preferred_extension
       # file_name = "testpng.#{extension}"
       Base64.decode64(data_uri_parts[2])
+    end
+
+    # Use Imagemagick to convert transparent background to white.
+    #
+    # NOTES for the Imagemagick convert command options:
+    #   +antialias            :: Darken font edges (otherwise a lot of information is lost when printing)
+    #   -background '#fffffe' :: Make the background off-white, not white exactly. This improves the definition of fonts.
+    #   -alpha remove         :: Remove the alpha layer (transparency).
+    #   -flatten              :: Flatten all layers to one.
+    #   -alpha off            :: Switch off transparency.
+    #   png24::               :: Force the png to non-grayscale (also to improve rendering of fonts)
+    #
+    def image_from_param_without_alpha(param)
+      outfile = Tempfile.new(['lbl', '.png'])
+
+      Tempfile.open(['lbl', '.png']) do |f|
+        f.write(image_from_param(param))
+        f.flush
+        # res = system("convert #{f.path} +antialias -background '#fffffe' -alpha remove -flatten -alpha off #{outfile.path}")
+        res = system("convert #{f.path} +antialias -background '#fffffe' -alpha remove -flatten -alpha off png24:#{outfile.path}")
+        raise Crossbeams::InfoError, 'Unable to remove transparency from image' unless res
+      end
+
+      File.read(outfile.path)
+    ensure
+      outfile.close
     end
 
     def complete_a_label(id, params)

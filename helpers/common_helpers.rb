@@ -158,10 +158,10 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   # @param keys [String, Array] the existing message keys to be moved to the base of the form.
   # @param highlights [Hash] the fields in the form to be highlighted. Specifiy as a Hash of key: [fields].
   # @return [Hash] the expanded validation messages.
-  def move_validation_errors_to_base(messages, keys, highlights: {}) # rubocop:disable Metrics/AbcSize
+  def move_validation_errors_to_base(messages, keys, highlights: {}) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
     interim = messages || {}
     Array(keys).each do |key|
-      next unless interim.key?(key) # Note: It only needs to move error message to base if it exists in the first place
+      next unless interim.key?(key) # NOTE: It only needs to move error message to base if it exists in the first place
 
       if highlights.key?(key)
         interim[:base_with_highlights] ||= { messages: [], highlights: [] }
@@ -439,23 +439,23 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   # @param changes [Hash] the changed columns and their values.
   # @param notice [String/Nil] the flash message to show.
   # @return [JSON] the changes to be applied.
-  def update_grid_row(ids, changes:, notice: nil)
+  def update_grid_row(ids, changes:, notice: nil, grid_id: nil)
     # res = { updateGridInPlace: Array(ids).map { |i| { id: make_id_correct_type(i), changes: changes } } }
-    res = action_update_grid_row(ids, changes: changes)
+    res = action_update_grid_row(ids, changes: changes, grid_id: grid_id)
     res[:flash] = { notice: notice } if notice
     res.to_json
   end
 
-  def action_add_grid_row(attrs:)
-    { addRowToGrid: { changes: attrs.merge(created_at: Time.now.to_s, updated_at: Time.now.to_s) } }
+  def action_add_grid_row(attrs:, grid_id: nil)
+    { addRowToGrid: { changes: attrs.merge(created_at: Time.now.to_s, updated_at: Time.now.to_s), gridId: grid_id } }
   end
 
-  def action_update_grid_row(ids, changes:)
-    { updateGridInPlace: Array(ids).map { |i| { id: make_id_correct_type(i), changes: changes } } }
+  def action_update_grid_row(ids, changes:, grid_id: nil)
+    { updateGridInPlace: Array(ids).map { |i| { id: make_id_correct_type(i), changes: changes, gridId: grid_id } } }
   end
 
-  def action_delete_grid_row(id)
-    { removeGridRowInPlace: { id: make_id_correct_type(id) } }
+  def action_delete_grid_row(id, grid_id: nil)
+    { removeGridRowInPlace: { id: make_id_correct_type(id), gridId: grid_id } }
   end
 
   # Add a row to a grid. created_at and updated_at values are provided automatically.
@@ -463,8 +463,8 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   # @param attrs [Hash] the columns and their values.
   # @param notice [String/Nil] the flash message to show.
   # @return [JSON] the changes to be applied.
-  def add_grid_row(attrs:, notice: nil)
-    res = action_add_grid_row(attrs: attrs)
+  def add_grid_row(attrs:, grid_id: nil, notice: nil)
+    res = action_add_grid_row(attrs: attrs, grid_id: grid_id)
     res[:flash] = { notice: notice } if notice
     res.to_json
   end
@@ -484,9 +484,9 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
     Hash[row_keys.map { |k| [k, instance[k]] }].merge(mods)
   end
 
-  def delete_grid_row(id, notice: nil)
+  def delete_grid_row(id, grid_id: nil, notice: nil)
     # res = { removeGridRowInPlace: { id: make_id_correct_type(id) } }
-    res = action_delete_grid_row(id)
+    res = action_delete_grid_row(id, grid_id: grid_id)
     res[:flash] = { notice: notice } if notice
     res.to_json
   end
@@ -586,6 +586,10 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
     json_actions(OpenStruct.new(type: :set_checked, dom_id: dom_id, checked: checked), message, keep_dialog_open: keep_dialog_open)
   end
 
+  def json_launch_dialog(content, title: nil, message: nil, keep_dialog_open: true)
+    json_actions(OpenStruct.new(type: :launch_dialog, content: content, title: title), message, keep_dialog_open: keep_dialog_open)
+  end
+
   def build_json_action(action) # rubocop:disable Metrics/AbcSize
     # rubocop:disable Layout/HashAlignment
     {
@@ -599,14 +603,15 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
       set_readonly:           ->(act) { action_set_readonly(act) },
       hide_element:           ->(act) { action_hide_element(act) },
       show_element:           ->(act) { action_show_element(act) },
-      add_grid_row:           ->(act) { action_add_grid_row(attrs: act.attrs) },
-      update_grid_row:        ->(act) { action_update_grid_row(act.ids, changes: act.changes) },
-      delete_grid_row:        ->(act) { action_delete_grid_row(act.id) },
+      add_grid_row:           ->(act) { action_add_grid_row(attrs: act.attrs, grid_id: act.grid_id) },
+      update_grid_row:        ->(act) { action_update_grid_row(act.ids, changes: act.changes, grid_id: act.grid_id) },
+      delete_grid_row:        ->(act) { action_delete_grid_row(act.id, grid_id: act.grid_id) },
       clear_form_validation:  ->(act) { action_clear_form_validation(act) },
       set_required:           ->(act) { action_set_required(act) },
       set_checked:            ->(act) { action_set_checked(act) },
       # redirect:               ->(act) { action_redirect(act) }       // url
-      replace_dialog:         ->(act) { action_replace_dialog(act) }
+      replace_dialog:         ->(act) { action_replace_dialog(act) },
+      launch_dialog:          ->(act) { action_launch_dialog(act) }
     }[action.type].call(action)
     # rubocop:enable Layout/HashAlignment
   end
@@ -636,7 +641,11 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   end
 
   def action_replace_dialog(action)
-    { replace_dialog: { content: action.content } }
+    { replace_dialog: { content: action.content, title: action.title } }
+  end
+
+  def action_launch_dialog(action)
+    { launch_dialog: { content: action.content, title: action.title } }
   end
 
   def action_replace_list_items(action)
@@ -762,9 +771,11 @@ module CommonHelpers # rubocop:disable Metrics/ModuleLength
   #
   # @param res [Crossbeams::Response] the response object.
   # @return [String] the formatted message.
-  def unwrap_failed_response(res)
+  def unwrap_failed_response(res) # rubocop:disable Metrics/AbcSize
     if res.errors.empty?
       CGI.escapeHTML(res.message)
+    elsif res.message == 'Validation error'
+      res.errors.map { |fld, errs| p "#{fld} #{errs.map { |e| CGI.escapeHTML(e.to_s) }.join(', ')}" }.join('; ')
     else
       "#{CGI.escapeHTML(res.message)} - #{res.errors.map { |fld, errs| p "#{fld} #{errs.map { |e| CGI.escapeHTML(e.to_s) }.join(', ')}" }.join('; ')}"
     end

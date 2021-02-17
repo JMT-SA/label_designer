@@ -37,7 +37,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param args [Hash] the optional where-clause conditions.
   # @return [Array] the table rows.
   def all(table_name, wrapper, args = nil)
-    ds = all_hash(table_name, args, true)
+    ds = all_hash(table_name, args, return_dataset: true)
     dataset_wrapped(ds, wrapper)
   end
 
@@ -58,7 +58,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param args [Hash] the optional where-clause conditions.
   # @param return_dataset [boolean] if true, returns the Sequel dataset, else the records. Default is false.
   # @return [Array] the table rows.
-  def all_hash(table_name, args = nil, return_dataset = false)
+  def all_hash(table_name, args = nil, return_dataset: false)
     ds = args.nil? ? DB[table_name] : DB[table_name].where(args)
     return_dataset ? ds : ds.all
   end
@@ -301,11 +301,11 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param columns [Symbol,Array] the column (or array of columns) to query.
   # @param where [Hash] the where-clause conditions. Optional.
   # @param order [Symbol] the order by clause.
-  # @param descending [Boolean] return in decending order. Default is false.
+  # @param descending [Boolean] return in descending order. Default is false.
   # @return [Array] the values from the column(s) of each row.
-  def select_values_in_order(table_name, columns, where: nil, order:, descending: false)
+  def select_values_in_order(table_name, columns, order:, where: {}, descending: false)
     ds = DB[table_name]
-    ds = ds.where(where) if where
+    ds = ds.where(where)
     ds = ds.order(order) if order && !descending
     ds = ds.reverse(order) if order && descending
     ds.select_map(columns)
@@ -412,8 +412,12 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @return [symbol] the column's data type
   def column_type(table_name, column)
     if table_name.is_a?(Symbol)
+      raise Crossbeams::FrameworkError, "BaseRepo#column_type: There is no table named #{table_name}" if DB_TABLE_COLS[table_name].nil?
+
       DB_TABLE_COLS[table_name][column]
     else
+      raise Crossbeams::FrameworkError, "BaseRepo#column_type: There is no table named #{table_name}" if DB_AUDIT_COLS[table_name].nil?
+
       DB_AUDIT_COLS[table_name.table][column]
     end
   end
@@ -623,6 +627,11 @@ module MethodBuilder
         raise Crossbeams::FrameworkError, 'WHERE clause in "for_select" must be a hash' unless opts[:where].is_a?(Hash)
 
         dataset = dataset.where(opts[:where].transform_values { |v| v == '' ? nil : v })
+      end
+      if opts[:exclude]
+        raise Crossbeams::FrameworkError, 'WHERE NOT (exclude) clause in "for_select" must be a hash' unless opts[:exclude].is_a?(Hash)
+
+        dataset = dataset.exclude(opts[:exclude].transform_values { |v| v == '' ? nil : v })
       end
       lbl = options[:label] || options[:value]
       val = options[:value]

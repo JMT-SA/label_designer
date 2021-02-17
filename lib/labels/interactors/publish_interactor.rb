@@ -93,8 +93,7 @@ module LabelApp
       end
     end
 
-    def publishing_status # rubocop:disable Metrics/AbcSize
-      vars = stepper.read
+    def publishing_status(vars = stepper.read)
       log = repo.find_label_publish_log(vars[:label_publish_log_id])
       label_states = repo.label_publish_states(log.id)
       success_response('Published labels', OpenStruct.new(done: log.complete,

@@ -24,5 +24,13 @@ module Crossbeams
                            targetUser: target_user,
                            message: message)
     end
+
+    def send_bus_message_to_page(actions, target_page, message: nil, message_type: :information)
+      ::MessageBus.publish('/terminus',
+                           messageType: message_type,
+                           targetPage: target_page,
+                           actions: actions,
+                           message: message)
+    end
   end
 end

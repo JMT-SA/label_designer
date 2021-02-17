@@ -2,18 +2,6 @@
 
 module SecurityApp
   class SecurityPermissionInteractor < BaseInteractor
-    def repo
-      @repo ||= SecurityGroupRepo.new
-    end
-
-    def security_permission(id)
-      repo.find_security_permission(id)
-    end
-
-    def validate_security_permission_params(params)
-      SecurityPermissionSchema.call(params)
-    end
-
     def create_security_permission(params)
       res = validate_security_permission_params(params)
       return validation_failed_response(res) if res.failure?
@@ -40,6 +28,20 @@ module SecurityApp
       name = security_permission(id).security_permission
       repo.delete_security_permission(id)
       success_response("Deleted security permission #{name}")
+    end
+
+    private
+
+    def repo
+      @repo ||= SecurityGroupRepo.new
+    end
+
+    def security_permission(id)
+      repo.find_security_permission(id)
+    end
+
+    def validate_security_permission_params(params)
+      SecurityPermissionSchema.call(params)
     end
   end
 end

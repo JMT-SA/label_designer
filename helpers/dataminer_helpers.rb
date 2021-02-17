@@ -63,8 +63,10 @@ module DataminerHelpers
   # @return [String] the sql with +paramname={paramname}+ artifacts removed.
   def clean_where(sql)
     rems = sql.scan(/\{(.+?)\}/).flatten.map { |s| "#{s}={#{s}}" }
-    rems.each { |r| sql.gsub!(/and\s+#{r}/i, '') }
-    rems.each { |r| sql.gsub!(r, '') }
+    rems.each do |r|
+      sql.gsub!(/and\s+#{r}/i, '')
+      sql.gsub!(r, '')
+    end
     sql.sub!(/where\s*\(\s+\)/i, '')
     sql
   end

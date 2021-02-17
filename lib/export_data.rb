@@ -88,7 +88,7 @@ module Crossbeams
       end
     end
 
-    def set_defaults # rubocop:disable Metrics/AbcSize
+    def set_defaults
       @export_hidden_fields = config['export_hidden_fields'] == true
       @prefix_long_numbers_with_quote = config['prefix_long_numbers_with_quote'].nil? ? true : config['prefix_long_numbers_with_quote']
       @boolean_as_yn = config['boolean_as_yn'].nil? ? true : config['boolean_as_yn']
@@ -112,7 +112,7 @@ module Crossbeams
       @recs = repo.run_report(report.runnable_sql)
     end
 
-    def write_csv_file # rubocop:disable Metrics/AbcSize
+    def write_csv_file
       log('Writing to file')
       CSV.open(output_file, 'w', headers: ordered_headers, write_headers: true) do |csv|
         recs.each do |rec|
@@ -125,7 +125,7 @@ module Crossbeams
       @current_column = nil
     end
 
-    def write_xls_file # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+    def write_xls_file # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
       xls_possible_types = { string: :string, integer: :integer, date: :string,
                              datetime: :time, time: :time, boolean: :string, number: :float }
       heads = []

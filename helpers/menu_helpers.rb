@@ -5,7 +5,7 @@ module MenuHelpers
   end
 
   # Set instance vars related to registered mobile devices.
-  def check_registered_mobile_device # rubocop:disable Metrics/AbcSize
+  def check_registered_mobile_device
     @rmd_start_page = nil
     @rmd_scan_with_camera = false
     @hybrid_device = true
@@ -82,7 +82,7 @@ module MenuHelpers
 
   # A program function can be hidden according to the boolean
   # value of constants in AppConst.
-  def progfunc_allowed?(hide_if_true, hide_if_false) # rubocop:disable Metrics/CyclomaticComplexity
+  def progfunc_allowed?(hide_if_true, hide_if_false) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
     return true if hide_if_true.nil? && hide_if_false.nil?
 
     ok = true
@@ -105,7 +105,7 @@ module MenuHelpers
     row[:show_in_iframe] ? "/iframe/#{row[:id]}" : row[:url]
   end
 
-  def build_menu(rows)
+  def build_menu(rows) # rubocop:disable Metrics/AbcSize
     res       = {}
     progs     = Hash.new { |h, k| h[k] = Set.new }
     progfuncs = Hash.new { |h, k| h[k] = [] }

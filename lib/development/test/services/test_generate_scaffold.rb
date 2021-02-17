@@ -1,15 +1,15 @@
 require File.join(File.expand_path('../../../../test', __dir__), 'test_helper')
 
 class GenerateNewScaffoldTest < MiniTestWithHooks
-  def before_all
-    super
-    # DB[:table].insert(column: 1)
-  end
+  # def before_all
+  #   super
+  #   # DB[:table].insert(column: 1)
+  # end
 
-  def after_all
-    # DB[:table].delete
-    super
-  end
+  # def after_all
+  #   # DB[:table].delete
+  #   super
+  # end
 
   def test_nothing
     # p "hello world"

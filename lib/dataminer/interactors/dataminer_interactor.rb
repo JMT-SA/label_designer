@@ -3,7 +3,7 @@
 module DataminerApp
   class DataminerInteractor < BaseInteractor # rubocop:disable Metrics/ClassLength
     def repo
-      @repo ||= ReportRepo.new(@context[:for_grid_queries])
+      @repo ||= ReportRepo.new(for_grid_queries: @context[:for_grid_queries])
     end
 
     def report_parameters(id, params)
@@ -132,7 +132,7 @@ module DataminerApp
       rpt_list = if for_grids
                    repo.list_all_grid_reports
                  else
-                   repo.list_all_reports(true)
+                   repo.list_all_reports(for_admin: true)
                  end
       col_defs = Crossbeams::DataGrid::ColumnDefiner.new.make_columns do |mk|
         mk.action_column do |act|
@@ -178,7 +178,7 @@ module DataminerApp
       return validation_failed_response(res) if res.failure?
 
       page = OpenStruct.new
-      s = params[:filename].strip.downcase.tr(' ', '_').gsub(/_+/, '_').gsub(%r{[/:*?"\\<>\|\r\n]}i, '-')
+      s = params[:filename].strip.downcase.tr(' ', '_').gsub(/_+/, '_').gsub(%r{[/:*?"\\<>|\r\n]}i, '-')
       page.filename = File.basename(s).reverse.sub(File.extname(s).reverse, '').reverse << '.yml'
       page.caption  = params[:caption]
       page.sql      = params[:sql]
@@ -224,9 +224,9 @@ module DataminerApp
     def edit_report(id) # rubocop:disable Metrics/AbcSize
       return failed_response('Cannot edit a system report') if unmodifiable_system_report(id)
 
-      page = OpenStruct.new(success: true, id: id, report: repo.lookup_report(id, true))
+      page = OpenStruct.new(success: true, id: id, report: repo.lookup_report(id, loc_for_admin: true))
 
-      page.filename = File.basename(repo.lookup_file_name(id, true))
+      page.filename = File.basename(repo.lookup_file_name(id, loc_for_admin: true))
 
       page.col_defs = Crossbeams::DataGrid::ColumnDefiner.new.make_columns do |mk| # rubocop:disable Metrics/BlockLength
         mk.col 'name', 'Column name', pinned: 'left'
@@ -294,9 +294,9 @@ module DataminerApp
     end
 
     def save_report(id, params) # rubocop:disable Metrics/AbcSize
-      report = repo.lookup_report(id, true)
+      report = repo.lookup_report(id, loc_for_admin: true)
 
-      filename = repo.lookup_file_name(id, true)
+      filename = repo.lookup_file_name(id, loc_for_admin: true)
       report.caption = params[:caption]
       report.limit = params[:limit].empty? ? nil : params[:limit].to_i
       report.offset = params[:offset].empty? ? nil : params[:offset].to_i
@@ -312,7 +312,7 @@ module DataminerApp
     def delete_report(id)
       return failed_response('Cannot delete a system report') if unmodifiable_system_report(id)
 
-      filename = repo.lookup_file_name(id, true)
+      filename = repo.lookup_file_name(id, loc_for_admin: true)
       File.delete(filename)
       success_response('Report has been deleted')
     rescue StandardError => e
@@ -323,7 +323,7 @@ module DataminerApp
     def save_report_sql(id, params) # rubocop:disable Metrics/AbcSize
       report = repo.lookup_admin_report(id)
       report.sql = params[:report][:sql]
-      filename = repo.lookup_file_name(id, true)
+      filename = repo.lookup_file_name(id, loc_for_admin: true)
       colour_key = calculate_colour_key(report)
       if colour_key.nil?
         report.external_settings.delete(:colour_key)
@@ -354,7 +354,7 @@ module DataminerApp
       col_order.each_with_index do |col, index|
         report.columns[col].sequence_no = index + 1
       end
-      filename = repo.lookup_file_name(id, true)
+      filename = repo.lookup_file_name(id, loc_for_admin: true)
       yp       = Crossbeams::Dataminer::YamlPersistor.new(filename)
       report.save(yp)
       success_response('Columns reordered', report)
@@ -382,7 +382,7 @@ module DataminerApp
         col.send("#{attrib}=", value)
       end
 
-      if attrib == 'group_sum' && value == 'true' # NOTE string value of bool...
+      if attrib == 'group_sum' && value == 'true' # NOTE: string value of bool...
         col.group_avg = false
         col.group_min = false
         col.group_max = false
@@ -393,7 +393,7 @@ module DataminerApp
 
       return failed_response("Caption for #{params[:key_val]} cannot be blank") if value.nil? && attrib == 'caption'
 
-      filename = repo.lookup_file_name(id, true)
+      filename = repo.lookup_file_name(id, loc_for_admin: true)
       yp = Crossbeams::Dataminer::YamlPersistor.new(filename)
       report.save(yp)
       # res = "Changed #{attrib} for #{params[:key_val]}"
@@ -411,7 +411,7 @@ module DataminerApp
     def save_colour_key_desc(id, params)
       report = repo.lookup_admin_report(id)
       report.external_settings[:colour_key][params[:key_val]] = params[:column_value]
-      filename = repo.lookup_file_name(id, true)
+      filename = repo.lookup_file_name(id, loc_for_admin: true)
       yp = Crossbeams::Dataminer::YamlPersistor.new(filename)
       report.save(yp)
       success_response('Saved new description')
@@ -436,7 +436,7 @@ module DataminerApp
       param = Crossbeams::Dataminer::QueryParameterDefinition.new(col_name, opts)
       report.add_parameter_definition(param)
 
-      filename = repo.lookup_file_name(id, true)
+      filename = repo.lookup_file_name(id, loc_for_admin: true)
       yp = Crossbeams::Dataminer::YamlPersistor.new(filename)
       report.save(yp)
 
@@ -463,7 +463,7 @@ module DataminerApp
     def delete_parameter(id, param_id) # rubocop:disable Metrics/AbcSize
       report = repo.lookup_admin_report(id)
       report.query_parameter_definitions.delete_if { |p| p.column == param_id }
-      filename = repo.lookup_file_name(id, true)
+      filename = repo.lookup_file_name(id, loc_for_admin: true)
       yp = Crossbeams::Dataminer::YamlPersistor.new(filename)
       report.save(yp)
       success_response('Parameter has been deleted', report)
@@ -512,12 +512,11 @@ module DataminerApp
 
       rpt.limit  = params[:limit].to_i  if params[:limit] != ''
       rpt.offset = params[:offset].to_i if params[:offset] != ''
-      begin
-        rpt.apply_params(parms)
 
-        CrosstabApplier.new(repo.db_connection_for(db_conn), rpt, params, crosstab_hash).convert_report if params[:crosstab]
-        rpt
-      end
+      rpt.apply_params(parms)
+
+      CrosstabApplier.new(repo.db_connection_for(db_conn), rpt, params, crosstab_hash).convert_report if params[:crosstab]
+      rpt
     end
 
     def hide_grid_columns(params)

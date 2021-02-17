@@ -91,13 +91,13 @@ module DataminerApp
     def list_all_reports_for_user(user)
       report_lookup = {}
       DM_CONNECTIONS.databases(without_grids: true).each do |key|
-        report_lookup.merge!(get_reports_for(key, DM_CONNECTIONS.prepared_report_path(key), user, true))
+        report_lookup.merge!(get_reports_for(key, DM_CONNECTIONS.prepared_report_path(key), user, for_user_only: true))
       end
       # report_lookup.map { |id, lkp| { id: id, db: lkp[:db], file: lkp[:file], caption: lkp[:caption], crosstab: lkp[:crosstab] } }
       report_lookup.map { |id, lkp| { id: id, db: lkp[:db], report_name: lkp[:report_name], file: lkp[:file], caption: lkp[:caption], crosstab: lkp[:crosstab], owner: lkp[:owner] } }
     end
 
-    def get_reports_for(key, path, user = nil, for_user_only = false) # rubocop:disable Metrics/AbcSize
+    def get_reports_for(key, path, user = nil, for_user_only: false) # rubocop:disable Metrics/AbcSize
       user_id = user&.id
       lkp = {}
       yml_list = yml_files_in_path(path)
@@ -106,9 +106,8 @@ module DataminerApp
         index = "#{key}_#{File.basename(yml_file).sub(File.extname(yml_file), '')}"
         yp    = Crossbeams::Dataminer::YamlPersistor.new(yml_file).to_hash
         owned_by_user = user_id.nil? ? false : File.basename(yml_file).start_with?(user_id.to_s)
-        if for_user_only && !owned_by_user
-          next unless yp[:external_settings][:prepared_report].key?(:linked_users) && yp[:external_settings][:prepared_report][:linked_users].include?(user_id)
-        end
+        next if for_user_only && !owned_by_user && !report_for_user?(yp, user_id)
+
         lkp[index] = { file: yml_file,
                        db: key,
                        report_name: File.basename(yml_file).sub(/^\d+_/, '').sub(/_\d\d\d.yml/, ''),
@@ -117,6 +116,11 @@ module DataminerApp
                        owner: owned_by_user }
       end
       lkp
+    end
+
+    def report_for_user?(rpt_hash, user_id)
+      rpt_hash[:external_settings][:prepared_report].key?(:linked_users) &&
+        rpt_hash[:external_settings][:prepared_report][:linked_users].include?(user_id)
     end
 
     def yml_files_in_path(path)
@@ -148,7 +152,7 @@ module DataminerApp
       "#{rep_loc.db}_#{basename}"
     end
 
-    def change_columns(id, sorted_columns, hidden_columns)
+    def change_columns(id, sorted_columns, hidden_columns) # rubocop:disable Metrics/AbcSize
       rep_loc = ReportLocation.new(id)
       report = lookup_report(id)
       sorted_columns.each_with_index do |col_name, index|
@@ -182,7 +186,7 @@ module DataminerApp
       save_file(rep_loc, rpt)
     end
 
-    def apply_prepared_report_params(rpt, user, report_description, chosen_params)
+    def apply_prepared_report_params(rpt, user, report_description, chosen_params) # rubocop:disable Metrics/AbcSize
       rpt.external_settings[:prepared_report] = {}
       rpt.external_settings[:prepared_report][:description] = report_description
       rpt.external_settings[:prepared_report][:user] = user.id

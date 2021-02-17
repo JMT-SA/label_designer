@@ -30,9 +30,9 @@ class DocumentSequence
   # @return [hash] the rules.
   def self.rules
     @rules ||= begin
-                 path = File.join(ENV['ROOT'], 'config', 'document_sequence.yml')
-                 YAML.load_file(path)
-               end
+      path = File.join(ENV['ROOT'], 'config', 'document_sequence.yml')
+      YAML.load_file(path)
+    end
   end
 
   # New DocumentSequence
@@ -128,7 +128,7 @@ class DocumentSequence
 
   def rule
     @rule ||= begin
-                DocumentSequence.rules[name]
-              end
+      DocumentSequence.rules[name]
+    end
   end
 end

@@ -54,17 +54,17 @@
       - :url: /labels/labels/labels/$:id$/preview
         :text: Preview
         :icon: view-show
-        :title: Preview - fill in variables
+        :title: Preview - $:label_name$
         :popup: true
       - :url: /labels/labels/labels/$:id$/print_preview
         :text: Print Test Preview
         :icon: printer
-        :title: Print preview - fill in variables
+        :title: Print preview - $:label_name$
         :popup: true
       - :url: /labels/labels/labels/$:id$/email_preview
         :text: Email preview
         :icon: envelope
-        :title: Email preview - fill in variables
+        :title: Email preview - $:label_name$
         :popup: true
         :hide_if_false: completed
         :hide_if_true: multi_label

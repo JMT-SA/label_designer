@@ -5,9 +5,10 @@ module UiRules
     def generate_rules
       make_form_object
 
-      if @mode == :list
+      case @mode
+      when :list
         get_report_data(:lists, @options[:file])
-      elsif @mode == :search
+      when :search
         get_report_data(:searches, @options[:file])
       else
         common_values_for_fields common_fields

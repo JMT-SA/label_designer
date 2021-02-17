@@ -29,7 +29,7 @@ class LabelDesigner < Roda
           redirect_to_last_grid(r)
         end
 
-        show_partial { Labels::Labels::Label::Archive.call(id, false) }
+        show_partial { Labels::Labels::Label::Archive.call(id, un_archive: false) }
       end
 
       r.on 'un_archive' do
@@ -39,7 +39,7 @@ class LabelDesigner < Roda
           redirect_to_last_grid(r)
         end
 
-        show_partial { Labels::Labels::Label::Archive.call(id, true) }
+        show_partial { Labels::Labels::Label::Archive.call(id, un_archive: true) }
       end
 
       r.on 'clone' do
@@ -80,7 +80,7 @@ class LabelDesigner < Roda
 
       r.on 'png' do
         response['Content-Type'] = 'image/png'
-        interactor.png_image(id)
+        interactor.background_image(id)
       end
 
       r.on 'download' do
@@ -283,7 +283,7 @@ class LabelDesigner < Roda
             # }.merge(interactor.extended_columns_for_row(grid_cols)),
             #                     notice: res.message)
           else
-            re_show_form(r, res) { Labels::Labels::Label::Properties.call(id, params[:label], res.errors) }
+            re_show_form(r, res) { Labels::Labels::Label::Properties.call(id, params[:label], form_errors: res.errors) }
           end
         end
 

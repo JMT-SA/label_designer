@@ -7,7 +7,7 @@ module Development
         def self.call(id, ids, form_values: nil, form_errors: nil)
           rules = {
             fields: {
-              security_group_id: { renderer: :select, options: SecurityApp::SecurityGroupRepo.new.for_select_security_groups, prompt: true },
+              security_group_id: { renderer: :select, options: SecurityApp::SecurityGroupRepo.new.for_select_security_groups, prompt: true, min_charwidth: 30 },
               list: { renderer: :hidden }
             }, name: 'permission'
           }

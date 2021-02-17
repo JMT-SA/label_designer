@@ -3,6 +3,7 @@
 module DevelopmentApp
   class GenerateNewScriptScaffold < BaseService
     attr_reader :script_class, :description, :reason
+
     def initialize(params)
       @script_class = params[:script_class]
       @description = params[:description]

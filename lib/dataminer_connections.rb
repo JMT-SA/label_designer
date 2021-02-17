@@ -2,6 +2,7 @@
 
 class DataminerConnections
   attr_reader :connections
+
   def initialize
     @connections = {}
     configs = YAML.load_file(File.join(ENV['ROOT'], 'config', 'dataminer_connections.yml'))
