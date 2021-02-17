@@ -30,9 +30,9 @@ class DocumentSequence
   # @return [hash] the rules.
   def self.rules
     @rules ||= begin
-                 path = File.join(ENV['ROOT'], 'config', 'document_sequence.yml')
-                 YAML.load_file(path)
-               end
+      path = File.join(ENV['ROOT'], 'config', 'document_sequence.yml')
+      YAML.load_file(path)
+    end
   end
 
   # New DocumentSequence
@@ -81,21 +81,21 @@ class DocumentSequence
   private
 
   def rule_schema
-    Dry::Validation.Schema do
-      required(:db_sequence_name).filled(:str?)
+    Dry::Schema.define do
+      required(:db_sequence_name).filled(:string)
       required(:data_type).value(type?: Symbol, included_in?: %i[integer string])
-      optional(:prefix).maybe(:str?)
-      optional(:digit_length).filled(:int?)
-      required(:table).filled(:str?)
-      required(:column).filled(:str?)
+      optional(:prefix).maybe(:string)
+      optional(:digit_length).filled(:integer)
+      required(:table).filled(:string)
+      required(:column).filled(:string)
     end
   end
 
   def assert_rule_ok!
-    messages = rule_schema.call(rule.transform_keys(&:to_sym)).messages(full: true)
-    return if messages.empty?
+    res_errs = rule_schema.call(rule.transform_keys(&:to_sym)).errors(full: true).to_h
+    return if res_errs.empty?
 
-    raise ArgumentError, "Document sequence config for #{name} is not valid: #{messages.map { |_, v| v.join(', ') }.join(', ')}"
+    raise ArgumentError, "Document sequence config for #{name} is not valid: #{res_errs.map { |_, v| v.join(', ') }.join(', ')}"
   end
 
   def string_prefix
@@ -128,7 +128,7 @@ class DocumentSequence
 
   def rule
     @rule ||= begin
-                DocumentSequence.rules[name]
-              end
+      DocumentSequence.rules[name]
+    end
   end
 end

@@ -94,4 +94,39 @@ class TestUtilityFunctions < Minitest::Test
       assert_equal expect, UtilityFunctions.scientific_notation_to_s(val)
     end
   end
+
+  def test_text_tables
+    recs = [
+      {id: 1, str: 'String', long_str: 'str', date: Date.parse('2020-01-01'), time: Time.parse('2020-01-01 01:01:01'),
+       bool: true, number: 8123.45, int: 123456 }
+    ]
+    items = [
+      { recs: [], heads: {}, times: [], numbers: [], rjust: [], expect: '' },
+      { recs: recs, heads: {}, times: [], numbers: [], rjust: [], expect: <<STR
++----+--------+----------+------------+---------------------------+------+---------+--------+
+| Id | Str    | Long str | Date       | Time                      | Bool | Number  | Int    |
++----+--------+----------+------------+---------------------------+------+---------+--------+
+| 1  | String | str      | 2020-01-01 | 2020-01-01 01:01:01 +0200 | true | 8123.45 | 123456 |
++----+--------+----------+------------+---------------------------+------+---------+--------+
+STR
+      },
+      { recs: recs, heads: { str: 'STRING', int: 'INTEGER' }, times: [:time], numbers: [:number], rjust: [:id, :int], expect: <<STR
++----+--------+----------+------------+---------------------+------+----------+---------+
+| Id | STRING | Long str | Date       | Time                | Bool | Number   | INTEGER |
++----+--------+----------+------------+---------------------+------+----------+---------+
+|  1 | String | str      | 2020-01-01 | 2020-01-01 01:01:01 | true | 8,123.45 |  123456 |
++----+--------+----------+------------+---------------------+------+----------+---------+
+STR
+      }
+    ]
+
+    items.each do |item|
+      assert_equal item[:expect].chomp,
+                   UtilityFunctions.make_text_table(item[:recs],
+                                                    heads: item[:heads],
+                                                    times: item[:times],
+                                                    numbers: item[:numbers],
+                                                    rjust: item[:rjust]).join("\n")
+    end
+  end
 end

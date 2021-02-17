@@ -8,7 +8,7 @@ module DataminerApp
 
     GRID_DEFS = 'grid-definitions'
 
-    def initialize(for_grid_queries = false)
+    def initialize(for_grid_queries: false)
       @for_grid_queries = for_grid_queries
     end
 
@@ -46,7 +46,7 @@ module DataminerApp
     class ReportLocation
       attr_reader :db, :id, :path, :combined
 
-      def initialize(db_id, loc_for_admin = false, for_grid_queries = false)
+      def initialize(db_id, loc_for_admin: false, for_grid_queries: false)
         @combined = db_id
         @db = db_id.match(/\A(.+?)_/)[1]
         @id = db_id.delete_prefix("#{db}_")
@@ -55,8 +55,8 @@ module DataminerApp
       end
     end
 
-    def split_db_and_id(db_id, loc_for_admin = false)
-      rep_loc = ReportLocation.new(db_id, loc_for_admin, for_grid_queries)
+    def split_db_and_id(db_id, loc_for_admin: false)
+      rep_loc = ReportLocation.new(db_id, loc_for_admin: loc_for_admin, for_grid_queries: for_grid_queries)
       [rep_loc.db, rep_loc.id]
     end
 
@@ -64,8 +64,8 @@ module DataminerApp
     #
     # @param id [String] the report id.
     # @return [Crossbeams::Dataminer::Report] the report.
-    def lookup_report(id, loc_for_admin = false)
-      rep_loc = ReportLocation.new(id, loc_for_admin, for_grid_queries)
+    def lookup_report(id, loc_for_admin: false)
+      rep_loc = ReportLocation.new(id, loc_for_admin: loc_for_admin, for_grid_queries: for_grid_queries)
       get_report_by_id(rep_loc)
     end
 
@@ -73,13 +73,13 @@ module DataminerApp
     #
     # @param id [String] the report id.
     # @return [Hash] the crosstab configuration from the report's YAML definition.
-    def lookup_crosstab(id, loc_for_admin = false)
-      rep_loc = ReportLocation.new(id, loc_for_admin, for_grid_queries)
+    def lookup_crosstab(id, loc_for_admin: false)
+      rep_loc = ReportLocation.new(id, loc_for_admin: loc_for_admin, for_grid_queries: for_grid_queries)
       get_report_by_id(rep_loc, crosstab_hash: true)
     end
 
-    def lookup_file_name(id, loc_for_admin = false)
-      rep_loc = ReportLocation.new(id, loc_for_admin, for_grid_queries)
+    def lookup_file_name(id, loc_for_admin: false)
+      rep_loc = ReportLocation.new(id, loc_for_admin: loc_for_admin, for_grid_queries: for_grid_queries)
       get_report_by_id(rep_loc, filename: true)
     end
 
@@ -107,10 +107,10 @@ module DataminerApp
     # @param id [String] the report id.
     # @return [Crossbeams::Dataminer::Report] the report.
     def lookup_admin_report(id)
-      lookup_report(id, true)
+      lookup_report(id, loc_for_admin: true)
     end
 
-    def list_all_reports(for_admin = false)
+    def list_all_reports(for_admin: false)
       report_lookup = {}
       DM_CONNECTIONS.databases(without_grids: true, without_system: for_admin).each do |key|
         report_lookup.merge!(get_reports_for(key, DM_CONNECTIONS.report_path(key)))

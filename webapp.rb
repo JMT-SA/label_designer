@@ -52,8 +52,8 @@ class LabelDesigner < Roda
   plugin :json_parser
   plugin :message_bus
   plugin :status_handler
-  plugin :cookies, path: '/'
-  plugin :rodauth do
+  plugin :cookies, path: '/', same_site: :lax
+  plugin :rodauth, csrf: :rack_csrf do
     db DB
     enable :login, :logout # , :change_password
     logout_route 'a_dummy_route' # Override 'logout' route so that we have control over it.
@@ -64,13 +64,11 @@ class LabelDesigner < Roda
     login_column :login_name
     accounts_table :vw_active_users # Only active users can login.
     account_password_hash_column :password_hash
-    template_opts(layout_opts: { path: 'views/layout_auth.erb' })
-    after_login do
-      # On successful login, see if the user had given a specific path that required the login and redirect to it.
-      path = request.cookies['pre_login_path']
-      response.delete_cookie('pre_login_path')
-      redirect(path) if path && scope.can_login_to_path?(path, account[:id])
-    end
+    template_opts(layout_opts: { path: File.join(ENV['ROOT'], 'views/layout_auth.erb') })
+    login_return_to_requested_location? true
+  end
+  if ENV['RACK_ENV'] == 'development'
+    plugin :enhanced_logger, filter: ->(path) { path.start_with?('/terminus') } # || path.start_with?('/js/') || path.start_with?('/css/') } # , trace_missed: true
   end
   unless ENV['RACK_ENV'] == 'development' && ENV['NO_ERR_HANDLE']
     plugin :error_mail, to: AppConst::ERROR_MAIL_RECIPIENTS,
@@ -137,7 +135,7 @@ class LabelDesigner < Roda
     end
       r.rodauth
       # Store this path before login so we can redirect after login. NB. Only a GET request!
-      response.set_cookie('pre_login_path', r.fullpath) unless rodauth.logged_in? || r.path == '/login' || !request.get? || fetch?(r)
+      # response.set_cookie('pre_login_path', r.fullpath) unless rodauth.logged_in? || r.path == '/login' || !request.get? || fetch?(r)
       rodauth.require_authentication
       r.redirect('/login') if current_user.nil? # Session might have the incorrect user_id
     end
@@ -182,13 +180,41 @@ class LabelDesigner < Roda
                                      :choices,
                                      :sortable,
                                      :konva,
-                                     :lodash,
                                      :multi,
                                      :sweetalert)
       @layout = Crossbeams::Layout::Page.build do |page, _|
         page.section do |section|
           section.add_text('Gem and Javascript library versions', wrapper: :h2)
           section.add_table(versions.to_a, versions.columns, alignment: { version: :right })
+        end
+      end
+      view('crossbeams_layout_page')
+    end
+
+    r.is 'client_settings' do
+      require './config/env_var_rules'
+
+      en = EnvVarRules.new
+      settings = en.client_settings
+      @layout = Crossbeams::Layout::Page.build do |page, _|
+        page.section do |section|
+          section.add_text("Client Settings &mdash; for <span class='orange'>#{AppConst::CLIENT_CODE}</span>", wrapper: :h2)
+          AppConst.constants.grep(/CR_/).sort.each do |const|
+            kl = AppConst.const_get(const)
+            next unless kl.class.name.start_with?('Crossbeams::')
+
+            section.add_text("#{kl.rule_name} (AppConst::#{const})", wrapper: :h3)
+            kl.check_client_setting_keys.each do |msg|
+              section.add_notice msg, notice_type: :warning
+            end
+            # section.add_text key_problem unless key_problem.nil?
+            section.add_table(kl.to_table, %i[method value description], cell_classes: { method: ->(_) { 'pad' },
+                                                                                         value: ->(_) { 'pad' },
+                                                                                         description: ->(_) { 'pad' } })
+          end
+          section.add_text('Constants', wrapper: :h3)
+          section.add_text('Note: some values have spaces inserted after commas to make the display wrap better. Be aware of this if copying a setting from here.', wrapper: :em)
+          section.add_table(settings, %i[key env_val const_val], header_captions: { env_val: 'Environment variable value', const_val: 'Value in AppConst' })
         end
       end
       view('crossbeams_layout_page')
@@ -203,7 +229,6 @@ class LabelDesigner < Roda
       r.message_bus
       # view(inline: 'Maybe we show all unattended messages for a user here')
     end
-
 
     # LABEL DESIGNER
     # ----------------------------------------------------------------------
@@ -224,9 +249,16 @@ class LabelDesigner < Roda
       r.on :id do |id|
         r.post do
           repo = LabelApp::LabelRepo.new
+          img = if AppConst::NEW_FEATURE_LBL_PREPROCESS
+                  Sequel.blob(interactor.image_from_param_without_alpha(params[:imageString]))
+                else
+                  Sequel.blob(interactor.image_from_param(params[:imageString]))
+                end
+
           changeset = { label_json: params[:label],
                         variable_xml: params[:XMLString],
-                        png_image: Sequel.blob(interactor.image_from_param(params[:imageString])) }
+                        png_image: img }
+
           DB.transaction do
             repo.update_label(id, interactor.include_updated_by_in_changeset(changeset))
             repo.log_action(user_name: current_user.user_name, context: 'update label', route_url: request.path, request_ip: request.ip)
@@ -261,10 +293,10 @@ class LabelDesigner < Roda
         DB.transaction do
           id = repo.create_label(interactor.include_created_by_in_changeset(interactor.add_extended_columns_to_changeset(changeset, repo, extcols)))
           if from_id.nil?
-            repo.log_status('labels', id, 'CREATED', user_name: current_user.user_name)
+            repo.log_status(:labels, id, 'CREATED', user_name: current_user.user_name)
           else
             from_lbl = repo.find_label(from_id)
-            repo.log_status('labels', id, 'CLONED', comment: "from #{from_lbl.label_name}", user_name: current_user.user_name)
+            repo.log_status(:labels, id, 'CLONED', comment: "from #{from_lbl.label_name}", user_name: current_user.user_name)
           end
           repo.log_action(user_name: current_user.user_name, context: 'create label', route_url: request.path, request_ip: request.ip)
         end

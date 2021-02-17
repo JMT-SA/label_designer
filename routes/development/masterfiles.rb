@@ -91,7 +91,6 @@ class LabelDesigner < Roda
             update_grid_row(id,
                             changes: { login_name: res.instance[:login_name],
                                        user_name: res.instance[:user_name],
-                                       password_hash: res.instance[:password_hash],
                                        email: res.instance[:email] },
                             notice: res.message)
           else

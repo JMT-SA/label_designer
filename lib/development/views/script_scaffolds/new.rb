@@ -2,7 +2,7 @@ module Development
   module Generators
     module ScriptScaffolds
       class New
-        def self.call(form_values = nil, form_errors = nil) # rubocop:disable Metrics/AbcSize
+        def self.call(form_values = nil, form_errors = nil)
           ui_rule = UiRules::Compiler.new(:script_scaffold, :new, form_values: form_values)
           rules   = ui_rule.compile
 

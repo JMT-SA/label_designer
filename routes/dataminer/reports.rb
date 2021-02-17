@@ -30,7 +30,8 @@ class LabelDesigner < Roda
       r.post 'xls' do
         page = interactor.create_spreadsheet(id, params)
         response.headers['content_type'] = 'application/vnd.ms-excel'
-        response.headers['Content-Disposition'] = "attachment; filename=\"#{page.report.caption.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-') + '.xls'}\""
+        fn = page.report.caption.strip.gsub(%r{[/:*?"\\<>|\r\n]}i, '-')
+        response.headers['Content-Disposition'] = %(attachment; filename="#{fn}.xls")
         # NOTE: could this use streaming to start downloading quicker?
         response.write(page.excel_file.to_stream.read)
       rescue Sequel::DatabaseError => e

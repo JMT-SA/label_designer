@@ -20,7 +20,7 @@ module LabelApp
     def lookup_label_publish_notification(id)
       @repo = LabelApp::LabelRepo.new
       @instance = @repo.find_label_publish_notification(id)
-      @user_name = @repo.label_publishing_user_name(@instance.label_publish_log_id)
+      @user_name = @repo.label_publishing_user_login_name(@instance.label_publish_log_id)
     end
 
     def make_notification(payload)

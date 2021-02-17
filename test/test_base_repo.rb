@@ -163,6 +163,11 @@ class TestBaseRepo < MiniTestWithHooks
     actual = BaseRepo.new.select_values_in_order(:users, :id, order: :id, where: { id: [1, 2] }, descending: true)
     expect = DB[:users].where(id: [1, 2]).reverse(:id).select_map(:id)
     assert_equal expect, actual
+
+    # Handle nil order_by gracefully as no order_by
+    actual = BaseRepo.new.select_values_in_order(:users, :id, order: nil, where: { id: [1, 2] })
+    expect = DB[:users].where(id: [1, 2]).select_map(:id)
+    assert_equal expect, actual
   end
 
   def test_hash_for_jsonb_col
@@ -192,16 +197,14 @@ class TestBaseRepo < MiniTestWithHooks
     expected = ["a: Integer", "b: String", "c: Sequel::Postgres::PGArray", "d: Float", "e: Sequel::Postgres::PGArray", "f: NilClass", "g: Sequel::Postgres::PGArray"]
     assert_equal expected, result.map { |k, v| "#{k}: #{v.class.name}" }
 
-    test_schema = Dry::Validation.Params do
-      configure { config.type_specs = true }
-
-      required(:a, :integer).filled(:int?)
-      required(:b, Types::StrippedString).filled(:str?)
-      required(:c, Types::IntArray).filled { each(:int?) }
-      required(:d, %i[nil decimal]).filled(:decimal?)
-      required(:e, Types::IntArray).filled { each(:int?) }
-      required(:f, Types::StrippedString).maybe(:str?)
-      required(:g, Types::IntArray).maybe { each(:int?) }
+    test_schema = Dry::Schema.Params do
+      required(:a).filled(:integer)
+      required(:b).filled(Types::StrippedString)
+      required(:c).filled(:array).each(:integer)
+      required(:d).filled(:decimal)
+      required(:e).filled(:array).each(:integer)
+      required(:f).maybe(Types::StrippedString)
+      required(:g).maybe(:array).each(:integer)
     end
 
     res = test_schema.call(params)
@@ -284,6 +287,24 @@ class TestBaseRepo < MiniTestWithHooks
     users = repo.for_select_users
     assert_equal ['User 0', 'usr_0'], users.first
     assert_equal ['User 9', 'usr_9'], users.last
+  end
+
+  def test_for_select_where
+    klass = Class.new(BaseRepo)
+    klass.build_for_select(:users, value: :login_name, order_by: :login_name)
+    repo = klass.new
+    users = repo.for_select_users(where: { login_name: %w[usr_0 usr_1 usr_2] })
+    assert_equal 'usr_0', users.first
+    assert_equal 'usr_2', users.last
+  end
+
+  def test_for_select_exclude
+    klass = Class.new(BaseRepo)
+    klass.build_for_select(:users, value: :login_name, order_by: :login_name)
+    repo = klass.new
+    users = repo.for_select_users(exclude: { login_name: %w[usr_0 usr_1 usr_2] })
+    assert_equal 'usr_3', users.first
+    assert_equal 'usr_9', users.last
   end
 
   def test_crud_calls_without_wrapper

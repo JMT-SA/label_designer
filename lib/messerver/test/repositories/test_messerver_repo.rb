@@ -116,7 +116,7 @@ module MesserverApp
 
     def test_print_published_label
       fails = [
-        { method_return: failed_response('ok', response_code: '404'), instance: {}, msg: 'The label was not found. Has it been published yet?' },
+        { method_return: failed_response('ok', response_code: '404'), instance: {}, msg: 'The label (name) or printer was not found. Has it been published yet?' },
         { method_return: failed_response('No printer', response_code: '503'), instance: { response_code: '503' }, msg: 'No printer' }
       ]
 

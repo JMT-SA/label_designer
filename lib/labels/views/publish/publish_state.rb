@@ -4,7 +4,7 @@ module Labels
   module Publish
     module Batch
       class PublishState
-        def self.call(res) # rubocop:disable Metrics/AbcSize
+        def self.call(res)
           label_states = res.body
 
           header_cols, cols = publishing_table_headers(label_states)

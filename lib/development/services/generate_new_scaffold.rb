@@ -12,7 +12,7 @@ module DevelopmentApp
                   :table_meta, :label_field, :short_name, :has_short_name, :program_text,
                   :nested_route, :new_from_menu, :text_name, :services, :jobs
 
-      def initialize(params, roda_class_name) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+      def initialize(params, roda_class_name) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
         @roda_class_name     = roda_class_name
         @inflector           = Dry::Inflector.new
         @table               = params[:table]
@@ -28,13 +28,13 @@ module DevelopmentApp
         @label_field         = params[:label_field] || @table_meta.likely_label_field
         @shared_repo_name    = params[:shared_repo_name]
         @shared_factory_name = params[:shared_factory_name]
-        @nested_route        = params[:nested_route_parent].empty? ? nil : params[:nested_route_parent]
+        @nested_route        = params[:nested_route_parent].nil_or_empty? ? nil : params[:nested_route_parent]
         @new_from_menu       = params[:new_from_menu].nil? ? false : params[:new_from_menu]
-        @services            = params[:services].empty? ? [] : params[:services].split(',').map(&:strip)
-        @jobs                = params[:jobs].empty? ? [] : params[:jobs].split(',').map(&:strip)
+        @services            = params[:services].nil_or_empty? ? [] : params[:services].split(',').map(&:strip)
+        @jobs                = params[:jobs].nil_or_empty? ? [] : params[:jobs].split(',').map(&:strip)
       end
 
-      def classnames # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+      def classnames # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
         modulename    = "#{@applet.split('_').map(&:capitalize).join}App"
         classname     = @inflector.camelize(@singlename)
         applet_klass  = @inflector.camelize(@applet)
@@ -195,7 +195,7 @@ module DevelopmentApp
       FAKER_STRING = 'Faker::Lorem.word'
       FAKER_UNIQUE_STRING = 'Faker::Lorem.unique.word'
       FAKER_DATA_LOOKUP = {
-        integer: 'Faker::Number.number(4)',
+        integer: 'Faker::Number.number(digits: 4)',
         string: 'Faker::Lorem.word',
         boolean: 'false',
         float: '1.0',
@@ -223,38 +223,31 @@ module DevelopmentApp
       }.freeze
 
       VALIDATION_TYPE_LOOKUP = {
-        integer: ':integer',
-        string: 'Types::StrippedString',
-        boolean: ':bool',
-        # datetime: ':date_time',
-        datetime: ':time',
-        date: ':date',
-        time: ':time',
-        float: ':float',
-        decimal: ':decimal',
-        jsonb: ':hash',
-        integer_array: ':array',
-        string_array: ':array'
+        integer: 'filled(:integer)',
+        string: 'filled(Types::StrippedString)',
+        boolean: 'filled(:bool)',
+        datetime: 'filled(:time)',
+        date: 'filled(:date)',
+        time: 'filled(:time)',
+        float: 'filled(:float)',
+        decimal: 'filled(:decimal)',
+        jsonb: 'filled(:hash)',
+        integer_array: 'filled(:array).each(:integer)',
+        string_array: 'filled(:array).each(:string)'
       }.freeze
 
       VALIDATION_OPTIONAL_TYPE_LOOKUP = {
-        # integer: ':integer',
-        # string: 'Types::StrippedString',
-        # boolean: ':bool',
-        # datetime: ':date_time',
-        datetime: '[:nil, :time]',
-        date: '[:nil, :date]',
-        time: '[:nil, :time]',
-        float: '[:nil, :float]',
-        decimal: '[:nil, :decimal]' # ,
-        # jsonb: ':hash',
-        # integer_array: ':array',
-        # string_array: ':array'
-      }.freeze
-
-      VALIDATION_ARRAY_LOOKUP = {
-        integer_array: ' { each(:int?) }',
-        string_array: ' { each(:str?) }'
+        integer: 'maybe(:integer)',
+        string: 'maybe(Types::StrippedString)',
+        boolean: 'maybe(:bool)',
+        datetime: 'maybe(:time)',
+        date: 'maybe(:date)',
+        time: 'maybe(:time)',
+        float: 'maybe(:float)',
+        decimal: 'maybe(:decimal)',
+        jsonb: 'maybe(:hash)',
+        integer_array: 'maybe(:array).each(:integer) # OR: maybe(:array).maybe { each(:integer) } # if param can be nil (not [])',
+        string_array: 'maybe(:array).each(:string) # OR: maybe(:array).maybe { each(:string) } # if param can be nil (not [])'
       }.freeze
 
       def initialize(table)
@@ -284,7 +277,7 @@ module DevelopmentApp
         col_name || 'id'
       end
 
-      def string_field # rubocop:disable Metrics/PerceivedComplexity , Metrics/CyclomaticComplexity
+      def string_field # rubocop:disable Metrics/PerceivedComplexity
         first_col = nil
         col_name = nil
         columns.each do |this_name, attrs|
@@ -328,17 +321,23 @@ module DevelopmentApp
         data
       end
 
-      def column_dry_validation_type(column, optional = false)
-        if optional
-          VALIDATION_OPTIONAL_TYPE_LOOKUP[@col_lookup[column][:type]] || VALIDATION_TYPE_LOOKUP[@col_lookup[column][:type]] || "Types::??? (#{@col_lookup[column][:type]})"
+      def column_dry_validation_type(column, max, optional: false)
+        s = if optional
+              VALIDATION_OPTIONAL_TYPE_LOOKUP[@col_lookup[column][:type]] || "Types::??? (#{@col_lookup[column][:type]})"
+            else
+              VALIDATION_TYPE_LOOKUP[@col_lookup[column][:type]] || "Types::??? (#{@col_lookup[column][:type]})"
+            end
+
+        if max
+          s.sub(')', ", #{max})")
         else
-          VALIDATION_TYPE_LOOKUP[@col_lookup[column][:type]] || "Types::??? (#{@col_lookup[column][:type]})"
+          s
         end
       end
-
-      def column_dry_validation_array_extra(column)
-        VALIDATION_ARRAY_LOOKUP[@col_lookup[column][:type]]
-      end
+      #
+      # def column_dry_validation_array_extra(column)
+      #   VALIDATION_ARRAY_LOOKUP[@col_lookup[column][:type]]
+      # end
 
       def column_dry_validation_expect_type(column)
         VALIDATION_EXPECT_LOOKUP[@col_lookup[column][:type]] || "(Types::??? (#{@col_lookup[column][:type]}))"
@@ -377,6 +376,7 @@ module DevelopmentApp
 
     class InteractorMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -389,7 +389,7 @@ module DevelopmentApp
             class #{opts.classnames[:interactor]} < BaseInteractor
               def create_#{opts.singlename}(#{needs_id}params)#{add_parent_to_params}
                 res = validate_#{opts.singlename}_params(params)
-                return validation_failed_response(res) unless res.messages.empty?
+                return validation_failed_response(res) if res.failure?
 
                 id = nil
                 repo.transaction do
@@ -398,8 +398,7 @@ module DevelopmentApp
                   log_transaction
                 end
                 instance = #{opts.singlename}(id)
-                success_response("Created #{opts.classnames[:text_name].downcase} \#{instance.#{opts.label_field}}",
-                                 instance)
+                success_response("Created #{opts.classnames[:text_name].downcase} \#{instance.#{opts.label_field}}", instance)
               rescue Sequel::UniqueConstraintViolation
                 validation_failed_response(OpenStruct.new(messages: { #{opts.label_field}: ['This #{opts.classnames[:text_name].downcase} already exists'] }))
               rescue Crossbeams::InfoError => e
@@ -408,15 +407,14 @@ module DevelopmentApp
 
               def update_#{opts.singlename}(id, params)
                 res = validate_#{opts.singlename}_params(params)
-                return validation_failed_response(res) unless res.messages.empty?
+                return validation_failed_response(res) if res.failure?
 
                 repo.transaction do
                   repo.update_#{opts.singlename}(id, res)
                   log_transaction
                 end
                 instance = #{opts.singlename}(id)
-                success_response("Updated #{opts.classnames[:text_name].downcase} \#{instance.#{opts.label_field}}",
-                                 instance)
+                success_response("Updated #{opts.classnames[:text_name].downcase} \#{instance.#{opts.label_field}}", instance)
               rescue Crossbeams::InfoError => e
                 failed_response(e.message)
               end
@@ -431,6 +429,9 @@ module DevelopmentApp
                 success_response("Deleted #{opts.classnames[:text_name].downcase} \#{name}")
               rescue Crossbeams::InfoError => e
                 failed_response(e.message)
+              rescue Sequel::ForeignKeyConstraintViolation => e
+                puts e.message
+                failed_response("Unable to delete #{opts.classnames[:text_name].downcase}. It is still referenced\#{e.message.partition('referenced').last}")
               end
 
               # def complete_a_#{opts.singlename}(id, params)
@@ -501,6 +502,7 @@ module DevelopmentApp
 
     class PermissionMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -591,6 +593,7 @@ module DevelopmentApp
 
     class RepoMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -639,6 +642,7 @@ module DevelopmentApp
 
     class EntityMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -670,6 +674,7 @@ module DevelopmentApp
 
     class ValidationMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -680,9 +685,7 @@ module DevelopmentApp
           # frozen_string_literal: true
 
           module #{opts.classnames[:module]}
-            #{opts.classnames[:schema]} = Dry::Validation.Params do
-              configure { config.type_specs = true }
-
+            #{opts.classnames[:schema]} = Dry::Schema.Params do
               #{attr.join("\n    ")}
             end
           end
@@ -695,14 +698,11 @@ module DevelopmentApp
         attr = []
         opts.table_meta.columns_without(%i[created_at updated_at active]).each do |col|
           detail = opts.table_meta.col_lookup[col]
-          fill_opt = detail[:allow_null] ? 'maybe' : 'filled'
           max = detail[:max_length] && detail[:max_length] < 200 ? "max_size?: #{detail[:max_length]}" : nil
-          rules = [opts.table_meta.column_dry_validation_expect_type(col), max, opts.table_meta.column_dry_validation_array_extra(col)].compact.join(', ')
-          rules = rules.sub(/,\s+{/, ' {')
           attr << if col == :id
-                    "optional(:#{col}, #{opts.table_meta.column_dry_validation_type(col, detail[:allow_null])}).#{fill_opt}#{rules}"
+                    "optional(:#{col}).#{opts.table_meta.column_dry_validation_type(col, max, optional: detail[:allow_null])}"
                   else
-                    "required(:#{col}, #{opts.table_meta.column_dry_validation_type(col, detail[:allow_null])}).#{fill_opt}#{rules}"
+                    "required(:#{col}).#{opts.table_meta.column_dry_validation_type(col, max, optional: detail[:allow_null])}"
                   end
         end
         attr
@@ -711,6 +711,7 @@ module DevelopmentApp
 
     class ListMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -786,6 +787,7 @@ module DevelopmentApp
 
     class SearchMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -820,6 +822,7 @@ module DevelopmentApp
 
     class RouteMaker < BaseService # rubocop:disable Metrics/ClassLength
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -1058,6 +1061,7 @@ module DevelopmentApp
 
     class UiRuleMaker < BaseService # rubocop:disable Metrics/ClassLength
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -1137,7 +1141,7 @@ module DevelopmentApp
         opts.inflector.humanize(value.to_s).gsub(/\s\D/, &:upcase)
       end
 
-      def fields_to_use(for_show = false)
+      def fields_to_use(for_show: false)
         cols = if for_show
                  %i[id created_at updated_at]
                else
@@ -1148,7 +1152,7 @@ module DevelopmentApp
 
       def show_fields
         flds = []
-        fields_to_use(true).each do |f|
+        fields_to_use(for_show: true).each do |f|
           fk = opts.table_meta.fk_lookup[f]
           next unless fk
 
@@ -1158,16 +1162,18 @@ module DevelopmentApp
           fk_repo = "#{opts.classnames[:module]}::#{klassname}Repo"
           code = tm.likely_label_field
           flds << "# #{f}_label = #{fk_repo}.new.find_#{singlename}(@form_object.#{f})&.#{code}"
-          flds << "#{f}_label = @repo.find(:#{fk[:table]}, #{opts.classnames[:module]}::#{klassname}, @form_object.#{f})&.#{code}"
+          flds << "# #{f}_label = @repo.find(:#{fk[:table]}, #{opts.classnames[:module]}::#{klassname}, @form_object.#{f})&.#{code}"
+          flds << "#{f}_label = @repo.get(:#{fk[:table]}, @form_object.#{f}, :#{code})"
         end
 
-        flds + fields_to_use(true).map do |f|
+        flds + fields_to_use(for_show: true).map do |f|
           fk = opts.table_meta.fk_lookup[f]
           if fk.nil?
             this_col = opts.table_meta.col_lookup[f]
-            if this_col[:type] == :boolean
+            case this_col[:type]
+            when :boolean
               "fields[:#{f}] = { renderer: :label, as_boolean: true }"
-            elsif this_col[:type] == :datetime
+            when :datetime
               "fields[:#{f}] = { renderer: :label, format: :without_timezone_or_seconds }"
             else
               "fields[:#{f}] = { renderer: :label }"
@@ -1231,6 +1237,7 @@ module DevelopmentApp
 
     class TestMaker < BaseService # rubocop:disable Metrics/ClassLength
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -1668,6 +1675,7 @@ module DevelopmentApp
 
     class ViewMaker < BaseService # rubocop:disable Metrics/ClassLength
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -1685,7 +1693,7 @@ module DevelopmentApp
 
       private
 
-      def fields_to_use(for_show = false)
+      def fields_to_use(for_show: false)
         cols = if for_show
                  %i[id created_at updated_at]
                else
@@ -1694,8 +1702,8 @@ module DevelopmentApp
         opts.table_meta.columns_without(cols)
       end
 
-      def form_fields(for_show = false)
-        fields_to_use(for_show).map { |f| "form.add_field :#{f}" }.join(UtilityFunctions.newline_and_spaces(14))
+      def form_fields(for_show: false)
+        fields_to_use(for_show: for_show).map { |f| "form.add_field :#{f}" }.join(UtilityFunctions.newline_and_spaces(14))
       end
 
       def needs_id
@@ -1794,7 +1802,7 @@ module DevelopmentApp
                       page.form do |form|
                         # form.caption '#{opts.text_name}'
                         form.view_only!
-                        #{form_fields(true)}
+                        #{form_fields(for_show: true)}
                       end
                     end
 
@@ -1828,7 +1836,7 @@ module DevelopmentApp
                         form.submit_captions 'Complete'
                         form.add_text 'Are you sure you want to complete this #{opts.singlename}?', wrapper: :h3
                         form.add_field :to
-                        #{form_fields(true)}
+                        #{form_fields(for_show: true)}
                       end
                     end
 
@@ -1861,7 +1869,7 @@ module DevelopmentApp
                         form.remote!
                         form.submit_captions 'Approve or Reject'
                         form.add_field :approve_action
-                        #{form_fields(true)}
+                        #{form_fields(for_show: true)}
                       end
                     end
 
@@ -1894,7 +1902,7 @@ module DevelopmentApp
                         form.remote!
                         form.submit_captions 'Reopen'
                         form.add_text 'Are you sure you want to reopen this #{opts.singlename} for editing?', wrapper: :h3
-                        #{form_fields(true)}
+                        #{form_fields(for_show: true)}
                       end
                     end
 
@@ -1910,6 +1918,7 @@ module DevelopmentApp
 
     class QueryMaker < BaseService
       attr_reader :opts, :base_sql
+
       def initialize(opts)
         @opts = opts
         @base_sql = nil
@@ -1929,7 +1938,7 @@ module DevelopmentApp
 
       private
 
-      def columns # rubocop:disable Metrics/PerceivedComplexity
+      def columns # rubocop:disable Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
         tab_cols = opts.table_meta.column_names.map { |col| "#{opts.table}.#{col}" }
         fk_cols  = []
         used_tables = Hash.new(0)
@@ -1995,6 +2004,7 @@ module DevelopmentApp
 
     class DmQueryMaker < BaseService
       attr_reader :opts, :report
+
       def initialize(report, opts)
         @report     = Crossbeams::Dataminer::Report.new(report.caption)
         @report.sql = report.runnable_sql
@@ -2061,6 +2071,7 @@ module DevelopmentApp
 
     class ServiceMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -2100,6 +2111,7 @@ module DevelopmentApp
 
     class JobMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -2145,6 +2157,7 @@ module DevelopmentApp
 
     class AppletMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
@@ -2184,12 +2197,13 @@ module DevelopmentApp
 
     class MenuMigrationMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
 
       def titleize(str)
-        str.split(' ').map(&:capitalize).join(' ')
+        str.split.map(&:capitalize).join(' ')
       end
 
       def make_caption(value)
@@ -2299,12 +2313,13 @@ module DevelopmentApp
 
     class MenuMaker < BaseService
       attr_reader :opts
+
       def initialize(opts)
         @opts = opts
       end
 
       def titleize(str)
-        str.split(' ').map(&:capitalize).join(' ')
+        str.split.map(&:capitalize).join(' ')
       end
 
       def make_caption(value)

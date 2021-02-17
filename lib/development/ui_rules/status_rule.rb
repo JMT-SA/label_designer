@@ -2,7 +2,7 @@
 
 module UiRules
   class StatusRule < Base
-    def generate_rules # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+    def generate_rules # rubocop:disable Metrics/AbcSize
       @dev_repo = DevelopmentApp::DevelopmentRepo.new
       @repo = DevelopmentApp::StatusRepo.new
       make_form_object
@@ -25,7 +25,7 @@ module UiRules
         rules[:cols] = %i[detail diff action_time status user_name]
         rules[:header_captions] = { action_time: 'Time', row_data_id: 'ID' }
         rules[:rows] = @repo.list_statuses(@options[:table_name], @options[:id]).map do |rec|
-          { id: rec[:id], action_time: rec[:action_time], status: rec[:status], user_name: rec[:user_name],
+          { id: rec[:id], action_time: rec[:action_time].strftime('%Y-%m-%d %H:%M:%S'), status: rec[:status], user_name: rec[:user_name],
             detail: Crossbeams::Layout::Link.new(text: 'view',
                                                  url: "/development/statuses/detail/#{rec[:id]}",
                                                  behaviour: :popup,

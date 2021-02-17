@@ -14,6 +14,14 @@
 class BaseRepo # rubocop:disable Metrics/ClassLength
   include Crossbeams::Responses
 
+  # Cache the data type of all columns of all tables in the system
+  DB_TABLE_COLS = Hash[DB.tables
+                         .reject { |table| table == :schema_migrations }
+                         .map { |t| [t, Hash[DB.schema(t).map { |f, s| [f, s[:type]] }]] }] # rubocop:disable Style/HashTransformValues
+  DB_AUDIT_COLS = Hash[DB.tables(schema: :audit)
+                         .reject { |table| table == :schema_migrations }
+                         .map { |t| [t, Hash[DB.schema(t, schema: :audit).map { |f, s| [f, s[:type]] }]] }] # rubocop:disable Style/HashTransformValues
+
   # Wraps Sequel's transaction so that it is not exposed to calling code.
   #
   # @param block [Block] the work to take place within the transaction.
@@ -29,7 +37,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param args [Hash] the optional where-clause conditions.
   # @return [Array] the table rows.
   def all(table_name, wrapper, args = nil)
-    ds = all_hash(table_name, args, true)
+    ds = all_hash(table_name, args, return_dataset: true)
     dataset_wrapped(ds, wrapper)
   end
 
@@ -50,7 +58,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param args [Hash] the optional where-clause conditions.
   # @param return_dataset [boolean] if true, returns the Sequel dataset, else the records. Default is false.
   # @return [Array] the table rows.
-  def all_hash(table_name, args = nil, return_dataset = false)
+  def all_hash(table_name, args = nil, return_dataset: false)
     ds = args.nil? ? DB[table_name] : DB[table_name].where(args)
     return_dataset ? ds : ds.all
   end
@@ -163,7 +171,18 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param args [Hash] the where-clause conditions.
   # @return [Hash, nil] the row as a Hash.
   def where_hash(table_name, args)
-    DB[table_name].where(args).first
+    hash = DB[table_name].where(args).first
+    return nil if hash.nil?
+
+    hash.each do |k, v|
+      case hash[k]
+      when Sequel::Postgres::JSONBHash
+        hash[k] = v.to_h
+      when Sequel::Postgres::PGArray
+        hash[k] = v.to_a
+      end
+    end
+    hash
   end
 
   # Checks to see if a row exists that meets the given requirements.
@@ -238,7 +257,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param attrs [Hash, OpenStruct] the fields and their values.
   # @return [Integer] the id of the new record.
   def create(table_name, attrs)
-    DB[table_name].insert(attrs.to_h)
+    DB[table_name].insert(prepare_values_for_db(table_name, attrs))
   end
 
   # Update a record.
@@ -247,7 +266,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param id [Integer] the id of the record.
   # @param attrs [Hash, OpenStruct] the fields and their values.
   def update(table_name, id, attrs)
-    DB[table_name].where(id: id).update(attrs.to_h)
+    DB[table_name].where(id: id).update(prepare_values_for_db(table_name, attrs))
   end
 
   # Delete a record.
@@ -282,11 +301,11 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param columns [Symbol,Array] the column (or array of columns) to query.
   # @param where [Hash] the where-clause conditions. Optional.
   # @param order [Symbol] the order by clause.
-  # @param descending [Boolean] return in decending order. Default is false.
+  # @param descending [Boolean] return in descending order. Default is false.
   # @return [Array] the values from the column(s) of each row.
-  def select_values_in_order(table_name, columns, where: nil, order:, descending: false)
+  def select_values_in_order(table_name, columns, order:, where: {}, descending: false)
     ds = DB[table_name]
-    ds = ds.where(where) if where
+    ds = ds.where(where)
     ds = ds.order(order) if order && !descending
     ds = ds.reverse(order) if order && descending
     ds.select_map(columns)
@@ -359,6 +378,48 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
     return nil if args.nil?
 
     args.to_h.transform_values { |v| v.is_a?(Array) ? array_for_db_col(v, array_type: array_type) : v }
+  end
+
+  # Take the attributes to be inserted/updated on a table
+  # and convert any arrays/hashes into their appropriate
+  # database-specific types.
+  #
+  # @param table_name [Symbol, Sequel::SQL::QualifiedIdentifier] the table name (or qualified name)
+  # @param args [hash,dry validation result] the attributes to apply.
+  # @return [hash] the modified attributes suitable for the DB.
+  def prepare_values_for_db(table_name, args)
+    return nil if args.nil?
+
+    hash = args.to_h.clone
+    hash.each do |k, v|
+      case column_type(table_name, k)
+      when :integer_array
+        hash[k] = array_for_db_col(v)
+      when :string_array
+        hash[k] = array_for_db_col(v, array_type: :text)
+      when :jsonb
+        hash[k] = hash_for_jsonb_col(v)
+      end
+    end
+
+    hash
+  end
+
+  # Get the data type of a table column.
+  #
+  # @param table_name [Symbol, Sequel::SQL::QualifiedIdentifier] the table name (or qualified name)
+  # @param column [symbol] the column name
+  # @return [symbol] the column's data type
+  def column_type(table_name, column)
+    if table_name.is_a?(Symbol)
+      raise Crossbeams::FrameworkError, "BaseRepo#column_type: There is no table named #{table_name}" if DB_TABLE_COLS[table_name].nil?
+
+      DB_TABLE_COLS[table_name][column]
+    else
+      raise Crossbeams::FrameworkError, "BaseRepo#column_type: There is no table named #{table_name}" if DB_AUDIT_COLS[table_name].nil?
+
+      DB_AUDIT_COLS[table_name.table][column]
+    end
   end
 
   # Helper to convert rows of records to a Hash that can be used for optgroups in a select.
@@ -513,9 +574,9 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
     dataset.select(value_name).map { |rec| rec[value_name] }
   end
 
-  def select_two(dataset, label_name, value_name)
+  def select_two(dataset, label_name, value_name, separator)
     if label_name.is_a?(Array)
-      dataset.select(*label_name, value_name).map { |rec| [label_name.map { |nm| rec[nm] }.join(' - '), rec[value_name]] }
+      dataset.select(*label_name, value_name).map { |rec| [label_name.map { |nm| rec[nm] }.join(separator || ' - '), rec[value_name]] }
     else
       dataset.select(label_name, value_name).map { |rec| [rec[label_name], rec[value_name]] }
     end
@@ -531,6 +592,8 @@ module MethodBuilder
   # - If present, will be named +for_select_alias+ instead of +for_select_table_name+.
   # label: String or Array
   # - The display column. Defaults to the value column. If an Array, will display each column separated by ' - '
+  # label_separator: String
+  # - for Array labels, the string between columns (defaults to ' - ')
   # value: String
   # - The value column. Required.
   # order_by: String
@@ -540,7 +603,7 @@ module MethodBuilder
   # no_activity_check: Boolean
   # - Set to true if this table does not have an +active+ column,
   #   or to return inactive records as well as active ones.
-  def build_for_select(table_name, options = {}) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/AbcSize
+  def build_for_select(table_name, options = {}) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/AbcSize, Metrics/PerceivedComplexity
     # POSSIBLE WAY OF DEFINING METHODS - faster?
     # ds_ar = ["dataset = DB[:#{table_name}]"]
     # ds_ar << "dataset = make_order(dataset, order_by: #{options[:order_by].inspect}#{', desc: true' if options[:desc]})" if options[:order_by]
@@ -560,10 +623,19 @@ module MethodBuilder
       dataset = DB[table_name]
       dataset = make_order(dataset, options) if options[:order_by]
       dataset = dataset.where(:active) unless options[:no_active_check]
-      dataset = dataset.where(opts[:where]) if opts[:where]
+      if opts[:where]
+        raise Crossbeams::FrameworkError, 'WHERE clause in "for_select" must be a hash' unless opts[:where].is_a?(Hash)
+
+        dataset = dataset.where(opts[:where].transform_values { |v| v == '' ? nil : v })
+      end
+      if opts[:exclude]
+        raise Crossbeams::FrameworkError, 'WHERE NOT (exclude) clause in "for_select" must be a hash' unless opts[:exclude].is_a?(Hash)
+
+        dataset = dataset.exclude(opts[:exclude].transform_values { |v| v == '' ? nil : v })
+      end
       lbl = options[:label] || options[:value]
       val = options[:value]
-      lbl == val ? select_single(dataset, val) : select_two(dataset, lbl, val)
+      lbl == val ? select_single(dataset, val) : select_two(dataset, lbl, val, options[:label_separator])
     end
   end
 
@@ -582,7 +654,7 @@ module MethodBuilder
       dataset = DB[table_name].exclude(:active)
       lbl = options[:label] || options[:value]
       val = options[:value]
-      lbl == val ? select_single(dataset, val) : select_two(dataset, lbl, val)
+      lbl == val ? select_single(dataset, val) : select_two(dataset, lbl, val, options[:label_separator])
     end
   end
 

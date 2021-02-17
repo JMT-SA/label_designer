@@ -23,7 +23,7 @@ class LabelDesigner < Roda
     end
 
     r.on 'grid' do
-      interactor.prepared_report_list_grid(true)
+      interactor.prepared_report_list_grid(for_user: true)
     rescue StandardError => e
       show_json_exception(e)
     end
@@ -75,7 +75,8 @@ class LabelDesigner < Roda
       r.on 'xls' do
         page = interactor.create_prepared_report_spreadsheet(id)
         response.headers['content_type'] = 'application/vnd.ms-excel'
-        response.headers['Content-Disposition'] = "attachment; filename=\"#{page.report.caption.strip.gsub(%r{[/:*?"\\<>\|\r\n]}i, '-') + '.xls'}\""
+        fn = page.report.caption.strip.gsub(%r{[/:*?"\\<>|\r\n]}i, '-')
+        response.headers['Content-Disposition'] = %(attachment; filename="#{fn}.xls")
         # NOTE: could this use streaming to start downloading quicker?
         response.write(page.excel_file.to_stream.read)
       end
@@ -114,7 +115,7 @@ class LabelDesigner < Roda
     r.post do       # CREATE
       res = interactor.create_prepared_report(params[:prepared_report])
       if res.success
-        show_page_or_update_dialog(r, res) { DM::Report::PreparedReport::WebQuery.call(res.instance, webquery_url_for(res.instance[:id]), fetch?(r)) }
+        show_page_or_update_dialog(r, res) { DM::Report::PreparedReport::WebQuery.call(res.instance, webquery_url_for(res.instance[:id]), remote: fetch?(r)) }
       else
         id = params[:prepared_report][:id]
         re_show_form(r, res, url: "/dataminer/prepared_reports/new/#{id}") do

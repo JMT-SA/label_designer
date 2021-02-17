@@ -43,18 +43,18 @@ class TestCommonHelpers < Minitest::Test
   end
 
   def test_move_validation_errors_to_base
-    assert_equal({ base: ['Err'] }, move_validation_errors_to_base({ fld1: 'Err' }, [:fld1]))
+    assert_equal({ base: ['Fld1 Err'] }, move_validation_errors_to_base({ fld1: 'Err' }, [:fld1]))
 
     msg = { fld1: ['Not ok', 'Other'] }
-    exp = { base: ['Not ok', 'Other'] }
+    exp = { base: ['Fld1 Not ok', 'Fld1 Other'] }
     assert_equal exp, move_validation_errors_to_base(msg, :fld1)
 
     msg = { fld1: ['Not ok', 'Other'], fld2: ['Err'] }
-    exp = { base: ['Not ok', 'Other'], fld2: ['Err'] }
+    exp = { base: ['Fld1 Not ok', 'Fld1 Other'], fld2: ['Err'] }
     assert_equal exp, move_validation_errors_to_base(msg, :fld1)
 
     msg = { fld1: ['Not ok', 'Other'], fld2: ['Err'] }
-    exp = { base: ['Not ok', 'Other', 'Err'] }
+    exp = { base: ['Fld1 Not ok', 'Fld1 Other', 'Fld2 Err'] }
     assert_equal exp, move_validation_errors_to_base(msg, [:fld1, :fld2])
 
     msg = { fld1: ['Err'] }
@@ -119,6 +119,14 @@ class TestCommonHelpers < Minitest::Test
 
     res = build_json_action(OpenStruct.new(type: :clear_form_validation, dom_id: 'html_dom_tag_id'))
     expect = { clear_form_validation: { form_id: 'html_dom_tag_id' } }
+    assert_equal expect, res
+
+    res = build_json_action(OpenStruct.new(type: :launch_dialog, content: 'html_for_dlg'))
+    expect = { launch_dialog: { content: 'html_for_dlg', title: nil } }
+    assert_equal expect, res
+
+    res = build_json_action(OpenStruct.new(type: :launch_dialog, content: 'html_for_dlg', title: 'text'))
+    expect = { launch_dialog: { content: 'html_for_dlg', title: 'text' } }
     assert_equal expect, res
   end
 

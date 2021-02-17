@@ -3,7 +3,7 @@
 module DM
   module Admin
     class Index
-      def self.call(context = {}) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
+      def self.call(context = {}) # rubocop:disable Metrics/AbcSize
         grid_url = if context[:for_grid_queries]
                      '/dataminer/admin/grids_grid/'
                    else

@@ -4,6 +4,8 @@ require 'minitest/autorun'
 require 'mocha/minitest'
 require 'minitest/stub_any_instance'
 require 'minitest/hooks/test'
+require 'minitest/test_profile'
+Minitest::TestProfile.use!
 
 require 'dotenv'
 Dotenv.load('.env.local', '.env')

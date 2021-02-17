@@ -14,13 +14,15 @@ module LabelApp
     attribute :category, Types::String.optional
     attribute :sub_category, Types::String.optional
     attribute :multi_label, Types::Bool
-    attribute :sample_data, Types::JSON::Hash.optional
+    # attribute :sample_data, Types::JSON::Hash.optional
+    attribute :sample_data, Types::Hash.optional
     attribute :variable_set, Types::String
     attribute :created_by, Types::String
     attribute :updated_by, Types::String
     attribute :completed, Types::Bool
     attribute :approved, Types::Bool
-    attribute :extended_columns, Types::JSON::Hash.optional
+    # attribute :extended_columns, Types::JSON::Hash.optional
+    attribute :extended_columns, Types::Hash.optional
 
     #  label_name character varying(255) NOT NULL,
     #   label_json text,

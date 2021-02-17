@@ -28,6 +28,7 @@ DB.extension :pg_array
 DB.extension :pg_json
 DB.extension :pg_hstore
 DB.extension :pg_inet
+Sequel.extension :pg_array_ops
 Sequel.application_timezone = :local
 Sequel.database_timezone = :utc
 

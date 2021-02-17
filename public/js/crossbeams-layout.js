@@ -172,6 +172,14 @@
       }
     }, false);
 
+    // Repeating request: Check if there are any areas in the content that should be modified by polling...
+    const pollsters = document.querySelectorAll('[data-poll-message-url]');
+    pollsters.forEach((pollable) => {
+      const pollUrl = pollable.dataset.pollMessageUrl;
+      const pollInterval = pollable.dataset.pollMessageInterval;
+      crossbeamsUtils.pollMessage(pollable, pollUrl, pollInterval);
+    });
+
     // InputChange - check for observers
     document.body.addEventListener('change', (event) => {
       if (event.target.dataset && event.target.dataset.observeInputChange) {
@@ -350,10 +358,10 @@
               loadDialogContent(data.loadNewUrl); // promise...
             } else if (data.updateGridInPlace) {
               data.updateGridInPlace.forEach((gridRow) => {
-                crossbeamsGridEvents.updateGridInPlace(gridRow.id, gridRow.changes);
+                crossbeamsGridEvents.updateGridInPlace(gridRow.id, gridRow.changes, gridRow.gridId);
               });
             } else if (data.addRowToGrid) {
-              crossbeamsGridEvents.addRowToGrid(data.addRowToGrid.changes);
+              crossbeamsGridEvents.addRowToGrid(data.addRowToGrid.changes, data.addRowToGrid.gridId);
             } else if (data.actions) {
               if (data.keep_dialog_open) {
                 closeDialog = false;
@@ -372,6 +380,7 @@
                 const gridEvent = new CustomEvent('gridLoad', { detail: gridId });
                 document.dispatchEvent(gridEvent);
               });
+              crossbeamsUtils.setDialogFocus(dlgContent);
             } else {
               console.log('Not sure what to do with this:', data); // eslint-disable-line no-console
             }

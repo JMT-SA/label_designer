@@ -47,7 +47,7 @@ module Labels
         end
 
         # Single label - get variables from just this label.
-        def rules_for_single(obj, as_labels)
+        def rules_for_single(obj, as_labels) # rubocop:disable Metrics/AbcSize
           doc       = Nokogiri::XML(obj.variable_xml)
           xml_vars  = doc.css('variable_field_count').map(&:text)
           vartypes  = clean_up_compound_variable_names(doc.css('variable variable_type'))
@@ -67,7 +67,7 @@ module Labels
         end
 
         def clean_up_compound_variable_names(vars)
-          vars.map { |v| v.text.start_with?('CMP:') ? v.text.delete_prefix('CMP:').gsub(/[\$\{\}]/, '') : v.text }
+          vars.map { |v| v.text.start_with?('CMP:') ? v.text.delete_prefix('CMP:').gsub(/[${}]/, '') : v.text }
         end
       end
     end

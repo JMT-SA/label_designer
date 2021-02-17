@@ -19,8 +19,12 @@ require_relative 'config/environment'
 require 'base64'
 require 'pstore'
 require 'net/http'
+require 'net/ping'
 require 'uri'
 require 'pry' if ENV.fetch('RACK_ENV') == 'development'
+
+# Load any client rules before they are instantiated in AppConst:
+Dir['./lib/client_rules/*.rb'].sort.each { |f| require f }
 
 require './config/app_const'
 require './config/extended_column_definitions'

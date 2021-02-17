@@ -1,7 +1,7 @@
 ---
 :caption: Users
 :sql: "SELECT users.id, users.user_name, users.login_name,\r\nusers.created_at, users.updated_at,
-  \r\nusers.email\r\nFROM users\r\nORDER BY users.user_name"
+  \r\nusers.email,\r\nusers.active\r\nFROM users\r\nORDER BY users.user_name"
 :limit: 
 :offset: 
 :external_settings:
@@ -98,6 +98,22 @@
     :hide: false
     :pinned: 
     :groupable: true
+    :group_by_seq: 
+    :group_sum: false
+    :group_avg: false
+    :group_min: false
+    :group_max: false
+  active:
+    :name: active
+    :sequence_no: 7
+    :caption: Active
+    :namespaced_name: users.active
+    :data_type: :boolean
+    :width: 
+    :format: 
+    :hide: false
+    :pinned: 
+    :groupable: false
     :group_by_seq: 
     :group_sum: false
     :group_avg: false

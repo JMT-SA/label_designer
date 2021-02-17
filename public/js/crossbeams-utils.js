@@ -241,13 +241,61 @@ const crossbeamsUtils = {
   },
 
   /**
+   * Get the focusable children of the given element
+   * (code copied and modified from A11Y dialog)
+   *
+   * @param {Element} node
+   * @returns {Array<Element>}
+   */
+  getFocusableChildren: function getFocusableChildren(node) {
+    const focusableElements = [
+      // 'a[href]',
+      'area[href]',
+      'input:not([disabled]):not([type="submit"])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      // 'button:not([disabled])',
+      'iframe',
+      'object',
+      'embed',
+      '[contenteditable]',
+      '[tabindex]:not([tabindex^="-"])'];
+    const elementSet = Array.from((node || document).querySelectorAll(focusableElements.join(',')));
+    return elementSet.filter(child => !!(child.offsetWidth || child.offsetHeight || child.getClientRects().length));
+  },
+
+  /**
+   * Set the focus on the first focusable child of the given element
+   * (code copied and modified from A11Y dialog)
+   *
+   * @param {Element} node
+   * @returns {void}
+   */
+  setDialogFocus: function setDialogFocus(node) {
+    const focusableChildren = crossbeamsUtils.getFocusableChildren(node);
+
+    if (focusableChildren.length) {
+      // NoSoft: Do not focus on the close button if there is another input to focus on...
+      if (focusableChildren.length > 1 && focusableChildren[0].hasAttribute('data-a11y-dialog-hide')) {
+        focusableChildren[1].focus();
+      } else {
+        focusableChildren[0].focus();
+      }
+    }
+  },
+
+  /**
    * Replace the content of the active dialog window.
    * @param {string} data - the new content.
    * @returns {void}
    */
-  setDialogContent: function setDialogContent(data) {
+  setDialogContent: function setDialogContent(data, title) {
     const dlg = document.getElementById(this.activeDialogContent());
     dlg.innerHTML = data;
+    const head = document.getElementById(this.activeDialogTitle());
+    if (title) {
+      head.innerHTML = title;
+    }
     crossbeamsUtils.makeMultiSelects();
     crossbeamsUtils.makeSearchableSelects();
     crossbeamsUtils.applySelectEvents();
@@ -260,6 +308,49 @@ const crossbeamsUtils = {
     const sortable = Array.from(dlg.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
     sortable.forEach(elem => crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix,
                                                               elem.dataset.sortableGroup));
+
+    // Repeating request: Check if there are any areas in the content that should be modified by polling...
+    const pollsters = dlg.querySelectorAll('[data-poll-message-url]');
+    pollsters.forEach((pollable) => {
+      const pollUrl = pollable.dataset.pollMessageUrl;
+      const pollInterval = pollable.dataset.pollMessageInterval;
+      crossbeamsUtils.pollMessage(pollable, pollUrl, pollInterval);
+    });
+    crossbeamsUtils.setDialogFocus(dlg);
+  },
+
+  /**
+   * Launch a new dialog
+   * @param {string} data - the dialog content.
+   * @returns {void}
+   */
+  launchDialogContent: function launchDialogContent(data, title) {
+    document.getElementById(this.nextDialogTitle()).innerHTML = title || '';
+    const dlg = document.getElementById(this.nextDialogContent());
+    dlg.innerHTML = data;
+
+    crossbeamsUtils.makeMultiSelects();
+    crossbeamsUtils.makeSearchableSelects();
+    crossbeamsUtils.applySelectEvents();
+    const grids = dlg.querySelectorAll('[data-grid]');
+    grids.forEach((grid) => {
+      const gridId = grid.getAttribute('id');
+      const gridEvent = new CustomEvent('gridLoad', { detail: gridId });
+      document.dispatchEvent(gridEvent);
+    });
+    const sortable = Array.from(dlg.getElementsByTagName('input')).filter(a => a.dataset && a.dataset.sortablePrefix);
+    sortable.forEach(elem => crossbeamsUtils.makeListSortable(elem.dataset.sortablePrefix,
+                                                              elem.dataset.sortableGroup));
+
+    // Repeating request: Check if there are any areas in the content that should be modified by polling...
+    const pollsters = dlg.querySelectorAll('[data-poll-message-url]');
+    pollsters.forEach((pollable) => {
+      const pollUrl = pollable.dataset.pollMessageUrl;
+      const pollInterval = pollable.dataset.pollMessageInterval;
+      crossbeamsUtils.pollMessage(pollable, pollUrl, pollInterval);
+    });
+    crossbeamsUtils.nextDialog().show();
+    // Focus is handled by A11Y dialog lib.
   },
 
   /**
@@ -299,12 +390,14 @@ const crossbeamsUtils = {
           document.getElementById(this.activeDialogTitle()).innerHTML = '<span class="light-red">Error</span>';
         }
         if (data.replaceDialog) {
-          crossbeamsUtils.setDialogContent(data.replaceDialog.content);
+          crossbeamsUtils.setDialogContent(data.replaceDialog.content, data.replaceDialog.title);
           if (data.flash.type && data.flash.type === 'permission') {
             crossbeamsUtils.showWarning(data.flash.error, 20);
           } else {
             crossbeamsUtils.showError(data.flash.error);
           }
+        } else if (data.actions) {
+          crossbeamsUtils.processActions(data.actions);
         } else {
           crossbeamsUtils.setDialogContent(`<div class="mt3"><div class="crossbeams-${noteStyle}-note"><p>${data.flash.error}</p></div></div>`);
         }
@@ -316,8 +409,10 @@ const crossbeamsUtils = {
             console.groupEnd(); // eslint-disable-line no-console
           }
         }
+      } else if (data.actions) {
+        crossbeamsUtils.processActions(data.actions);
       } else if (data.replaceDialog) {
-        crossbeamsUtils.setDialogContent(data.replaceDialog.content);
+        crossbeamsUtils.setDialogContent(data.replaceDialog.content, data.replaceDialog.title);
       }
     }).catch((data) => {
       crossbeamsUtils.fetchErrorHandler(data);
@@ -489,10 +584,10 @@ const crossbeamsUtils = {
     action.replace_options.options.forEach((item) => {
       if (item.constructor === Array) {
         nVal = (item[1] || item[0]);
-        nText = item[0];
+        nText = String(item[0]);
       } else {
         nVal = item;
-        nText = item;
+        nText = String(item);
       }
       newItems.push({
         value: nVal,
@@ -586,6 +681,31 @@ const crossbeamsUtils = {
     } else {
       elem.value = action.change_select_value.value;
     }
+  },
+  /**
+   * Replace the url (href) of a DOM element.
+   * @param {object} action - the action object returned from the backend.
+   * @returns {void}
+   */
+  replaceURL: function replaceURL(action) {
+    const elem = document.getElementById(action.replace_url.id);
+    if (elem === null) {
+      this.alert({
+        prompt: `There is no DOM element with id: "${action.replace_url.id}"`,
+        title: 'Replace url: id missmatch',
+        type: 'error',
+      });
+      return;
+    }
+    if (!elem.hasAttribute('href')) {
+      this.alert({
+        prompt: `This DOM element with id: "${action.replace_url.id}" has no HREF attribute`,
+        title: 'Replace url: incorrect DOM element',
+        type: 'error',
+      });
+      return;
+    }
+    elem.href = action.replace_url.value;
   },
   /**
    * Replace the contents of a DOM element.
@@ -780,17 +900,17 @@ const crossbeamsUtils = {
   },
 
   addGridRow: function addGridRow(action) {
-    crossbeamsGridEvents.addRowToGrid(action.addRowToGrid.changes);
+    crossbeamsGridEvents.addRowToGrid(action.addRowToGrid.changes, action.addRowToGrid.gridId);
   },
 
   updateGridRow: function updateGridRow(action) {
     action.updateGridInPlace.forEach((gridRow) => {
-      crossbeamsGridEvents.updateGridInPlace(gridRow.id, gridRow.changes);
+      crossbeamsGridEvents.updateGridInPlace(gridRow.id, gridRow.changes, gridRow.gridId);
     });
   },
 
   deleteGridRow: function deleteGridRow(action) {
-    crossbeamsGridEvents.removeGridRowInPlace(action.removeGridRowInPlace.id);
+    crossbeamsGridEvents.removeGridRowInPlace(action.removeGridRowInPlace.id, action.removeGridRowInPlace.gridId);
   },
 
   /**
@@ -811,6 +931,9 @@ const crossbeamsUtils = {
       }
       if (action.change_select_value) {
         crossbeamsUtils.changeSelectValue(action);
+      }
+      if (action.replace_url) {
+        crossbeamsUtils.replaceURL(action);
       }
       if (action.replace_inner_html) {
         crossbeamsUtils.replaceInnerHtml(action);
@@ -844,6 +967,12 @@ const crossbeamsUtils = {
       }
       if (action.removeGridRowInPlace) {
         crossbeamsUtils.deleteGridRow(action);
+      }
+      if (action.replace_dialog) {
+        crossbeamsUtils.setDialogContent(action.replace_dialog.content, action.replace_dialog.title);
+      }
+      if (action.launch_dialog) {
+        crossbeamsUtils.launchDialogContent(action.launch_dialog.content, action.launch_dialog.title);
       }
     });
   },
@@ -1403,7 +1532,9 @@ const crossbeamsUtils = {
       throw new HttpError(response);
     })
     .then((data) => {
-      if (data.content) {
+      if (data.redirect) {
+        window.location = data.redirect;
+      } else if (data.content) {
         contentDiv.classList.remove('content-loading');
         contentDiv.innerHTML = data.content;
 

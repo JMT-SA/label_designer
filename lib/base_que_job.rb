@@ -39,14 +39,14 @@ class BaseQueJob < Que::Job
     # connection failure or something similar.
   end
 
-  def handle_error(error)
-    # case error
-    # when TemporaryError then retry_in 10.seconds
-    # when PermanentError then expire
-    # else super # Default (exponential backoff) behavior.
-    # end
-    super
-  end
+  # def handle_error(error)
+  #   # case error
+  #   # when TemporaryError then retry_in 10.seconds
+  #   # when PermanentError then expire
+  #   # else super # Default (exponential backoff) behavior.
+  #   # end
+  #   super
+  # end
 
   def log_level(elapsed)
     if elapsed > 60

@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
 module LabelApp
-  MasterListSchema = Dry::Validation.Params do
-    optional(:id).filled(:int?)
-    required(:list_type).filled(:str?)
-    required(:description).filled(:str?)
+  MasterListSchema = Dry::Schema.Params do
+    optional(:id).filled(:integer)
+    required(:list_type).filled(Types::StrippedString)
+    required(:description).filled(Types::StrippedString)
   end
 end

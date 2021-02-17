@@ -102,9 +102,9 @@ module LabelApp
 
     def config_for(variable_set)
       @cached_config[variable_set] ||= begin
-                                         repo = LabelApp::SharedConfigRepo.new
-                                         repo.remote_object_config_for(variable_set)
-                                       end
+        repo = LabelApp::SharedConfigRepo.new
+        repo.remote_object_config_for(variable_set)
+      end
     end
   end
 end

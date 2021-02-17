@@ -3,6 +3,7 @@
 module DevelopmentApp
   class GenerateNewScriptScaffold < BaseService
     attr_reader :script_class, :description, :reason
+
     def initialize(params)
       @script_class = params[:script_class]
       @description = params[:description]
@@ -34,6 +35,12 @@ module DevelopmentApp
         # Reason for this script:
         # -----------------------
         # #{comment_indent(reason)}
+        #
+        # To run:
+        # -------
+        # Debug : DEBUG=y RACK_ENV=production ruby scripts/base_script.rb #{script_class}
+        # Live  : RACK_ENV=production ruby scripts/base_script.rb #{script_class}
+        # Dev   : ruby scripts/base_script.rb #{script_class}
         #
         class #{script_class} < BaseScript
           def run

@@ -25,6 +25,7 @@ module UiRules
 
   class Base # rubocop:disable Metrics/ClassLength
     attr_reader :rules, :inflector
+
     def initialize(mode, authorizer, options)
       @mode        = mode
       @authorizer  = authorizer
@@ -59,7 +60,7 @@ module UiRules
     end
 
     # Generate HTML for a table of columns from the +@form_object+.
-    def compact_header(columns:, display_columns: 2, header_captions: {}) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+    def compact_header(columns:, display_columns: 2, header_captions: {}) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
       raise("#{self.class} form object has not been set up before calling 'compact_header`") if @form_object.nil?
 
       row = 0
@@ -102,7 +103,7 @@ module UiRules
       %(<div class="crossbeams-field"><label>Icon</label><div class="cbl-input"><span class="cbl-icon" style="color:#{color}">#{svg}</span></div></div>)
     end
 
-    def renderer_for_extcol(repo, config, caption)
+    def renderer_for_extcol(repo, config, caption) # rubocop:disable Metrics/AbcSize
       field = { caption: caption }
       if config[:masterlist_key]
         field[:renderer] = :select
@@ -157,7 +158,7 @@ module UiRules
       @rules[:behaviours] = behaviour.rules
     end
 
-    def apply_form_values
+    def apply_form_values # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
       return unless @options && @options[:form_values]
 
       # We need to apply values to the form object, so make sure it is not immutable first.
@@ -166,6 +167,10 @@ module UiRules
       @options[:form_values].each do |k, v|
         @form_object[k] = if v.is_a?(Hash)
                             v.transform_keys(&:to_s)
+                          elsif v.is_a?(String) && v.empty?
+                            nil
+                          elsif v.is_a?(String) && (@form_object[k].is_a?(TrueClass) || @form_object[k].is_a?(FalseClass))
+                            v == 't'
                           else
                             v
                           end
@@ -175,6 +180,7 @@ module UiRules
 
   class Behaviour
     attr_reader :rules
+
     def initialize
       @rules = []
     end
@@ -272,6 +278,7 @@ module UiRules
 
   class BaseChangeRenderer # rubocop:disable Metrics/ClassLength
     attr_reader :router, :options, :params
+
     def initialize(router, options)
       @router = router
       @options = options
@@ -305,6 +312,14 @@ module UiRules
     def change_select_value(actions)
       actions.map do |act|
         OpenStruct.new(type: :change_select_value,
+                       dom_id: act[:dom_id],
+                       value: act[:value])
+      end
+    end
+
+    def replace_url(actions)
+      actions.map do |act|
+        OpenStruct.new(type: :replace_url,
                        dom_id: act[:dom_id],
                        value: act[:value])
       end
@@ -374,6 +389,13 @@ module UiRules
       end
     end
 
+    def launch_dialog(actions)
+      actions.map do |act|
+        OpenStruct.new(type: :launch_dialog,
+                       content: act[:content])
+      end
+    end
+
     def clear_form_validation(actions)
       actions.map do |act|
         OpenStruct.new(type: :clear_form_validation,
@@ -384,7 +406,8 @@ module UiRules
     def add_grid_row(actions)
       actions.map do |act|
         OpenStruct.new(type: :add_grid_row,
-                       attrs: act[:attrs])
+                       attrs: act[:attrs],
+                       grid_id: act[:grid_id])
       end
     end
 
@@ -392,14 +415,16 @@ module UiRules
       actions.map do |act|
         OpenStruct.new(type: :update_grid_row,
                        ids: act[:ids],
-                       changes: act[:changes])
+                       changes: act[:changes],
+                       grid_id: act[:grid_id])
       end
     end
 
     def delete_grid_row(actions)
       actions.map do |act|
         OpenStruct.new(type: :delete_grid_row,
-                       id: act[:id])
+                       id: act[:id],
+                       grid_id: act[:grid_id])
       end
     end
   end

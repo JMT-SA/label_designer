@@ -5,7 +5,7 @@ module MenuHelpers
   end
 
   # Set instance vars related to registered mobile devices.
-  def check_registered_mobile_device # rubocop:disable Metrics/AbcSize
+  def check_registered_mobile_device
     @rmd_start_page = nil
     @rmd_scan_with_camera = false
     @hybrid_device = true
@@ -69,20 +69,43 @@ module MenuHelpers
     funcs.to_a
   end
 
-  def build_progs(rows, progs, progfuncs)
+  def build_progs(rows, progs, progfuncs) # rubocop:disable Metrics/AbcSize
     rows.each do |row|
       progs[row[:functional_area_id]] << { name: row[:program_name], id: row[:program_id] }
+      next unless progfunc_allowed?(row[:hide_if_const_true], row[:hide_if_const_false])
+
       progfuncs[row[:program_id]] << { name: row[:program_function_name], group_name: row[:group_name],
                                        url: progfunc_url(row), id: row[:id], func_id: row[:functional_area_id],
                                        prog_id: row[:program_id] }
     end
   end
 
+  # A program function can be hidden according to the boolean
+  # value of constants in AppConst.
+  def progfunc_allowed?(hide_if_true, hide_if_false) # rubocop:disable Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
+    return true if hide_if_true.nil? && hide_if_false.nil?
+
+    ok = true
+    (hide_if_true || '').split(',').each do |ht|
+      ok = false if app_const_true?(ht)
+    end
+
+    (hide_if_false || '').split(',').each do |hf|
+      ok = false unless app_const_true?(hf)
+    end
+    ok
+  end
+
+  # Is a constant in AppConst defined and true?
+  def app_const_true?(const)
+    AppConst.const_defined?(const) && AppConst.const_get(const) == true
+  end
+
   def progfunc_url(row)
     row[:show_in_iframe] ? "/iframe/#{row[:id]}" : row[:url]
   end
 
-  def build_menu(rows)
+  def build_menu(rows) # rubocop:disable Metrics/AbcSize
     res       = {}
     progs     = Hash.new { |h, k| h[k] = Set.new }
     progfuncs = Hash.new { |h, k| h[k] = [] }

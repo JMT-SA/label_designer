@@ -12,7 +12,7 @@ module SecurityApp
     # @param table [Symbol] a table name. Can be :functional_areas, :programs or :program_functions.
     # @return [String] The SQL script.
     def sql_for(table, id)
-      if private_methods.include?(table) && id
+      if private_methods.include?(table)
         send(table, id)
       else
         @columns = Hash[dev_repo.table_columns(table)]
@@ -120,9 +120,10 @@ module SecurityApp
       table_records(table, id).each do |rec| # should sort orgs by parent_id null first
         values = []
         column_names.each do |col|
-          values << if col == :party_id
+          values << case col
+                    when :party_id
                       '(SELECT MAX(id) FROM parties)'
-                    elsif col == :parent_id
+                    when :parent_id
                       parent_code = DB[:organizations].where(id: rec[col]).get(:short_description)
                       "(SELECT id FROM  organizations WHERE short_description = '#{parent_code}')"
                     else
@@ -142,7 +143,7 @@ module SecurityApp
       combined_party(:people, 'P', id)
     end
 
-    def party_roles(id) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity
+    def party_roles(id) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
       table = :party_roles
       @columns = Hash[dev_repo.table_columns(table)]
       column_names = dev_repo.table_col_names(table).reject { |c| %i[id active created_at updated_at].include?(c) }
@@ -186,32 +187,60 @@ module SecurityApp
       end
     end
 
-    def functional_areas(id)
-      functional_area = repo.find_functional_area(id)
-      sql = []
-      sql << sql_for_f(functional_area)
-      repo.all_hash(:programs, functional_area_id: id).each do |prog|
-        sql << programs(prog[:id])
+    def functional_areas(id) # rubocop:disable Metrics/AbcSize
+      functional_areas = if id.nil?
+                           repo.all(:functional_areas, SecurityApp::FunctionalArea)
+                         else
+                           [repo.find_functional_area(id)]
+                         end
+      # functional_area = repo.find_functional_area(id)
+      ar = []
+      functional_areas.each do |functional_area|
+        sql = []
+        sql << sql_for_f(functional_area)
+        repo.all_hash(:programs, functional_area_id: id).each do |prog|
+          sql << programs(prog[:id])
+        end
+        ar << sql.join("\n\n")
       end
-      sql.join("\n\n")
+      puts ar.join("\n")
+      ar.join("\n")
     end
 
-    def programs(id)
-      program         = repo.find_program(id)
-      functional_area = repo.find_functional_area(program.functional_area_id)
-      sql             = []
-      sql << sql_for_p(functional_area, program)
-      repo.all_hash(:program_functions, program_id: id).each do |prog_func|
-        sql << program_functions(prog_func[:id])
+    def programs(id) # rubocop:disable Metrics/AbcSize
+      programs = if id.nil?
+                   repo.all(:programs, SecurityApp::Program)
+                 else
+                   [repo.find_program(id)]
+                 end
+      ar = []
+      programs.each do |program|
+        functional_area = repo.find_functional_area(program.functional_area_id)
+        sql = []
+        sql << sql_for_p(functional_area, program)
+        repo.all_hash(:program_functions, program_id: id).each do |prog_func|
+          sql << program_functions(prog_func[:id])
+        end
+        ar << sql.join("\n\n")
       end
-      sql.join("\n\n")
+      puts ar.join("\n")
+      ar.join("\n")
     end
 
-    def program_functions(id)
-      program_function = repo.find_program_function(id)
-      program          = repo.find_program(program_function.program_id)
-      functional_area  = repo.find_functional_area(program.functional_area_id)
-      sql_for_pf(functional_area, program, program_function)
+    def program_functions(id) # rubocop:disable Metrics/AbcSize
+      program_functions = if id.nil?
+                            repo.all(:program_functions, SecurityApp::ProgramFunction)
+                          else
+                            [repo.find_program_function(id)]
+                          end
+      ar = []
+      program_functions.each do |program_function|
+        program          = repo.find_program(program_function.program_id)
+        functional_area  = repo.find_functional_area(program.functional_area_id)
+        ar << sql_for_pf(functional_area, program, program_function)
+      end
+      puts ar.join("\n")
+      ar.join("\n")
     end
 
     def repo

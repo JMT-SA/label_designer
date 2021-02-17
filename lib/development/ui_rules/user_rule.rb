@@ -2,7 +2,7 @@
 
 module UiRules
   class UserRule < Base
-    def generate_rules # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity , Metrics/CyclomaticComplexity
+    def generate_rules # rubocop:disable Metrics/AbcSize
       @repo = DevelopmentApp::UserRepo.new
       build_permission_tree if @mode == :permission_tree
 
@@ -28,8 +28,8 @@ module UiRules
     end
 
     def set_new_fields
-      fields[:password] = { subtype: :password }
-      fields[:password_confirmation] = { subtype: :password, caption: 'Confirm password' }
+      fields[:password] = { subtype: :password, required: true }
+      fields[:password_confirmation] = { subtype: :password, caption: 'Confirm password', required: true }
     end
 
     def set_detail_fields
@@ -52,7 +52,11 @@ module UiRules
     end
 
     def set_edit_fields
+      menu_options = SecurityApp::MenuRepo.new.for_select_homepages
+      line_options = ProductionApp::ResourceRepo.new.for_select_plant_resources_of_type(Crossbeams::Config::ResourceDefinitions::LINE)
       fields[:login_name] = { renderer: :label }
+      fields[:homepage_id] = { renderer: :select, parent_field: :profile, options: menu_options, prompt: true }
+      fields[:packhouse_line_id] = { renderer: :select, parent_field: :profile, options: line_options, prompt: true }
     end
 
     def set_show_fields
@@ -73,14 +77,15 @@ module UiRules
     def make_form_object # rubocop:disable Metrics/AbcSize
       make_new_form_object && return if @mode == :new
 
-      @form_object = if @mode == :details
+      @form_object = case @mode
+                     when :details
                        OpenStruct.new(@repo.find_user(@options[:id]).to_h.merge(password: nil,
                                                                                 old_password: nil,
                                                                                 password_confirmation: nil))
-                     elsif @mode == :change_password
+                     when :change_password
                        OpenStruct.new(@repo.find_user(@options[:id]).to_h.merge(password: nil,
                                                                                 password_confirmation: nil))
-                     elsif @mode == :permission_tree
+                     when :permission_tree
                        perms = {}
                        @tree_fields.each { |tree| perms[tree[:field]] = tree[:value] }
                        OpenStruct.new(@repo.find_user(@options[:id]).to_h.merge(perms))

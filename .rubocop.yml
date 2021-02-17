@@ -2,29 +2,63 @@ require:
   - ./lib/rubocop/cops/lint_env
 
 AllCops:
+  TargetRubyVersion: 2.5.5
   Exclude:
     - db/**/*
     - test/**/*
     - tmp/**/*
+    - hold/**/*
 
 # New (pending) cops:
-Lint/RaiseException:
+Lint/DuplicateBranch: # (new in 1.3)
+  Enabled: false
+Lint/DuplicateRegexpCharacterClassElement: # (new in 1.1)
   Enabled: true
-Lint/StructNewOverride:
+Lint/EmptyBlock: # (new in 1.1)
   Enabled: true
-Style/HashEachMethods:
+Lint/EmptyClass: # (new in 1.3)
   Enabled: true
-Style/HashTransformKeys:
+Lint/NoReturnInBeginEndBlocks: # (new in 1.2)
   Enabled: true
-Style/HashTransformValues:
+Lint/ToEnumArguments: # (new in 1.1)
   Enabled: true
-Layout/SpaceAroundMethodCallOperator:
+Lint/UnmodifiedReduceAccumulator: # (new in 1.1)
   Enabled: true
-Style/ExponentialNotation:
+Style/ArgumentsForwarding: # (new in 1.1)
   Enabled: true
-
+Style/CollectionCompact: # (new in 1.2)
+  Enabled: true
+Style/DocumentDynamicEvalDefinition: # (new in 1.1)
+  Enabled: true
+Style/NegatedIfElseCondition: # (new in 1.2)
+  Enabled: true
+Style/NilLambda: # (new in 1.3)
+  Enabled: true
+Style/RedundantArgument: # (new in 1.4)
+  Enabled: true
+Style/SwapValues: # (new in 1.1)
+  Enabled: true
 
 # END of pending cops
+
+Style/RedundantAssignment:
+  Enabled: false
+
+Lint/MissingSuper:
+  Enabled: false
+
+Naming/VariableNumber:
+  Enabled: false
+  # EnforcedStyle: snake_case
+  # AllowedIdentifiers:
+  #   - h1
+  #   - h2
+  #   - h3
+
+Metrics/CyclomaticComplexity:
+  Max: 8
+
+# END of latest additions
 
 Style/Documentation:
   Enabled: false

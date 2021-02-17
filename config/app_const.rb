@@ -1,9 +1,13 @@
 # frozen_string_literal: true
 
 # A class for defining global constants in a central place.
-class AppConst # rubocop:disable Metrics/ClassLength
+class AppConst
   def self.development?
     ENV['RACK_ENV'] == 'development'
+  end
+
+  def self.test?
+    ENV['RACK_ENV'] == 'test'
   end
 
   # Any value that starts with y, Y, t or T is considered true.
@@ -14,11 +18,14 @@ class AppConst # rubocop:disable Metrics/ClassLength
 
   # Take an environment variable and interpret it
   # as a boolean.
-  def self.make_boolean(key, required: false)
+  #
+  # If required is true, the variable MUST have a value.
+  # If default_true is true, the value will be set to true if the variable has no value.
+  def self.make_boolean(key, required: false, default_true: false)
     val = if required
             ENV.fetch(key)
           else
-            ENV.fetch(key, 'f')
+            ENV.fetch(key, default_true ? 't' : 'f')
           end
     check_true(val)
   end
@@ -29,10 +36,26 @@ class AppConst # rubocop:disable Metrics/ClassLength
   end
 
   # Client-specific code
+  CLIENT_SET = {
+    'srcc' => 'Sundays River Citrus Company',
+    'tad' => 'Two A Day',
+    'kr' => 'Kromco'
+  }.freeze
   CLIENT_CODE = ENV.fetch('CLIENT_CODE')
+  raise 'CLIENT_CODE must be lowercase.' unless CLIENT_CODE == CLIENT_CODE.downcase
+  raise "Unknown CLIENT_CODE - #{CLIENT_CODE}" unless CLIENT_SET.keys.include?(CLIENT_CODE)
+
   SHOW_DB_NAME = ENV.fetch('DATABASE_URL').rpartition('@').last
   URL_BASE = ENV.fetch('URL_BASE')
+  URL_BASE_IP = ENV.fetch('URL_BASE_IP')
   APP_CAPTION = ENV.fetch('APP_CAPTION')
+
+  NEW_FEATURE_LBL_PREPROCESS = make_boolean('NEW_FEATURE_LBL_PREPROCESS')
+  if NEW_FEATURE_LBL_PREPROCESS
+    puts '>>> NB. MesServer version MUST be GREATER than or equal to 3.57d.............'
+  else
+    puts '>>> NB. MesServer version MUST be LESS than or equal to 3.55.............'
+  end
 
   # General
   DEFAULT_KEY = 'DEFAULT'
@@ -54,12 +77,16 @@ class AppConst # rubocop:disable Metrics/ClassLength
 
   # MesServer
   LABEL_SERVER_URI = ENV.fetch('LABEL_SERVER_URI')
+  raise 'LABEL_SERVER_URI must end with a "/"' unless LABEL_SERVER_URI.end_with?('/')
+
   POST_FORM_BOUNDARY = 'AaB03x'
 
   # Labels
   SHARED_CONFIG_HOST_PORT = ENV.fetch('SHARED_CONFIG_HOST_PORT')
   LABEL_VARIABLE_SETS = ENV.fetch('LABEL_VARIABLE_SETS').strip.split(',')
   LABEL_PUBLISH_NOTIFY_URLS = ENV.fetch('LABEL_PUBLISH_NOTIFY_URLS', '').split(',')
+  BATCH_PRINT_MAX_LABELS = ENV.fetch('BATCH_PRINT_MAX_LABELS', 20).to_i
+  PREVIEW_PRINTER_TYPE = ENV.fetch('PREVIEW_PRINTER_TYPE', 'zebra')
 
   # Label sizes. The arrays contain width then height.
   DEFAULT_LABEL_DIMENSION = ENV.fetch('DEFAULT_LABEL_DIMENSION', '84x64')
@@ -121,14 +148,18 @@ class AppConst # rubocop:disable Metrics/ClassLength
   # The possible fruitspec tokens are:
   # HBL: 'COUNT: $:actual_count_for_pack$'
   # UM : 'SIZE: $:size_reference$'
+  # SR : '$:size_ref_or_count$ $:product_chars$ $:target_market_group_name$'
   # * actual_count_for_pack
   # * basic_pack_code
   # * commodity_code
+  # * grade_code
   # * mark_code
   # * marketing_variety_code
   # * org_code
+  # * product_chars
   # * size_count_value
   # * size_reference
+  # * size_ref_or_count
   # * standard_pack_code
   # * target_market_group_name
   CLM_BUTTON_CAPTION_FORMAT = ENV['CLM_BUTTON_CAPTION_FORMAT']
@@ -137,6 +168,12 @@ class AppConst # rubocop:disable Metrics/ClassLength
   # If all robots on site are homogenous, set the value here.
   # Else it will be looked up from the module name.
   ROBOT_DISPLAY_LINES = ENV.fetch('ROBOT_DISPLAY_LINES', 0).to_i
+  ROBOT_MSG_SEP = '###'
+
+  # Max number of passenger instances - used for designating high, busy or over usage
+  MAX_PASSENGER_INSTANCES = ENV.fetch('MAX_PASSENGER_INSTANCES', 30).to_i
+  # Lowest state for passenger usage to send emails. Can be INFO, BUSY or HIGH.
+  PASSENGER_USAGE_LEVEL = ENV.fetch('PASSENGER_USAGE_LEVEL', 'INFO')
 
   BIG_ZERO = BigDecimal('0')
   # The maximum size of an integer in PostgreSQL

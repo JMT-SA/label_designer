@@ -8,7 +8,7 @@ module LabelApp
         module_type: Faker::Lorem.word,
         server_ip: nil,
         ip_address: nil,
-        port: Faker::Number.number(4),
+        port: Faker::Number.number(digits: 4),
         alias: Faker::Lorem.word,
         active: true,
         created_at: '2010-01-01 12:00',

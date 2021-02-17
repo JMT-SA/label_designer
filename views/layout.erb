@@ -30,6 +30,15 @@
     <%= content_for :late_head %>
   </head>
   <body class="site" data-utf-8-ensurer="О">
+    <div id="reloader" hidden class="absolute top-1 w-100 z-999 tc inline-flex items-start justify-center">
+      <div class="dib bg-white pv3 ph4 ba br2 b--dark-gray shadow-3">
+      <span id="reloader_msg" class="mid-gray mb3 dib">A new run has been executed. Reload the page to refresh information.</span>
+      <div class="bg-animate hover-bg-light-gray pointer pa2 b bg-white dib black ml2" title="Close" onclick="document.getElementById('reloader').hidden=true">&times;</div>
+      <br>
+      <button class="white bg-dark-blue br2 dim pa3 ba b--near-white inline-flex items-center" onclick="window.location=window.location">
+<svg class="cbl-icon mr3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M14.66 15.66A8 8 0 1 1 17 10h-2a6 6 0 1 0-1.76 4.24l1.42 1.42zM12 10h8l-4 4-4-4z"/></svg>
+        Reload page</button></div>
+    </div>
   <header>
     <div class="system-name">
       <a href="/" class="dib f5 f4-ns fw6 mt0 mb2 link mid-gray" title="Home">
@@ -38,7 +47,7 @@
           <small class="nowrap f6 mt2 mt3-ns pr2 black-70 fw2">v<%= ENV['VERSION'] %></small>
         </div>
       </a>
-</div>
+    </div>
       <div id="notification-area">
         <% if current_user %>
           <!-- [current resource] -->
@@ -92,6 +101,7 @@
           <% asset_type = assets_paths(:css).any? { |p| p.include?('scss') } ? :bug : :show %>
           <span class="ml4">ASSETS: <%= Crossbeams::Layout::Icon.new(asset_type).render %></span>
           <span class="ml4">DB: <%= AppConst::SHOW_DB_NAME %></span>
+          <span class="ml4">CLIENT: <%= AppConst::CLIENT_CODE %></span>
         <% end %>
     </footer>
 
@@ -99,7 +109,7 @@
       <script src="/js/konva.min.js?seq=1"></script>
     <% else %>
       <script src="/js/ag-grid-enterprise.min.js?seq=2"></script>
-      <script src="/js/ag-enterprise-activation.js?seq=1"></script>
+      <script src="/js/ag-enterprise-activation.js?seq=2"></script>
   <% end %>
 
     <script src="/js/jackbox.min.js"></script>
@@ -111,15 +121,15 @@
     <script src="/js/svg-inject.min.js"></script>
     <script src="/js/crossbeams-error.js"></script>
     <script src="/js/crossbeams-local-storage.js"></script>
-    <script src="/js/crossbeams-utils.js?seq=19"></script>
-    <script src="/js/crossbeams-layout.js?seq=18"></script>
-    <script src="/js/crossbeams-grid-loader.js?seq=26"></script>
+    <script src="/js/crossbeams-utils.js?seq=28"></script>
+    <script src="/js/crossbeams-layout.js?seq=22"></script>
+    <script src="/js/crossbeams-grid-loader.js?seq=34"></script>
     <script src="/js/crossbeams-data-miner-params.js?seq=2"></script>
     <script src="/js/crossbeams-menu-builder.js?seq=2"></script>
     <script src="/js/choices.min.js?seq=1"></script>
     <script src="/js/multi.min.js"></script>
     <script src="/js/a11y-dialog-cbeam.js"></script>
-    <script src="/js/message-bus.js"></script>
+    <script src="/js/message-bus.js?seq=1"></script>
     <script src="/js/message-bus-ajax.js"></script>
     <script>
       let crossbeamsDialogLevel1;
@@ -149,22 +159,72 @@
 
       // MessageBus handling --- START
       MessageBus.baseUrl = "/terminus/";
-      const logged_in_user = '<%= current_user ? current_user.user_name : "unknown" %>';
+      const logged_in_user = '<%= current_user ? current_user.login_name : "unknown" %>';
 
+      // @message_bus_client_id
       MessageBus.subscribe("/terminus", function(msg){
         console.log('MSG', msg);
+        if (msg.actions) {
+          msg.actions.forEach((action) => {
+            if (action.toggle_classes) {
+              console.log('CLASS', action.toggle_classes.id);
+            } else if (action.set_inner_value) {
+              console.log('HTML', action.set_inner_value.id);
+            } else if (action.reload_page) {
+              console.log('RELOAD', action.reload_page);
+            } else {
+              console.log('UNKNOWN', action);
+            }
+          });
+        }
         if (msg.targetUser && msg.targetUser !== 'broadcast' && msg.targetUser !== logged_in_user) {
           return;
         }
+        // TargetPage matches the last characters of the URL
+        if (msg.targetPage && !window.location.pathname.match(`${msg.targetPage}$`)) {
+          // test for matching param perhaps? e.g. production_run_id=536
+          return;
+        }
+        if (msg.actions) {
+          msg.actions.forEach((action) => {
+            if (action.toggle_classes) {
+              const el = document.getElementById(action.toggle_classes.id);
+              if (el && action.toggle_classes.rem_classes.length > 0) {
+                el.classList.remove(...action.toggle_classes.rem_classes);
+              }
+              if (el && action.toggle_classes.add_classes.length > 0) {
+                el.classList.add(...action.toggle_classes.add_classes);
+              }
+            }
+            if (action.reload_page) {
+              if (action.reload_page.message) {
+                document.getElementById('reloader_msg').innerHTML = action.reload_page.message;
+              }
+              document.getElementById('reloader').hidden = false;
+            }
+            if (action.set_inner_value) {
+              const el = document.getElementById(action.set_inner_value.id);
+              if (el) {
+                el.innerHTML = action.set_inner_value.val;
+              }
+            }
+          });
+        }
+
+        if (msg.message) {
         switch (msg.messageType) {
           case 'warning':
             crossbeamsUtils.showWarning(msg.message);
+            return;
+          case 'success':
+            crossbeamsUtils.showSuccess(msg.message);
             return;
           case 'error':
             crossbeamsUtils.showError(msg.message);
             return;
           default:
             crossbeamsUtils.showInformation(msg.message);
+          }
         }
       });
       // MessageBus handling --- END

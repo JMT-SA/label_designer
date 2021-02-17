@@ -4,7 +4,7 @@ module DM
   module Report
     module PreparedReport
       class WebQuery
-        def self.call(instance, url, remote = true)
+        def self.call(instance, url, remote: true)
           ui_rule = UiRules::Compiler.new(:prepared_report, :webquery, instance: instance, url: url)
           rules   = ui_rule.compile
 

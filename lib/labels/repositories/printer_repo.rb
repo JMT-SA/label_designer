@@ -139,7 +139,7 @@ module LabelApp
                             ])
     end
 
-    def select_printers_for_application(application) # rubocop:disable Metrics/AbcSize
+    def select_printers_for_application(application)
       DB[:printers].join(:printer_applications, printer_id: :id)
                    .where(application: application, Sequel[:printers][:active] => true, Sequel[:printer_applications][:active] => true)
                    .select(Sequel[:printers][:printer_name], Sequel[:printers][:id])

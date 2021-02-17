@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class LabelDesigner < Roda # rubocop:disable Metrics/ClassLength
+class LabelDesigner < Roda
   # DELIVERIES
   # --------------------------------------------------------------------------
   route 'deliveries', 'rmd' do |r| # rubocop:disable Metrics/BlockLength

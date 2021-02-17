@@ -23,8 +23,11 @@ ENV['RACK_ENV'] ||= 'development'
 require 'bundler'
 Bundler.require(:default, ENV.fetch('RACK_ENV', 'development'))
 
+root = File.expand_path('..', __dir__)
 require_relative '../config/environment'
+Dir["#{root}/lib/client_rules/*.rb"].sort.each { |f| require f }
 require_relative '../config/app_const'
+require_relative '../helpers/utility_functions'
 require_relative '../lib/crossbeams_errors'
 require_relative '../lib/crossbeams_responses'
 require_relative '../lib/error_mailer'
@@ -49,7 +52,7 @@ class BaseScript
   # This in turn calls the inheriting class' run method.
   #
   # @return [exit status]
-  def exec # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+  def exec # rubocop:disable Metrics/AbcSize
     res = run
     if debug_mode
       puts '---'
@@ -80,8 +83,8 @@ class BaseScript
   # @param subject [string] optional, the email subject.
   # @param message [string] optional, the mail body.
   # @return [void]
-  def send_error_email(subject: nil, message: nil)
-    ErrorMailer.send_error_email(subject, message)
+  def send_error_email(subject: nil, message: nil, recipients: nil)
+    ErrorMailer.send_error_email(subject: subject, message: message, recipients: recipients)
   end
 
   # Write out a dump of information for later inspection.
@@ -183,8 +186,10 @@ class EgScript < BaseScript
   end
 end
 
-Dir['./scripts/*.rb'].sort.each { |f| require f unless f.match?(/base_script/) }
+if __FILE__ == $PROGRAM_NAME
+  Dir['./scripts/*.rb'].sort.each { |f| require f unless f.match?(/base_script/) }
 
-klass = ARGV.shift
-script = Module.const_get(klass).send(:new, ARGV)
-script.exec
+  klass = ARGV.shift
+  script = Module.const_get(klass).send(:new, ARGV)
+  script.exec
+end

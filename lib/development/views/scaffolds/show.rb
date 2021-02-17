@@ -4,7 +4,7 @@ module Development
   module Generators
     module Scaffolds
       class Show # rubocop:disable Metrics/ClassLength
-        def self.call(results) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity
+        def self.call(results) # rubocop:disable Metrics/AbcSize, Metrics/CyclomaticComplexity, Metrics/PerceivedComplexity
           ui_rule = UiRules::Compiler.new(:scaffolds, :new)
           rules   = ui_rule.compile
 
@@ -202,8 +202,10 @@ module Development
           layout
         end
 
-        def self.save_snippet_form(section, path, code) # rubocop:disable Metrics/AbcSize
-          if !File.exist?(File.join(ENV['ROOT'], path))
+        def self.save_snippet_form(section, path, code)
+          if File.exist?(File.join(ENV['ROOT'], path))
+            section.add_text(path)
+          else
             section.form do |form|
               form.form_config = {
                 name: 'snippet',
@@ -220,8 +222,6 @@ module Development
               form.add_field :value
               form.submit_captions 'Save', 'Saving'
             end
-          else
-            section.add_text(path)
           end
         end
 

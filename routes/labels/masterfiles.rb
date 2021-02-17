@@ -49,8 +49,18 @@ class LabelDesigner < Roda
       r.post do        # CREATE
         res = interactor.create_master_list(params[:master_list])
         if res.success
-          flash[:notice] = res.message
-          redirect_to_last_grid(r)
+          if fetch?(r)
+            row_keys = %i[
+              id
+              list_type
+              description
+            ]
+            add_grid_row(attrs: select_attributes(res.instance, row_keys),
+                         notice: res.message)
+          else
+            flash[:notice] = res.message
+            redirect_to_last_grid(r)
+          end
         else
           re_show_form(r, res, url: '/labels/masterfiles/master_lists/new') do
             Labels::Masterfiles::MasterList::New.call(form_values: params[:master_list],
