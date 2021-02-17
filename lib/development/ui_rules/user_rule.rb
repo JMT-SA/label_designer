@@ -52,11 +52,7 @@ module UiRules
     end
 
     def set_edit_fields
-      menu_options = SecurityApp::MenuRepo.new.for_select_homepages
-      line_options = ProductionApp::ResourceRepo.new.for_select_plant_resources_of_type(Crossbeams::Config::ResourceDefinitions::LINE)
       fields[:login_name] = { renderer: :label }
-      fields[:homepage_id] = { renderer: :select, parent_field: :profile, options: menu_options, prompt: true }
-      fields[:packhouse_line_id] = { renderer: :select, parent_field: :profile, options: line_options, prompt: true }
     end
 
     def set_show_fields
