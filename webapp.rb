@@ -275,6 +275,11 @@ class LabelDesigner < Roda
         extra_attributes = session[:new_label_attributes] ### WHAT IF THESE nil? (as happened at SRCC at 00:40) <session cleared? problem if cloned? OR double-send? - 1st end has session data and second has it replaced with nil...>
         extcols = interactor.select_extended_columns_params(extra_attributes)
         from_id = extra_attributes[:cloned_from_id]
+        img = if AppConst::NEW_FEATURE_LBL_PREPROCESS
+                Sequel.blob(interactor.image_from_param_without_alpha(params[:imageString]))
+              else
+                Sequel.blob(interactor.image_from_param(params[:imageString]))
+              end
         changeset = { label_json: params[:label],
                       label_name: params[:labelName],
                       label_dimension: params[:labelDimension],
@@ -287,7 +292,7 @@ class LabelDesigner < Roda
                       sub_category: extra_attributes[:sub_category],
                       variable_set: extra_attributes[:variable_set],
                       variable_xml: params[:XMLString],
-                      png_image: Sequel.blob(interactor.image_from_param(params[:imageString])) }
+                      png_image: img }
 
         id = nil
         DB.transaction do
