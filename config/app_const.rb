@@ -39,6 +39,7 @@ class AppConst
   CLIENT_SET = {
     'srcc' => 'Sundays River Citrus Company',
     'tad' => 'Two A Day',
+    'ghs' => 'Goede Hoop Sitrus',
     'kr' => 'Kromco'
   }.freeze
   CLIENT_CODE = ENV.fetch('CLIENT_CODE')
