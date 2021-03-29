@@ -3,9 +3,12 @@
 module LabelApp
   # Called after a label has been approved.
   class NotifyLabelApprovedJob < BaseQueJob
-    attr_reader :list, :label
+    attr_reader :list, :label, :approved, :reject_reason
 
-    def run(label_id)
+    def run(label_id, approved, reject_reason)
+      @approved = approved
+      @reject_reason = reject_reason
+
       build_list
 
       unless list.empty?
@@ -13,7 +16,7 @@ module LabelApp
 
         mail_opts = {
           to: format_recipients,
-          subject: "NSLD Label approved: #{label.label_name}",
+          subject: subject,
           body: body
         }
         DevelopmentApp::SendMailJob.enqueue(mail_opts)
@@ -22,6 +25,10 @@ module LabelApp
     end
 
     private
+
+    def subject
+      "NSLD Label #{approved ? 'approved' : 'rejected'}: #{label.label_name}"
+    end
 
     def build_list
       repo = DevelopmentApp::UserRepo.new
@@ -39,6 +46,12 @@ module LabelApp
 
     def body
       multi_labels = @label_repo.sub_label_belongs_to_names(label.id)
+      return rejected_body unless approved
+
+      approved_body(multi_labels)
+    end
+
+    def approved_body(multi_labels)
       if multi_labels.empty?
         <<~STR
           Label "#{label.label_name}" has been approved.
@@ -55,6 +68,16 @@ module LabelApp
           * #{multi_labels.join("\n* ")}
         STR
       end
+    end
+
+    def rejected_body
+      <<~STR
+        Label "#{label.label_name}" has been rejected.
+
+        It needs to be re-edited and re-submitted for approval.
+
+        #{reject_reason}
+      STR
     end
   end
 end
