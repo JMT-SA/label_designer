@@ -1,0 +1,95 @@
+== Designing labels
+
+The label designer page offers a rich environment for quickly designing label backgrounds and for positioning dynamic text or barcode content.
+
+== Label shapes
+
+The designer offers the following shapes for forming the background:
+
+**Line**:: - a line can be drawn either horizontally or vertically.
+**Rectangle**:: - can be drawn as a square by holding the CTRL button down while dragging the mouse.
+**Ellipse**:: - can be drawn as a cirlce by holding the CTRL button down while dragging the mouse.
+**Image**:: - images can be uploaded, positioned and resized. Uploaded images should be black and white only.
+**Text**:: - can be rotated and formatted in various ways.
+
+== Dynamic variables
+
+These are represented as text within a rectangle. The rectangle denotes the print area and the text represents the format that will be used when printing the dynamic value. Each shape is associated with the variable to be used for printing and with other attributes - especially for barcodes.
+
+There are four types of variable:
+
+1. _Standard dynamic variable_ - the value of the variable will be printed as-is.
+2. _Standard dynamic variable barcode_ - the value of the variable will be printed as a barcode.
+3. _Compound variable_ - a grouping of variables with static text to be printed together.
+4. _Static barcode_ - a non-dynamic value that will be printed as a barcode.
+
+== Toolbars
+
+=== Select and draw
+
+.Top (select and draw) toolbar
+image::label_designer_toolbar_top.png[Top Toolbar]
+
+The top toolbar includes the following buttons (from left to right):
+
+1. **Select** -- when this button is highlighted you can click on a shape in the drawing surface to select it. If you hold SHIFT or CTRL while clicking you can select multiple shapes.
+1. **Text** -- drag the mouse on the drawing surface to generate text. Use the area to the right of the toolbar to write the text content.
+1. **Variable** -- drag the mouse to generate a shape where a dynamic variable will be placed.
+1. **Image** -- opens a dialog which allows you to select an image to upload and place in the drawing surface.
+1. **Line** -- drag the mouse to generate a line. Lines will be either horizontal or vertical, depending on the shape of the area you drag.
+1. **Rectangle** -- drag the mouse to generate a rectangle. If you hold the `CTRL` key down while drawing, you will generate a square.
+1. **Ellipse** -- drag the mouse to generate an ellipse. If you hold the `CTRL` key down while drawing, you will generate a circle.
+1. **Remove** -- click to remove the selected shape(s) from the drawing area.
+1. **Rotate** -- click to rotate the selected shape 90 degrees (clockwise). This only applies to _text_ and _variable_ shapes.
+1. **Undo** -- click to undo the last action.
+1. **Redo** -- click to redo the last undone action.
+1. **Copy** -- copy the selected shape(s).
+1. **Paste** -- paste the copied shape(s) to the drawing area.
+1. **Set stroke width** -- change the stroke width (line thickness) of selected lines, rectangles and ellipses.
+1. **Align left edges** -- align the left edges of two or more selected shapes to the 1st selected.
+1. **Align top edges** -- align the top edges of two or more selected shapes to the 1st selected.
+
+=== Text formatting
+
+.Bottom (text formatting) toolbar
+image::label_designer_toolbar_text.png[Bottom (text) Toolbar]
+
+The bottom toolbar applies to text and variable shapes only and includes the following buttons (from left to right):
+
+1. **Bold** -- toggle text between bold and regular.
+1. **Underline** -- toggle underline for the selected text.
+1. **Italic** -- toggle between italic and standard font.
+1. **Left Justify** -- left-align text (default). Only one of the three _Justify_ buttons will be active at a time.
+1. **Centre Justify** -- centre-align text.
+1. **Right Justify** -- right-align text.
+1. **Font Size** -- choose the font size.
+1. **Font** -- choose the font. **NB**. Not all fonts can be used for variables, but they can all be chosen for background text.
+
+== Positioning and resizing shapes
+
+You can use the mouse to drag a shape to another part of the drawing area.
+
+For selected shape(s) you can use the up, down, left and right arrows to move shapes very precisely a small distance at a time.
+
+Click on the small squares of a selected shape to resize it. Using the squares at the corner of a shape will keep the aspect ratio of the shape while resizing (this can be especially important for _images_). The squares at the middle parts of a shape will resize without keeping the aspect ratio.
+
+If you hold down the CTRL key while pressing up, down, left or right arrows, the shape will shrink or grow as follows:
+
+* CTRL and UP :: shrinks the height.
+* CTRL and DOWN :: grows the height.
+* CTRL and LEFT :: shrinks the width.
+* CTRL and RIGHT :: grows the width.
+
+=== Align
+
+If you multiselect two or more shapes, you can align the tops or left sides to the top or left of the first shape you selected.
+
+* Select the shapes starting from the one whose position you want to keep.
+* Click the _Align top_ button to move the shapes so their top position is the same as the first shape's top position.
+* Click the _Align left_ button to move the shapes so their left position is the same as the first shape's left position.
+
+== Variables
+
+Right-click on a variable shape and choose _variable settings_ to open a dialog to define the dynamic variable to be printed.
+
+Choose a variable name in the first dropdown of the dialog. The text in the variable shape will show the same name. However you can change this by overwriting it in the text box.

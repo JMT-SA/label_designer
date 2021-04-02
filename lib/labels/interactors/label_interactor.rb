@@ -308,7 +308,7 @@ module LabelApp
         config.height = AppConst::LABEL_SIZES[label.label_dimension][:height].to_i
         config.label_dimension = label.label_dimension
         config.pixels_mm = label.px_per_mm.to_i
-        config.help_url = nil
+        config.help_url = '/help/app/label_designer/designing' # nil
         config.label_json = label.label_json
 
         # name
