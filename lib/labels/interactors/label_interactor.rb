@@ -396,8 +396,8 @@ module LabelApp
     end
 
     def complete_a_label(id, params)
-      # TODO: CHECK IF ANY VARIABLES ARE UNSET FIRST
-      res = complete_a_record(:labels, id, params.merge(enqueue_job: false))
+      res = repo.check_label_for_unset_variables(id)
+      res = complete_a_record(:labels, id, params.merge(enqueue_job: false)) if res.success
       # Use params to trigger alert...
       if res.success
         success_response(res.message, label(id))

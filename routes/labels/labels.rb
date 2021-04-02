@@ -216,7 +216,7 @@ class LabelDesigner < Roda
             flash[:notice] = res.message
             redirect_to_last_grid(r)
           else
-            re_show_form(r, res) { Labels::Labels::Label::Complete.call(id, params[:label], res.errors) }
+            re_show_form(r, res) { Labels::Labels::Label::Complete.call(id, form_values: params[:label], form_errors: res.errors) }
           end
         end
       end
