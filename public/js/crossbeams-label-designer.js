@@ -1955,27 +1955,22 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
             family = 'Arial';
             style = 'normal';
         }
-        // console.log(dShape.text, dShape.fontFamily, '=>', family, style);
-        // if (dShape.text === 'Orchard:') {
-        //   console.log(dShape, shape.attrs);
-        //   console.log('dec', dShape.textDecoration);
-        //   console.log('attr', shape.attrs.underline);
-        // }
         rotation = groupAttrs.rotation || 0;
-        if (rotation === 0 || rotation === 180) {
+        if (rotation === 0) {
           rotX = groupAttrs.x + (dShape.padding || 0);
           rotY = groupAttrs.y + (dShape.padding || 0);
         } else if (rotation === 90) {
           rotX = groupAttrs.x - (dShape.padding || 0);
           rotY = groupAttrs.y + (dShape.padding || 0);
+        } else if (rotation === 180) {
+          rotX = groupAttrs.x - (dShape.padding || 0);
+          rotY = groupAttrs.y - (dShape.padding || 0);
         } else {
           rotX = groupAttrs.x + (dShape.padding || 0);
           rotY = groupAttrs.y - (dShape.padding || 0);
         }
 
         node = {
-          // x: groupAttrs.x + (dShape.padding || 0),
-          // y: groupAttrs.y + (dShape.padding || 0),
           x: rotX,
           y: rotY,
           name: 'textBox',
