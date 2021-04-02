@@ -281,14 +281,42 @@ module LabelApp
     def label_designer_page(opts = {}) # rubocop:disable Metrics/AbcSize
       variable_set = find_variable_set(opts)
 
-      lbl_config = label_config(opts)
-      raise Crossbeams::FrameworkError, "Label dimension \"#{lbl_config[:labelDimension]}\" is not defined. Please call support." unless AppConst::LABEL_SIZES[lbl_config[:labelDimension]]
+      # lbl_config = label_config(opts)
+      label = label_instance_for_config(opts)
+      raise Crossbeams::FrameworkError, "Label dimension \"#{label.label_dimension}\" is not defined. Please call support." unless AppConst::LABEL_SIZES[label.label_dimension]
 
+      # config = {
+      #   labelState: opts[:id].nil? ? 'new' : 'edit',
+      #   labelName: label.label_name,
+      #   savePath: label.id.nil? ? '/save_label' : "/save_label/#{label.id}",
+      #   labelDimension: label.label_dimension,
+      #   id: label.id,
+      #   pixelPerMM: label.px_per_mm,
+      #   labelJSON: label.label_json
+      # }
+      # config[:version] = 1 if opts[:id].nil?
+      lbl_id = opts[:cloned] ? nil : opts[:id]
       Crossbeams::LabelDesigner::Config.configure do |config|
         config.label_variable_types = label_variables(variable_set)
-        config.label_config = lbl_config.to_json
-        config.label_sizes = AppConst::LABEL_SIZES.to_json
+        # config.label_config = lbl_config.to_json
+        # config.label_sizes = AppConst::LABEL_SIZES.to_json
+
         config.allow_compound_variable = variable_set != 'CMS'
+        config.save_path = lbl_id.nil? ? '/save_label' : "/save_label/#{lbl_id}"
+        config.label_name = label.label_name
+        config.width = AppConst::LABEL_SIZES[label.label_dimension][:width].to_i
+        config.height = AppConst::LABEL_SIZES[label.label_dimension][:height].to_i
+        config.label_dimension = label.label_dimension
+        config.pixels_mm = label.px_per_mm.to_i
+        config.help_url = nil
+        config.label_json = label.label_json
+
+        # name
+        # width
+        # height
+        # px/mm
+        # helpURL
+        # JSON
       end
 
       page = Crossbeams::LabelDesigner::Page.new(opts[:id])
@@ -298,6 +326,12 @@ module LabelApp
       css  = page.css         # --> ASCII-8BIT
       js   = page.javascript  # --> UTF-8
 
+      # p html
+      # puts '---'
+      # p css
+      # puts '---'
+      # p js
+      # puts '---'
       # ">>> HTML enc"
       # #<Encoding:ASCII-8BIT>
       # ">>> CSS enc"
@@ -352,7 +386,17 @@ module LabelApp
       outfile.close
     end
 
+    def variable_xml_from_params(params) # rubocop:disable Metrics/AbcSize
+      p params.keys
+      label_def = UtilityFunctions.symbolize_keys(JSON.parse(params[:label]))
+      p label_def
+      formatted_name = params[:labelName].downcase.gsub(/[^a-zA-Z0-9 \\-]/, '').gsub(' ', '_')
+      var_xml = Crossbeams::LabelDesigner::VariableXML.new(formatted_name, params[:pixelPerMM], label_def)
+      var_xml.to_xml(pretty: true)
+    end
+
     def complete_a_label(id, params)
+      # TODO: CHECK IF ANY VARIABLES ARE UNSET FIRST
       res = complete_a_record(:labels, id, params.merge(enqueue_job: false))
       # Use params to trigger alert...
       if res.success
@@ -434,6 +478,7 @@ module LabelApp
         pixelPerMM: label.px_per_mm,
         labelJSON: label.label_json
       }
+      config[:version] = 1 if opts[:id].nil?
       config
     end
   end
