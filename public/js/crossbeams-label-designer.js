@@ -1,6 +1,6 @@
 /* eslint-disable no-return-assign */
 const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-classes-per-file
-  const ldThis = { changesMade: false };
+  const ldState = { changesMade: false };
   const debugSpace = document.getElementById('debugSpace');
   const menuNode = document.getElementById('varMenu');
 
@@ -140,10 +140,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       let vn;
       if (opts.varNum) {
         vn = opts.varNum;
-        ldThis.varNum = Math.max(ldThis.varNum, vn);
+        ldState.varNum = Math.max(ldState.varNum, vn);
       } else {
-        ldThis.varNum += 1;
-        vn = ldThis.varNum;
+        ldState.varNum += 1;
+        vn = ldState.varNum;
       }
 
       this.shape = new Konva.Group({
@@ -205,20 +205,20 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         });
 
         rectElem.setAttrs({
-          width: Math.max(rectElem.width() * this.shape.scaleX(), ldThis.MIN_DIMENSION),
-          height: Math.max(rectElem.height() * this.shape.scaleY(), ldThis.MIN_DIMENSION),
+          width: Math.max(rectElem.width() * this.shape.scaleX(), ldState.MIN_DIMENSION),
+          height: Math.max(rectElem.height() * this.shape.scaleY(), ldState.MIN_DIMENSION),
         });
 
         this.shape.setAttrs({
-          width: Math.max(this.shape.width() * this.shape.scaleX(), ldThis.MIN_DIMENSION),
-          height: Math.max(this.shape.height() * this.shape.scaleY(), ldThis.MIN_DIMENSION),
+          width: Math.max(this.shape.width() * this.shape.scaleX(), ldState.MIN_DIMENSION),
+          height: Math.max(this.shape.height() * this.shape.scaleY(), ldState.MIN_DIMENSION),
         });
-        ldThis.layerVar.batchDraw();
+        ldState.layerVar.batchDraw();
       });
 
       this.shape.on('dblclick', () => {
-        ldThis.textButtons.text.focus();
-        ldThis.selectedShape = this.shape;
+        ldState.textButtons.text.focus();
+        ldState.selectedShape = this.shape;
       });
 
       this.shape.add(rectPart);
@@ -248,8 +248,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       });
 
       this.shape.on('dblclick', () => {
-        ldThis.textButtons.text.focus();
-        ldThis.selectedShape = this.shape;
+        ldState.textButtons.text.focus();
+        ldState.selectedShape = this.shape;
       });
 
       this.shape.on('transform', () => {
@@ -367,17 +367,17 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       if (this.elem.name === 'image') {
         shape = new LdImage(this.elem.x + offset, this.elem.y + offset, this.elem.width, this.elem.height);
         item = shape.generate(this.elem);
-        ldThis.layer.add(item);
+        ldState.layer.add(item);
       }
       if (this.elem.name === 'rect') {
         shape = new LdRect(this.elem.x + offset, this.elem.y + offset, this.elem.width, this.elem.height);
         item = shape.generate(this.elem);
-        ldThis.layer.add(item);
+        ldState.layer.add(item);
       }
       if (this.elem.name === 'ellipse') {
         shape = new LdEllipse(this.elem.x + offset, this.elem.y + offset, this.elem.width, this.elem.height); // check this seems to increase scale...
         item = shape.generate(this.elem);
-        ldThis.layer.add(item);
+        ldState.layer.add(item);
       }
       if (this.elem.name === 'line') {
         // console.log(this.elem);
@@ -385,22 +385,22 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           this.elem.width, this.elem.height,
           this.elem.endX + offset, this.elem.endY + offset);
         item = shape.generate(this.elem);
-        ldThis.layer.add(item);
+        ldState.layer.add(item);
       }
       if (this.elem.name === 'textBox') {
         shape = new LdText(this.elem.x + offset, this.elem.y + offset, this.elem.width, this.elem.height);
         item = shape.generate(this.elem);
-        ldThis.layer.add(item);
+        ldState.layer.add(item);
       }
       if (this.elem.name === 'variableBox') {
         shape = new LdVariable(this.elem.x + offset, this.elem.y + offset, this.elem.width, this.elem.height);
         item = shape.generate(this.elem);
-        ldThis.layerVar.add(item);
+        ldState.layerVar.add(item);
         if (offset !== 0) {
-          ldThis.layerVar.draw();
+          ldState.layerVar.draw();
         }
       } else if (offset !== 0) {
-        ldThis.layer.draw();
+        ldState.layer.draw();
       }
 
       return item;
@@ -410,7 +410,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   // Return the selected text object or the text object within the selected group.
   const resolveTextObject = (item) => {
-    const txtObj = item || ldThis.selectedShape;
+    const txtObj = item || ldState.selectedShape;
     if (txtObj.hasChildren()) {
       const tmp = txtObj.getChildren(node => node.getClassName() === 'Text')[0];
       // console.log('txt-var', tmp);
@@ -426,8 +426,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   };
 
   const lineTypeSelected = () => {
-    // console.log('type', ldThis.selectedShape.name(), LINE_TYPES[ldThis.selectedShape.name()]);
-    if (LINE_TYPES[ldThis.selectedShape.name()]) return true;
+    // console.log('type', ldState.selectedShape.name(), LINE_TYPES[ldState.selectedShape.name()]);
+    if (LINE_TYPES[ldState.selectedShape.name()]) return true;
 
     return false;
   };
@@ -438,43 +438,43 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   };
 
   const textTypeSelected = () => {
-    // console.log('type', ldThis.selectedShape.name(), TEXT_TYPES[ldThis.selectedShape.name()]);
-    if (TEXT_TYPES[ldThis.selectedShape.name()]) return true;
+    // console.log('type', ldState.selectedShape.name(), TEXT_TYPES[ldState.selectedShape.name()]);
+    if (TEXT_TYPES[ldState.selectedShape.name()]) return true;
 
     return false;
   };
 
   const setLineButtons = (enable) => {
-    // console.log('lineW', ldThis.lineWidth);
+    // console.log('lineW', ldState.lineWidth);
     if (enable) {
-      ldThis.lineWidth.disabled = false;
-      ldThis.lineWidthImg.disabled = false;
-      ldThis.lineWidth.value = ldThis.selectedShape.strokeWidth();
+      ldState.lineWidth.disabled = false;
+      ldState.lineWidthImg.disabled = false;
+      ldState.lineWidth.value = ldState.selectedShape.strokeWidth();
     } else {
-      ldThis.lineWidth.disabled = true;
-      ldThis.lineWidthImg.disabled = true;
-      ldThis.lineWidth.value = 2;
+      ldState.lineWidth.disabled = true;
+      ldState.lineWidthImg.disabled = true;
+      ldState.lineWidth.value = 2;
     }
   };
 
   const applyTextState = () => {
-    if (ldThis.selectedShape && (ldThis.selectedShape.name() === 'variableBox' || ldThis.selectedShape.name() === 'textBox')) {
+    if (ldState.selectedShape && (ldState.selectedShape.name() === 'variableBox' || ldState.selectedShape.name() === 'textBox')) {
       const txtObj = resolveTextObject();
-      ldThis.textButtons.bold.dataset.selected = txtObj.fontStyle().split(' ').includes('bold');
-      ldThis.textButtons.italic.dataset.selected = txtObj.fontStyle().split(' ').includes('italic');
-      ldThis.textButtons.underline.dataset.selected = txtObj.textDecoration() === 'underline';
-      ldThis.textButtons.lJust.dataset.selected = txtObj.align() === 'left';
-      ldThis.textButtons.cJust.dataset.selected = txtObj.align() === 'center';
-      ldThis.textButtons.rJust.dataset.selected = txtObj.align() === 'right';
-      ldThis.textButtons.text.value = txtObj.text();
-      ldThis.textButtons.fontSize.value = txtObj.fontSize();
-      ldThis.textButtons.fontFamily.value = txtObj.fontFamily();
-    } else if (ldThis.selectedMultiple.length === 0) {
+      ldState.textButtons.bold.dataset.selected = txtObj.fontStyle().split(' ').includes('bold');
+      ldState.textButtons.italic.dataset.selected = txtObj.fontStyle().split(' ').includes('italic');
+      ldState.textButtons.underline.dataset.selected = txtObj.textDecoration() === 'underline';
+      ldState.textButtons.lJust.dataset.selected = txtObj.align() === 'left';
+      ldState.textButtons.cJust.dataset.selected = txtObj.align() === 'center';
+      ldState.textButtons.rJust.dataset.selected = txtObj.align() === 'right';
+      ldState.textButtons.text.value = txtObj.text();
+      ldState.textButtons.fontSize.value = txtObj.fontSize();
+      ldState.textButtons.fontFamily.value = txtObj.fontFamily();
+    } else if (ldState.selectedMultiple.length === 0) {
       document.querySelectorAll('[data-text="button"]').forEach(elem => elem.dataset.selected = false);
       document.querySelector('[data-alignment="left"]').dataset.selected = true;
-      ldThis.textButtons.fontSize.value = 22;
-      ldThis.textButtons.fontFamily.value = 'Arial';
-      ldThis.textButtons.text.value = '';
+      ldState.textButtons.fontSize.value = 22;
+      ldState.textButtons.fontFamily.value = 'Arial';
+      ldState.textButtons.text.value = '';
     }
   };
 
@@ -518,9 +518,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   };
 
   const setAllowedFontOptions = (variable) => {
-    Array.from(ldThis.textButtons.fontFamily.children).forEach((option) => { option.disabled = false; });
+    Array.from(ldState.textButtons.fontFamily.children).forEach((option) => { option.disabled = false; });
     if (variable) {
-      Array.from(ldThis.textButtons.fontFamily.children).forEach((option) => {
+      Array.from(ldState.textButtons.fontFamily.children).forEach((option) => {
         if (option.value === 'Lato Light') {
           option.disabled = true;
         }
@@ -534,7 +534,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       document.querySelectorAll('[data-text="button"]').forEach(elem => elem.disabled = false);
       document.querySelectorAll('[data-text="select"]').forEach(elem => elem.disabled = false);
       document.querySelector('#textinput').disabled = false;
-      setAllowedFontOptions(ldThis.selectedShape.name() === 'variableBox');
+      setAllowedFontOptions(ldState.selectedShape.name() === 'variableBox');
     } else {
       document.querySelectorAll('[data-text="button"]').forEach(elem => elem.disabled = true);
       document.querySelectorAll('[data-text="select"]').forEach(elem => elem.disabled = true);
@@ -570,7 +570,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     setCopyButtons(true);
 
     // --- Stroke - for shapes
-    list = ldThis.selectedMultiple.map((item) => {
+    list = ldState.selectedMultiple.map((item) => {
       if (['rect', 'line', 'ellipse'].includes(item.name())) {
         return item.strokeWidth();
       }
@@ -578,13 +578,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     });
 
     if (list[0] !== 99 && list.every(attr => attr === list[0])) {
-      ldThis.lineWidth.disabled = false;
-      ldThis.lineWidthImg.disabled = false;
-      ldThis.lineWidth.value = list[0];
+      ldState.lineWidth.disabled = false;
+      ldState.lineWidthImg.disabled = false;
+      ldState.lineWidth.value = list[0];
     }
 
     // --- Text attrs
-    list = ldThis.selectedMultiple.map((item) => {
+    list = ldState.selectedMultiple.map((item) => {
       if (['rect', 'line', 'ellipse', 'image'].includes(item.name())) {
         return '';
       }
@@ -598,9 +598,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       document.querySelectorAll('[data-text="button"]').forEach(elem => elem.disabled = false);
       document.querySelectorAll('[data-text="select"]').forEach(elem => elem.disabled = false);
       document.querySelector('#textinput').disabled = true;
-      Array.from(ldThis.textButtons.fontFamily.children).forEach((option) => { option.disabled = false; });
+      Array.from(ldState.textButtons.fontFamily.children).forEach((option) => { option.disabled = false; });
       if (list.some(attr => attr === 'var')) {
-        Array.from(ldThis.textButtons.fontFamily.children).forEach((option) => {
+        Array.from(ldState.textButtons.fontFamily.children).forEach((option) => {
           if (option.value === 'Lato Light') {
             option.disabled = true;
           }
@@ -621,20 +621,20 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     // const pxPerMm = <%= @px_per_mm %>;
     // const fontDefaultPx = <%= @default_font_px %>; -- can hard-code to 22
     // const fontDefaultPt = <%= @default_font_pt %>; -- can hard-code to 8 (or translate from font sizes table)
-    ldThis.MIN_DIMENSION = 20;
-    ldThis.selectedShape = undefined;
-    ldThis.selectedMultiple = [];
-    ldThis.currentMode = 'select';
-    ldThis.currentDrawType = undefined;
-    ldThis.varNum = 0;
-    ldThis.clipboard = { shapes: [] };
-    ldThis.copyOffset = 5;
+    ldState.MIN_DIMENSION = 20;
+    ldState.selectedShape = undefined;
+    ldState.selectedMultiple = [];
+    ldState.currentMode = 'select';
+    ldState.currentDrawType = undefined;
+    ldState.varNum = 0;
+    ldState.clipboard = { shapes: [] };
+    ldState.copyOffset = 5;
 
-    ldThis.labelConfig = labelConfig;
-    ldThis.savePath = labelConfig.savePath;
+    ldState.labelConfig = labelConfig;
+    ldState.savePath = labelConfig.savePath;
 
-    ldThis.lineWidth = document.querySelector('#stroke-width');
-    ldThis.lineWidthImg = document.querySelector('#stroke-width-img');
+    ldState.lineWidth = document.querySelector('#stroke-width');
+    ldState.lineWidthImg = document.querySelector('#stroke-width-img');
     // Show/hide the help button
     if (labelConfig.helpURL && labelConfig.helpURL !== '') {
       document.getElementById('ld_help').href = labelConfig.helpURL;
@@ -642,16 +642,16 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
     document.getElementById('labelName').innerHTML = labelConfig.labelName;
 
-    ldThis.lineWidth.addEventListener('change', () => {
-      if (ldThis.selectedMultiple.length > 0) {
-        ldThis.selectedMultiple.forEach(item => item.strokeWidth(Number(ldThis.lineWidth.value)));
+    ldState.lineWidth.addEventListener('change', () => {
+      if (ldState.selectedMultiple.length > 0) {
+        ldState.selectedMultiple.forEach(item => item.strokeWidth(Number(ldState.lineWidth.value)));
       } else {
-        ldThis.selectedShape.strokeWidth(Number(ldThis.lineWidth.value));
+        ldState.selectedShape.strokeWidth(Number(ldState.lineWidth.value));
       }
-      ldThis.stage.draw();
+      ldState.stage.draw();
     });
 
-    ldThis.textButtons = {
+    ldState.textButtons = {
       bold: document.querySelector('#textBold'),
       underline: document.querySelector('#textUnderline'),
       italic: document.querySelector('#textItalic'),
@@ -663,7 +663,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       fontFamily: document.querySelector('#font-family'),
     };
 
-    ldThis.outline = new Konva.Rect({
+    ldState.outline = new Konva.Rect({
       x: 0,
       y: 0,
       width: 50,
@@ -673,8 +673,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       strokeWidth: 1,
     });
 
-    ldThis.imgUpDialog = new window.A11yDialog(document.getElementById('image-dialog-form'));
-    ldThis.imgUpDialog.on('hide', () => {
+    ldState.imgUpDialog = new window.A11yDialog(document.getElementById('image-dialog-form'));
+    ldState.imgUpDialog.on('hide', () => {
       document.querySelector('#image-dialog-form .notice').setAttribute('style', 'display:none;');
       document.querySelector('form.upload-image').reset();
       document.querySelectorAll('[data-active]').forEach(elem => elem.dataset.active = 'false');
@@ -692,17 +692,17 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           reader.onload = function readOnload(event) {
             const shape = new LdImage(0, 0);
             const recttmp = shape.generate({ imageSource: event.target.result });
-            ldThis.layer.add(recttmp);
-            ldThis.tr.nodes([recttmp]);
+            ldState.layer.add(recttmp);
+            ldState.tr.nodes([recttmp]);
 
             // reset draw mode
-            ldThis.currentMode = 'select';
-            ldThis.selectedShape = recttmp;
+            ldState.currentMode = 'select';
+            ldState.selectedShape = recttmp;
             // action?
-            ldThis.stage.fire('ldSelectOne');
-            ldThis.imgUpDialog.hide();
-            ldThis.stage.draw();
-            ldThis.selectedMultiple = [];
+            ldState.stage.fire('ldSelectOne');
+            ldState.imgUpDialog.hide();
+            ldState.stage.draw();
+            ldState.selectedMultiple = [];
             setSelectedButtons(true);
             setLineButtons(false);
             setTextButtons(false);
@@ -715,7 +715,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       }
     });
 
-    ldThis.variableUI = {
+    ldState.variableUI = {
       varDialog: new window.A11yDialog(document.getElementById('variable-info-dialog-form')),
       varForm: document.querySelector('form.variable-info-form'),
       errBox: document.querySelector('form.variable-info-form .notice'),
@@ -738,86 +738,86 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       barcodeMargin: document.querySelector('#barcode_margin'),
     };
 
-    ldThis.textButtons.text.addEventListener('input', () => {
+    ldState.textButtons.text.addEventListener('input', () => {
       const txtObj = resolveTextObject();
-      txtObj.text(ldThis.textButtons.text.value);
-      ldThis.stage.draw();
+      txtObj.text(ldState.textButtons.text.value);
+      ldState.stage.draw();
     });
 
-    ldThis.textButtons.fontSize.addEventListener('change', () => {
+    ldState.textButtons.fontSize.addEventListener('change', () => {
       let txtObj;
-      if (ldThis.selectedMultiple.length > 0) {
-        ldThis.selectedMultiple.forEach((item) => {
+      if (ldState.selectedMultiple.length > 0) {
+        ldState.selectedMultiple.forEach((item) => {
           txtObj = resolveTextObject(item);
-          txtObj.fontSize(Number(ldThis.textButtons.fontSize.value));
+          txtObj.fontSize(Number(ldState.textButtons.fontSize.value));
         });
       } else {
         txtObj = resolveTextObject();
-        txtObj.fontSize(Number(ldThis.textButtons.fontSize.value));
+        txtObj.fontSize(Number(ldState.textButtons.fontSize.value));
       }
-      ldThis.stage.draw();
+      ldState.stage.draw();
     });
 
-    ldThis.textButtons.fontFamily.addEventListener('change', () => {
+    ldState.textButtons.fontFamily.addEventListener('change', () => {
       let txtObj;
-      if (ldThis.selectedMultiple.length > 0) {
-        ldThis.selectedMultiple.forEach((item) => {
+      if (ldState.selectedMultiple.length > 0) {
+        ldState.selectedMultiple.forEach((item) => {
           txtObj = resolveTextObject(item);
-          txtObj.fontFamily(ldThis.textButtons.fontFamily.value);
+          txtObj.fontFamily(ldState.textButtons.fontFamily.value);
         });
       } else {
         txtObj = resolveTextObject();
-        txtObj.fontFamily(ldThis.textButtons.fontFamily.value);
+        txtObj.fontFamily(ldState.textButtons.fontFamily.value);
       }
-      ldThis.stage.draw();
+      ldState.stage.draw();
     });
 
     /*
      * Build up a compound variable when the user presses the add or clear buttons.
      */
-    ldThis.variableUI.compoundVars.addEventListener('click', (event) => {
+    ldState.variableUI.compoundVars.addEventListener('click', (event) => {
       const elem = event.target.closest('[type=button]');
       if (!elem) {
         return;
       }
-      if (ldThis.variableUI.compoundRes.value === '') {
-        ldThis.variableUI.compoundRes.value = 'CMP:';
+      if (ldState.variableUI.compoundRes.value === '') {
+        ldState.variableUI.compoundRes.value = 'CMP:';
       }
       if (elem.name === 'add_compound_sel') {
-        ldThis.variableUI.compoundDisp.textContent += ldThis.variableUI.compoundSel.selectr.getValue(true);
-        ldThis.variableUI.compoundRes.value += `\${${ldThis.variableUI.compoundSel.selectr.getValue(true)}}`;
+        ldState.variableUI.compoundDisp.textContent += ldState.variableUI.compoundSel.selectr.getValue(true);
+        ldState.variableUI.compoundRes.value += `\${${ldState.variableUI.compoundSel.selectr.getValue(true)}}`;
       }
       if (elem.name === 'add_compound_txt') {
-        ldThis.variableUI.compoundDisp.textContent += ldThis.variableUI.compoundTxt.value;
-        ldThis.variableUI.compoundRes.value += ldThis.variableUI.compoundTxt.value;
+        ldState.variableUI.compoundDisp.textContent += ldState.variableUI.compoundTxt.value;
+        ldState.variableUI.compoundRes.value += ldState.variableUI.compoundTxt.value;
       }
       if (elem.name === 'clear_compound') {
-        ldThis.variableUI.compoundDisp.textContent = '';
-        ldThis.variableUI.compoundRes.value = 'CMP:';
+        ldState.variableUI.compoundDisp.textContent = '';
+        ldState.variableUI.compoundRes.value = 'CMP:';
       }
     });
 
-    ldThis.stage = new Konva.Stage({
+    ldState.stage = new Konva.Stage({
       container: 'paper',
       width: ((labelConfig.width !== undefined) ? (labelConfig.width - 1) * labelConfig.pxPerMm : 700),
       height: ((labelConfig.height !== undefined) ? (labelConfig.height - 1) * labelConfig.pxPerMm : 500),
     });
-    ldThis.stage.on('dragstart', () => {
-      if (ldThis.currentMode !== 'select') {
-        ldThis.stage.stopDrag();
+    ldState.stage.on('dragstart', () => {
+      if (ldState.currentMode !== 'select') {
+        ldState.stage.stopDrag();
       }
     });
-    ldThis.stage.on('ldSelectOne', () => {
-      ldThis.selectedMultiple = [];
-      ldThis.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left',
+    ldState.stage.on('ldSelectOne', () => {
+      ldState.selectedMultiple = [];
+      ldState.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left',
         'bottom-left', 'bottom-center', 'bottom-right']);
       setSelectedButtons(true, textTypeSelected());
       setCopyButtons(true);
       setAlignButtons(false);
       if (lineTypeSelected()) {
         setLineButtons(true);
-        if (ldThis.selectedShape.name() === 'line') {
-          ldThis.tr.enabledAnchors(['middle-right', 'middle-left']);
+        if (ldState.selectedShape.name() === 'line') {
+          ldState.tr.enabledAnchors(['middle-right', 'middle-left']);
         }
       } else {
         setLineButtons(false);
@@ -825,7 +825,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       document.querySelector('#set-variable-opt').dataset.menu = 'off';
       if (textTypeSelected()) {
         setTextButtons(true);
-        if (ldThis.selectedShape.name() === 'variableBox') {
+        if (ldState.selectedShape.name() === 'variableBox') {
           document.querySelector('#set-variable-opt').dataset.menu = 'on';
         }
       } else {
@@ -834,23 +834,23 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
       // line thickness: line, rect, ellipse
       // bui, just, size, font, textarea: text, var
-      // console.log('Selected one', ldThis.selectedShape);
+      // console.log('Selected one', ldState.selectedShape);
     });
-    ldThis.stage.on('ldSelectNone', () => {
-      ldThis.tr.nodes([]);
-      ldThis.stage.draw();
-      ldThis.selectedShape = undefined;
-      ldThis.selectedMultiple = [];
+    ldState.stage.on('ldSelectNone', () => {
+      ldState.tr.nodes([]);
+      ldState.stage.draw();
+      ldState.selectedShape = undefined;
+      ldState.selectedMultiple = [];
       setSelectedButtons(false);
       setLineButtons(false);
       setTextButtons(false);
       setCopyButtons(false);
       setAlignButtons(false);
       document.querySelector('#set-variable-opt').dataset.menu = 'off';
-      // console.log('Selected none', ldThis.selectedShape);
+      // console.log('Selected none', ldState.selectedShape);
     });
-    ldThis.stage.on('ldSelectMultiple', () => {
-      ldThis.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left',
+    ldState.stage.on('ldSelectMultiple', () => {
+      ldState.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left',
         'bottom-left', 'bottom-center', 'bottom-right']);
       setSelectedButtons(false);
       setLineButtons(false);
@@ -858,25 +858,25 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       setButtonsForMultiple();
       setAlignButtons(true);
       document.querySelector('#set-variable-opt').dataset.menu = 'off';
-      // console.log('Selected multiple', ldThis.selectedMultiple);
+      // console.log('Selected multiple', ldState.selectedMultiple);
     });
 
-    ldThis.layer = new Konva.Layer();
-    ldThis.layerVar = new Konva.Layer();
+    ldState.layer = new Konva.Layer();
+    ldState.layerVar = new Konva.Layer();
     // Set the drawing area's background to white.
     const konvaDiv = document.querySelector('div.konvajs-content');
     konvaDiv.classList.add('bg-white');
-    ldThis.tr = new Konva.Transformer({ rotateEnabled: false });
-    ldThis.tr.nodes([]);
-    ldThis.layer.add(ldThis.tr);
-    ldThis.stage.add(ldThis.layer);
-    ldThis.stage.add(ldThis.layerVar);
+    ldState.tr = new Konva.Transformer({ rotateEnabled: false });
+    ldState.tr.nodes([]);
+    ldState.layer.add(ldState.tr);
+    ldState.stage.add(ldState.layer);
+    ldState.stage.add(ldState.layerVar);
 
     // clicks should select/deselect shapes
-    ldThis.stage.on('click tap', (e) => {
+    ldState.stage.on('click tap', (e) => {
       // if click on empty area - remove all selections
-      if (e.target === ldThis.stage) {
-        ldThis.stage.fire('ldSelectNone');
+      if (e.target === ldState.stage) {
+        ldState.stage.fire('ldSelectNone');
         return;
       }
 
@@ -892,48 +892,48 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
       // did we press shift or ctrl?
       const metaPressed = e.evt.shiftKey || e.evt.ctrlKey || e.evt.metaKey;
-      const isSelected = ldThis.tr.nodes().indexOf(target) >= 0;
+      const isSelected = ldState.tr.nodes().indexOf(target) >= 0;
 
-      ldThis.selectedShape = undefined;
+      ldState.selectedShape = undefined;
       if (!metaPressed && !isSelected) {
         // if no key pressed and the node is not selected
         // select just one
-        ldThis.tr.nodes([target]);
-        ldThis.selectedShape = target;
-        ldThis.stage.fire('ldSelectOne');
+        ldState.tr.nodes([target]);
+        ldState.selectedShape = target;
+        ldState.stage.fire('ldSelectOne');
       } else if (metaPressed && isSelected) {
         // if we pressed keys and node was selected
         // we need to remove it from selection:
-        const nodes = ldThis.tr.nodes().slice(); // use slice to have new copy of array
+        const nodes = ldState.tr.nodes().slice(); // use slice to have new copy of array
         // remove node from array
         nodes.splice(nodes.indexOf(target), 1);
-        ldThis.tr.nodes(nodes);
+        ldState.tr.nodes(nodes);
         if (nodes.length === 1) {
-          ldThis.selectedShape = nodes[0];
-          ldThis.stage.fire('ldSelectOne');
+          ldState.selectedShape = nodes[0];
+          ldState.stage.fire('ldSelectOne');
         } else {
-          ldThis.selectedMultiple = nodes;
-          ldThis.stage.fire('ldSelectMultiple');
+          ldState.selectedMultiple = nodes;
+          ldState.stage.fire('ldSelectMultiple');
         }
       } else if (metaPressed && !isSelected) {
         // add the node into selection
-        const nodes = ldThis.tr.nodes().concat([target]);
-        ldThis.tr.nodes(nodes);
-        ldThis.selectedMultiple = nodes;
-        ldThis.stage.fire('ldSelectMultiple');
+        const nodes = ldState.tr.nodes().concat([target]);
+        ldState.tr.nodes(nodes);
+        ldState.selectedMultiple = nodes;
+        ldState.stage.fire('ldSelectMultiple');
       }
-      ldThis.layer.draw();
-      ldThis.layerVar.draw();
+      ldState.layer.draw();
+      ldState.layerVar.draw();
     });
 
-    ldThis.stage.on('contextmenu', (e) => {
+    ldState.stage.on('contextmenu', (e) => {
       // prevent default behavior
       e.evt.preventDefault();
-      if (e.target === ldThis.stage) {
+      if (e.target === ldState.stage) {
         // if we are on empty place of the stage we will do nothing
         return;
       }
-      if (ldThis.selectedMultiple.length > 0) {
+      if (ldState.selectedMultiple.length > 0) {
         return;
       }
       const parentGroup = e.target.findAncestor('Group');
@@ -942,19 +942,19 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       }
 
       // Make selection
-      ldThis.tr.nodes([parentGroup]);
-      ldThis.selectedShape = parentGroup;
-      ldThis.stage.draw();
-      ldThis.stage.fire('ldSelectOne');
+      ldState.tr.nodes([parentGroup]);
+      ldState.selectedShape = parentGroup;
+      ldState.stage.draw();
+      ldState.stage.fire('ldSelectOne');
 
       // show menu
       menuNode.style.display = 'initial';
-      // const containerRect = ldThis.stage.container().getBoundingClientRect();
-      // console.log('pos', ldThis.stage.getPointerPosition().x, containerRect.left);
-      menuNode.style.top = `${ldThis.stage.getPointerPosition().y + 4}px`;
-      menuNode.style.left = `${ldThis.stage.getPointerPosition().x + 4}px`;
-      // menuNode.style.top = `${containerRect.top + ldThis.stage.getPointerPosition().y + 4}px`;
-      // menuNode.style.left = `${containerRect.left + ldThis.stage.getPointerPosition().x + 4}px`;
+      // const containerRect = ldState.stage.container().getBoundingClientRect();
+      // console.log('pos', ldState.stage.getPointerPosition().x, containerRect.left);
+      menuNode.style.top = `${ldState.stage.getPointerPosition().y + 4}px`;
+      menuNode.style.left = `${ldState.stage.getPointerPosition().x + 4}px`;
+      // menuNode.style.top = `${containerRect.top + ldState.stage.getPointerPosition().y + 4}px`;
+      // menuNode.style.left = `${containerRect.left + ldState.stage.getPointerPosition().x + 4}px`;
       // console.log('style', menuNode.style);
     });
   };
@@ -962,29 +962,29 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   const ldCanvas = document.getElementById('paper');
 
   const saveVariableSettings = (variableTypeValue) => {
-    const txtObj = ldThis.selectedShape.getChildren(node => node.getClassName() === 'Text')[0];
-    const rectObj = ldThis.selectedShape.getChildren(node => node.getClassName() === 'Rect')[0];
+    const txtObj = ldState.selectedShape.getChildren(node => node.getClassName() === 'Text')[0];
+    const rectObj = ldState.selectedShape.getChildren(node => node.getClassName() === 'Rect')[0];
     const varAttrs = {
       // fontSizePt: opts.fontSizePt || 8, // should this be looked-up? Only written on dump() ?
-      whiteOnBlack: ldThis.variableUI.whiteOnBlack.checked,
-      barcode: ldThis.variableUI.barcodeBool.checked,
-      barcodeText: ldThis.variableUI.barcodeText.checked,
-      barcodeTop: ldThis.variableUI.barcodeTop.value,
-      barcodeWidthFactor: ldThis.variableUI.barcodeWidthFactor.value,
-      barcodeMargin: ldThis.variableUI.barcodeMargin.value,
-      barcodeSymbology: ldThis.variableUI.barcodeSymbology.value,
-      staticValue: variableTypeValue === 'Static Barcode' ? ldThis.variableUI.staticInputValue.value : null,
+      whiteOnBlack: ldState.variableUI.whiteOnBlack.checked,
+      barcode: ldState.variableUI.barcodeBool.checked,
+      barcodeText: ldState.variableUI.barcodeText.checked,
+      barcodeTop: ldState.variableUI.barcodeTop.value,
+      barcodeWidthFactor: ldState.variableUI.barcodeWidthFactor.value,
+      barcodeMargin: ldState.variableUI.barcodeMargin.value,
+      barcodeSymbology: ldState.variableUI.barcodeSymbology.value,
+      staticValue: variableTypeValue === 'Static Barcode' ? ldState.variableUI.staticInputValue.value : null,
     };
-    if (txtObj.text() === 'Unset Variable' || ldThis.selectedShape.attrs.varType === txtObj.text()) {
+    if (txtObj.text() === 'Unset Variable' || ldState.selectedShape.attrs.varType === txtObj.text()) {
       txtObj.text(variableTypeValue);
-      ldThis.textButtons.text.value = variableTypeValue;
+      ldState.textButtons.text.value = variableTypeValue;
     }
     if (variableTypeValue === 'Compound Variable') {
-      ldThis.selectedShape.attrs.varType = ldThis.variableUI.compoundRes.value;
+      ldState.selectedShape.attrs.varType = ldState.variableUI.compoundRes.value;
     } else {
-      ldThis.selectedShape.attrs.varType = variableTypeValue;
+      ldState.selectedShape.attrs.varType = variableTypeValue;
     }
-    ldThis.selectedShape.attrs.varAttrs = varAttrs;
+    ldState.selectedShape.attrs.varAttrs = varAttrs;
     if (varAttrs.whiteOnBlack) {
       txtObj.fill('#CA48BC');
       rectObj.stroke('#CA48BC');
@@ -995,82 +995,82 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       txtObj.fill('black');
       rectObj.stroke('#188FA7');
     }
-    ldThis.stage.draw();
+    ldState.stage.draw();
   };
 
   const toggleBarcodeOptions = (checked) => {
     if (checked) {
-      ldThis.variableUI.whiteOnBlack.checked = false;
-      ldThis.variableUI.whiteOnBlack.disabled = true;
-      ldThis.variableUI.barcodeOptions.style.display = 'block';
+      ldState.variableUI.whiteOnBlack.checked = false;
+      ldState.variableUI.whiteOnBlack.disabled = true;
+      ldState.variableUI.barcodeOptions.style.display = 'block';
     } else {
-      ldThis.variableUI.whiteOnBlack.disabled = false;
-      ldThis.variableUI.barcodeOptions.style.display = 'none';
+      ldState.variableUI.whiteOnBlack.disabled = false;
+      ldState.variableUI.barcodeOptions.style.display = 'none';
     }
   };
 
   const toggleErrorNotice = (show) => {
     if (show) {
-      ldThis.variableUI.errBox.style.display = 'block';
+      ldState.variableUI.errBox.style.display = 'block';
     } else {
-      ldThis.variableUI.errBox.style.display = 'none';
+      ldState.variableUI.errBox.style.display = 'none';
     }
   };
 
   const clearCompoundTexts = () => {
-    ldThis.variableUI.compoundTxt.value = '';
-    ldThis.variableUI.compoundSel.selectr.setChoiceByValue('');
-    ldThis.variableUI.compoundRes.value = 'CMP:';
-    ldThis.variableUI.compoundDisp.textContent = '';
+    ldState.variableUI.compoundTxt.value = '';
+    ldState.variableUI.compoundSel.selectr.setChoiceByValue('');
+    ldState.variableUI.compoundRes.value = 'CMP:';
+    ldState.variableUI.compoundDisp.textContent = '';
   };
 
   const dialogSaveButton = () => {
     const noVarErr = 'Please ensure that a Variable type is saved';
     const noStaticErr = 'Please fill in text for a Static Barcode';
-    const variableTypeValue = ldThis.variableUI.variableSelect.selectr.getValue(true);
+    const variableTypeValue = ldState.variableUI.variableSelect.selectr.getValue(true);
 
     // console.log(variableTypeValue);
     if (variableTypeValue) {
-      if (variableTypeValue === 'Static Barcode' && ldThis.variableUI.staticInputValue.value === '') {
-        ldThis.variableUI.errBox.textContent = noStaticErr;
+      if (variableTypeValue === 'Static Barcode' && ldState.variableUI.staticInputValue.value === '') {
+        ldState.variableUI.errBox.textContent = noStaticErr;
         toggleErrorNotice(true);
       } else {
         saveVariableSettings(variableTypeValue);
         // UndoRedoModule.registerUndoEvent();
 
-        ldThis.variableUI.varDialog.hide();
+        ldState.variableUI.varDialog.hide();
         toggleErrorNotice(false);
       }
     } else {
-      ldThis.variableUI.errBox.textContent = noVarErr;
+      ldState.variableUI.errBox.textContent = noVarErr;
       toggleErrorNotice(true);
     }
   };
 
   const varChange = (value) => {
     if (value === 'Static Barcode') {
-      ldThis.variableUI.staticInput.style.display = 'flex';
-      ldThis.variableUI.staticInputValue.required = true;
-      ldThis.variableUI.barcodeBool.checked = true;
+      ldState.variableUI.staticInput.style.display = 'flex';
+      ldState.variableUI.staticInputValue.required = true;
+      ldState.variableUI.barcodeBool.checked = true;
       toggleBarcodeOptions(true);
-      ldThis.variableUI.barcodeBool.disabled = true;
-      ldThis.variableUI.barcodeBoolWrapper.hidden = false;
-      ldThis.variableUI.compoundVars.hidden = true;
+      ldState.variableUI.barcodeBool.disabled = true;
+      ldState.variableUI.barcodeBoolWrapper.hidden = false;
+      ldState.variableUI.compoundVars.hidden = true;
       clearCompoundTexts();
     } else if (value === 'Compound Variable') {
-      ldThis.variableUI.staticInputValue.required = false;
-      ldThis.variableUI.staticInput.style.display = 'none';
-      ldThis.variableUI.barcodeBool.disabled = false;
-      ldThis.variableUI.barcodeBool.checked = false;
-      ldThis.variableUI.barcodeBoolWrapper.hidden = true;
+      ldState.variableUI.staticInputValue.required = false;
+      ldState.variableUI.staticInput.style.display = 'none';
+      ldState.variableUI.barcodeBool.disabled = false;
+      ldState.variableUI.barcodeBool.checked = false;
+      ldState.variableUI.barcodeBoolWrapper.hidden = true;
       toggleBarcodeOptions(false);
-      ldThis.variableUI.compoundVars.hidden = false;
+      ldState.variableUI.compoundVars.hidden = false;
     } else {
-      ldThis.variableUI.staticInputValue.required = false;
-      ldThis.variableUI.staticInput.style.display = 'none';
-      ldThis.variableUI.barcodeBool.disabled = false;
-      ldThis.variableUI.barcodeBoolWrapper.hidden = false;
-      ldThis.variableUI.compoundVars.hidden = true;
+      ldState.variableUI.staticInputValue.required = false;
+      ldState.variableUI.staticInput.style.display = 'none';
+      ldState.variableUI.barcodeBool.disabled = false;
+      ldState.variableUI.barcodeBoolWrapper.hidden = false;
+      ldState.variableUI.compoundVars.hidden = true;
       clearCompoundTexts();
     }
   };
@@ -1082,25 +1082,25 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       points = elem.points();
       if (points[0] !== points[2]) {
         points[2] += width;
-        if (Math.abs(points[2] - points[0]) < ldThis.MIN_DIMENSION) {
+        if (Math.abs(points[2] - points[0]) < ldState.MIN_DIMENSION) {
           if (points[2] > points[0]) {
-            points[2] = points[0] + ldThis.MIN_DIMENSION;
+            points[2] = points[0] + ldState.MIN_DIMENSION;
           } else {
-            points[0] = points[2] + ldThis.MIN_DIMENSION;
+            points[0] = points[2] + ldState.MIN_DIMENSION;
           }
         }
         elem.points(points);
       }
     } else if (elem.name() === 'variableBox') {
       elem.width(elem.width() + width);
-      if (elem.width() < ldThis.MIN_DIMENSION) {
-        elem.width(ldThis.MIN_DIMENSION);
+      if (elem.width() < ldState.MIN_DIMENSION) {
+        elem.width(ldState.MIN_DIMENSION);
       }
       elem.getChildren().forEach(node => node.width(elem.width()));
     } else {
       elem.width(elem.width() + width);
-      if (elem.width() < ldThis.MIN_DIMENSION) {
-        elem.width(ldThis.MIN_DIMENSION);
+      if (elem.width() < ldState.MIN_DIMENSION) {
+        elem.width(ldState.MIN_DIMENSION);
       }
     }
   };
@@ -1111,25 +1111,25 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       points = elem.points();
       if (points[1] !== points[3]) {
         points[3] += height;
-        if (Math.abs(points[3] - points[1]) < ldThis.MIN_DIMENSION) {
+        if (Math.abs(points[3] - points[1]) < ldState.MIN_DIMENSION) {
           if (points[3] > points[1]) {
-            points[3] = points[1] + ldThis.MIN_DIMENSION;
+            points[3] = points[1] + ldState.MIN_DIMENSION;
           } else {
-            points[1] = points[3] + ldThis.MIN_DIMENSION;
+            points[1] = points[3] + ldState.MIN_DIMENSION;
           }
         }
         elem.points(points);
       }
     } else if (elem.name() === 'variableBox') {
       elem.height(elem.height() + height);
-      if (elem.height() < ldThis.MIN_DIMENSION) {
-        elem.height(ldThis.MIN_DIMENSION);
+      if (elem.height() < ldState.MIN_DIMENSION) {
+        elem.height(ldState.MIN_DIMENSION);
       }
       elem.getChildren().forEach(node => node.height(elem.height()));
     } else {
       elem.height(elem.height() + height);
-      if (elem.height() < ldThis.MIN_DIMENSION) {
-        elem.height(ldThis.MIN_DIMENSION);
+      if (elem.height() < ldState.MIN_DIMENSION) {
+        elem.height(ldState.MIN_DIMENSION);
       }
     }
   };
@@ -1140,14 +1140,14 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   };
 
   const copyToClipboard = () => {
-    ldThis.clipboard = { shapes: [] };
-    ldThis.copyOffset = 5;
+    ldState.clipboard = { shapes: [] };
+    ldState.copyOffset = 5;
 
-    if (ldThis.selectedShape) {
-      ldThis.clipboard.shapes.push(shapeForClipboard(ldThis.selectedShape));
+    if (ldState.selectedShape) {
+      ldState.clipboard.shapes.push(shapeForClipboard(ldState.selectedShape));
     } else {
-      ldThis.selectedMultiple.forEach((elem) => {
-        ldThis.clipboard.shapes.push(shapeForClipboard(elem));
+      ldState.selectedMultiple.forEach((elem) => {
+        ldState.clipboard.shapes.push(shapeForClipboard(elem));
       });
     }
     document.querySelector('[data-action="paste"]').disabled = false;
@@ -1157,39 +1157,39 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     const newSelection = [];
     let marshal;
 
-    ldThis.clipboard.shapes.forEach((shape) => {
+    ldState.clipboard.shapes.forEach((shape) => {
       marshal = new LdMarshal(shape);
-      newSelection.push(marshal.load(ldThis.copyOffset));
-      ldThis.copyOffset += 5;
+      newSelection.push(marshal.load(ldState.copyOffset));
+      ldState.copyOffset += 5;
     });
     if (newSelection.length === 1) {
-      ldThis.currentMode = 'select';
-      ldThis.tr.nodes(newSelection);
-      ldThis.selectedShape = newSelection[0];
+      ldState.currentMode = 'select';
+      ldState.tr.nodes(newSelection);
+      ldState.selectedShape = newSelection[0];
     } else {
-      ldThis.tr.nodes(newSelection);
-      ldThis.selectedMultiple = newSelection;
+      ldState.tr.nodes(newSelection);
+      ldState.selectedMultiple = newSelection;
     }
   };
 
-  const getBackgroundImage = () => ldThis.layer.toDataURL();
+  const getBackgroundImage = () => ldState.layer.toDataURL();
 
   const showVariableDialog = () => {
-    const curr = ldThis.selectedShape.attrs.varAttrs;
-    const varType = ldThis.selectedShape.attrs.varType.indexOf('CMP:') === 0 ? 'Compound Variable' : ldThis.selectedShape.attrs.varType;
+    const curr = ldState.selectedShape.attrs.varAttrs;
+    const varType = ldState.selectedShape.attrs.varType.indexOf('CMP:') === 0 ? 'Compound Variable' : ldState.selectedShape.attrs.varType;
 
-    ldThis.variableUI.varDialog.show();
-    ldThis.variableUI.varForm.reset();
-    ldThis.variableUI.variableSelect.selectr.setChoiceByValue(varType === 'unset' ? '' : varType);
+    ldState.variableUI.varDialog.show();
+    ldState.variableUI.varForm.reset();
+    ldState.variableUI.variableSelect.selectr.setChoiceByValue(varType === 'unset' ? '' : varType);
 
-    ldThis.variableUI.whiteOnBlack.checked = curr.whiteOnBlack;
-    ldThis.variableUI.barcodeBool.checked = curr.barcode;
-    ldThis.variableUI.barcodeText.checked = curr.barcodeText;
-    ldThis.variableUI.barcodeTop.value = curr.barcodeTop;
-    ldThis.variableUI.barcodeWidthFactor.value = curr.barcodeWidthFactor;
-    ldThis.variableUI.barcodeMargin.value = curr.barcodeMargin;
-    ldThis.variableUI.barcodeSymbology.value = curr.barcodeSymbology;
-    ldThis.variableUI.staticInputValue.value = curr.staticValue ? curr.staticValue : '';
+    ldState.variableUI.whiteOnBlack.checked = curr.whiteOnBlack;
+    ldState.variableUI.barcodeBool.checked = curr.barcode;
+    ldState.variableUI.barcodeText.checked = curr.barcodeText;
+    ldState.variableUI.barcodeTop.value = curr.barcodeTop;
+    ldState.variableUI.barcodeWidthFactor.value = curr.barcodeWidthFactor;
+    ldState.variableUI.barcodeMargin.value = curr.barcodeMargin;
+    ldState.variableUI.barcodeSymbology.value = curr.barcodeSymbology;
+    ldState.variableUI.staticInputValue.value = curr.staticValue ? curr.staticValue : '';
 
     // Set the UI barcode show/hide state
     varChange(varType);
@@ -1208,7 +1208,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   // --- END OF CONTEXT MENU
 
   document.addEventListener('DOMContentLoaded', () => {
-    const holdSel = new Choices(ldThis.variableUI.variableSelect, {
+    const holdSel = new Choices(ldState.variableUI.variableSelect, {
       searchEnabled: true,
       searchResultLimit: 100,
       removeItemButton: false,
@@ -1227,13 +1227,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       },
     });
     // Store a reference on the DOM node.
-    ldThis.variableUI.variableSelect.selectr = holdSel;
+    ldState.variableUI.variableSelect.selectr = holdSel;
 
-    ldThis.variableUI.variableSelect.addEventListener('change', (event) => {
+    ldState.variableUI.variableSelect.addEventListener('change', (event) => {
       varChange(event.detail.value);
     });
 
-    const holdCmpSel = new Choices(ldThis.variableUI.compoundSel, {
+    const holdCmpSel = new Choices(ldState.variableUI.compoundSel, {
       searchEnabled: true,
       searchResultLimit: 100,
       removeItemButton: true,
@@ -1251,13 +1251,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       },
     });
     // Store a reference on the DOM node.
-    ldThis.variableUI.compoundSel.selectr = holdCmpSel;
+    ldState.variableUI.compoundSel.selectr = holdCmpSel;
 
     document.querySelector('#variable-info-dialog-form button.save').addEventListener('click', () => {
       dialogSaveButton();
     });
 
-    ldThis.variableUI.barcodeBool.addEventListener('change', function barcodeChange() {
+    ldState.variableUI.barcodeBool.addEventListener('change', function barcodeChange() {
       toggleBarcodeOptions(this.checked);
     });
 
@@ -1285,13 +1285,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         return null;
       }
 
-      if (!ldThis.selectedShape && !ldThis.selectedMultiple.length > 0) {
+      if (!ldState.selectedShape && !ldState.selectedMultiple.length > 0) {
         return null;
       }
 
-      if (event.key === 'Delete' && ldThis.selectedShape) {
-        ldThis.selectedShape.destroy();
-        ldThis.stage.fire('ldSelectNone');
+      if (event.key === 'Delete' && ldState.selectedShape) {
+        ldState.selectedShape.destroy();
+        ldState.stage.fire('ldSelectNone');
         // console.log('deleteme', event);
       }
 
@@ -1325,36 +1325,36 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       }
 
       if (move) {
-        if (ldThis.selectedMultiple.length > 0) {
-          ldThis.selectedMultiple.forEach((elem) => {
+        if (ldState.selectedMultiple.length > 0) {
+          ldState.selectedMultiple.forEach((elem) => {
             elem.move(move);
           });
         } else {
-          ldThis.selectedShape.move(move);
+          ldState.selectedShape.move(move);
         }
       }
 
       if (width) {
-        if (ldThis.selectedMultiple.length > 0) {
-          ldThis.selectedMultiple.forEach((elem) => {
+        if (ldState.selectedMultiple.length > 0) {
+          ldState.selectedMultiple.forEach((elem) => {
             adjustWidth(elem, width);
           });
         } else {
-          adjustWidth(ldThis.selectedShape, width);
+          adjustWidth(ldState.selectedShape, width);
         }
       }
 
       if (height) {
-        if (ldThis.selectedMultiple.length > 0) {
-          ldThis.selectedMultiple.forEach((elem) => {
+        if (ldState.selectedMultiple.length > 0) {
+          ldState.selectedMultiple.forEach((elem) => {
             adjustHeight(elem, height);
           });
         } else {
-          adjustHeight(ldThis.selectedShape, height);
+          adjustHeight(ldState.selectedShape, height);
         }
       }
       if (move || width || height) {
-        ldThis.stage.draw();
+        ldState.stage.draw();
         event.stopPropagation();
         event.preventDefault();
       }
@@ -1378,28 +1378,28 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           btn.dataset.active = 'true';
         }
         if (btn.dataset.drawType) {
-          ldThis.currentMode = 'draw';
-          ldThis.currentDrawType = btn.dataset.drawType;
+          ldState.currentMode = 'draw';
+          ldState.currentDrawType = btn.dataset.drawType;
         } else {
-          ldThis.currentMode = 'select';
-          ldThis.currentDrawType = undefined;
+          ldState.currentMode = 'select';
+          ldState.currentDrawType = undefined;
         }
-        if (btn.dataset.action === 'rotate' && ldThis.selectedShape) {
-          ldThis.selectedShape.rotate(90);
-          ldThis.stage.draw();
+        if (btn.dataset.action === 'rotate' && ldState.selectedShape) {
+          ldState.selectedShape.rotate(90);
+          ldState.stage.draw();
         }
-        if (btn.dataset.action === 'remove' && ldThis.selectedShape) {
-          ldThis.selectedShape.destroy();
-          ldThis.stage.fire('ldSelectNone');
+        if (btn.dataset.action === 'remove' && ldState.selectedShape) {
+          ldState.selectedShape.destroy();
+          ldState.stage.fire('ldSelectNone');
         }
-        if (btn.dataset.action === 'copy' && (ldThis.selectedShape || ldThis.selectedMultiple.length > 0)) {
+        if (btn.dataset.action === 'copy' && (ldState.selectedShape || ldState.selectedMultiple.length > 0)) {
           copyToClipboard();
         }
         if (btn.dataset.action === 'paste') {
           pasteFromClipboard();
         }
         if (btn.dataset.image) {
-          ldThis.imgUpDialog.show();
+          ldState.imgUpDialog.show();
         }
       }
 
@@ -1407,95 +1407,95 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       if (btn) {
         enable = btn.dataset.selected === 'false';
         btn.dataset.selected = enable;
-        if (ldThis.selectedMultiple.length > 0) {
-          ldThis.selectedMultiple.forEach((item) => {
+        if (ldState.selectedMultiple.length > 0) {
+          ldState.selectedMultiple.forEach((item) => {
             applyTextStyle(enable, btn.dataset.textstyle, item);
           });
         } else {
           applyTextStyle(enable, btn.dataset.textstyle);
         }
-        ldThis.stage.draw();
+        ldState.stage.draw();
       }
 
       btn = event.target.closest('button[data-alignment]');
       if (btn) {
         document.querySelectorAll('button[data-alignment]').forEach(elem => elem.dataset.selected = 'false');
         btn.dataset.selected = 'true';
-        if (ldThis.selectedMultiple.length > 0) {
-          ldThis.selectedMultiple.forEach((item) => {
+        if (ldState.selectedMultiple.length > 0) {
+          ldState.selectedMultiple.forEach((item) => {
             applyTextAlignment(btn.dataset.alignment, item);
           });
         } else {
           applyTextAlignment(btn.dataset.alignment);
         }
-        ldThis.stage.draw();
+        ldState.stage.draw();
       }
     });
   });
 
-  const getSelectedShape = () => ldThis.selectedShape;
+  const getSelectedShape = () => ldState.selectedShape;
 
-  const getSelectedMultiple = () => ldThis.selectedMultiple;
+  const getSelectedMultiple = () => ldState.selectedMultiple;
 
   const align = (edge) => {
     let startPoint;
 
-    if (ldThis.selectedMultiple.length === 0) {
+    if (ldState.selectedMultiple.length === 0) {
       return 'Multiple shapes have not been selected';
     }
 
     if (edge === 'left') {
-      if (ldThis.selectedMultiple[0].name() === 'line') {
-        startPoint = ldThis.selectedMultiple[0].points()[0];
-      } else if (ldThis.selectedMultiple[0].name() === 'ellipse') {
-        startPoint = ldThis.selectedMultiple[0].x() - ldThis.selectedMultiple[0].radiusX();
+      if (ldState.selectedMultiple[0].name() === 'line') {
+        startPoint = ldState.selectedMultiple[0].points()[0];
+      } else if (ldState.selectedMultiple[0].name() === 'ellipse') {
+        startPoint = ldState.selectedMultiple[0].x() - ldState.selectedMultiple[0].radiusX();
       } else {
-        startPoint = ldThis.selectedMultiple[0].x();
+        startPoint = ldState.selectedMultiple[0].x();
       }
-      for (let i = 1; i < ldThis.selectedMultiple.length; i += 1) {
-        if (ldThis.selectedMultiple[i].name() === 'line') {
-          const points = ldThis.selectedMultiple[i].points();
+      for (let i = 1; i < ldState.selectedMultiple.length; i += 1) {
+        if (ldState.selectedMultiple[i].name() === 'line') {
+          const points = ldState.selectedMultiple[i].points();
           const shift = points[0] - startPoint;
           points[0] = startPoint;
           points[2] -= shift;
-          ldThis.selectedMultiple[i].points(points);
-        } else if (ldThis.selectedMultiple[i].name() === 'ellipse') {
-          ldThis.selectedMultiple[i].move({ x: (startPoint - (ldThis.selectedMultiple[i].x() - ldThis.selectedMultiple[i].radiusX())), y: 0 });
+          ldState.selectedMultiple[i].points(points);
+        } else if (ldState.selectedMultiple[i].name() === 'ellipse') {
+          ldState.selectedMultiple[i].move({ x: (startPoint - (ldState.selectedMultiple[i].x() - ldState.selectedMultiple[i].radiusX())), y: 0 });
         } else {
-          ldThis.selectedMultiple[i].move({ x: (startPoint - ldThis.selectedMultiple[i].x()), y: 0 });
+          ldState.selectedMultiple[i].move({ x: (startPoint - ldState.selectedMultiple[i].x()), y: 0 });
         }
       }
-      ldThis.stage.draw();
+      ldState.stage.draw();
     }
 
     if (edge === 'top') {
-      if (ldThis.selectedMultiple[0].name() === 'line') {
-        startPoint = ldThis.selectedMultiple[0].points()[1];
-      } else if (ldThis.selectedMultiple[0].name() === 'ellipse') {
-        startPoint = ldThis.selectedMultiple[0].y() - ldThis.selectedMultiple[0].radiusY();
+      if (ldState.selectedMultiple[0].name() === 'line') {
+        startPoint = ldState.selectedMultiple[0].points()[1];
+      } else if (ldState.selectedMultiple[0].name() === 'ellipse') {
+        startPoint = ldState.selectedMultiple[0].y() - ldState.selectedMultiple[0].radiusY();
       } else {
-        startPoint = ldThis.selectedMultiple[0].y();
+        startPoint = ldState.selectedMultiple[0].y();
       }
-      for (let i = 1; i < ldThis.selectedMultiple.length; i += 1) {
-        if (ldThis.selectedMultiple[i].name() === 'line') {
-          const points = ldThis.selectedMultiple[i].points();
+      for (let i = 1; i < ldState.selectedMultiple.length; i += 1) {
+        if (ldState.selectedMultiple[i].name() === 'line') {
+          const points = ldState.selectedMultiple[i].points();
           const shift = points[1] - startPoint;
           points[1] = startPoint;
           points[3] -= shift;
-          ldThis.selectedMultiple[i].points(points);
-        } else if (ldThis.selectedMultiple[i].name() === 'ellipse') {
-          ldThis.selectedMultiple[i].move({ x: 0, y: (startPoint - (ldThis.selectedMultiple[i].y() - ldThis.selectedMultiple[i].radiusY())) });
+          ldState.selectedMultiple[i].points(points);
+        } else if (ldState.selectedMultiple[i].name() === 'ellipse') {
+          ldState.selectedMultiple[i].move({ x: 0, y: (startPoint - (ldState.selectedMultiple[i].y() - ldState.selectedMultiple[i].radiusY())) });
         } else {
-          ldThis.selectedMultiple[i].move({ x: 0, y: (startPoint - ldThis.selectedMultiple[i].y()) });
+          ldState.selectedMultiple[i].move({ x: 0, y: (startPoint - ldState.selectedMultiple[i].y()) });
         }
       }
-      ldThis.stage.draw();
+      ldState.stage.draw();
     }
   };
 
-  const getCurrentMode = () => ldThis.currentMode;
+  const getCurrentMode = () => ldState.currentMode;
 
-  const getCurrentDrawType = () => ldThis.currentDrawType;
+  const getCurrentDrawType = () => ldState.currentDrawType;
 
   const drawStarter = () => {
     const rect1 = new Konva.Rect({
@@ -1509,7 +1509,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       strokeWidth: 4,
     });
     // add the shape to the layer
-    ldThis.layer.add(rect1);
+    ldState.layer.add(rect1);
 
     const rect2 = new Konva.Rect({
       x: 150,
@@ -1521,7 +1521,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       shadowBlur: 10,
       cornerRadius: 10,
     });
-    ldThis.layer.add(rect2);
+    ldState.layer.add(rect2);
 
     const rect3 = new Konva.Rect({
       x: 50,
@@ -1532,16 +1532,16 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       name: 'Blue',
       cornerRadius: [0, 10, 20, 30],
     });
-    ldThis.layer.add(rect3);
+    ldState.layer.add(rect3);
 
-    ldThis.stage.draw();
+    ldState.stage.draw();
   };
 
   const drawExtra = () => {
     const shape = new LdText(220, 220, 80, 50);
     const recttmp = shape.generate({ text: 'A test', fontFamily: 'Lato Light' });
-    ldThis.layer.add(recttmp);
-    ldThis.stage.draw();
+    ldState.layer.add(recttmp);
+    ldState.stage.draw();
   };
 
   const drawNew = (x, y, x2, y2) => {
@@ -1551,7 +1551,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     let startY = y;
     let endX = x2;
     let endY = y2;
-    ldThis.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left', 'bottom-left', 'bottom-center', 'bottom-right']);
+    ldState.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left', 'bottom-left', 'bottom-center', 'bottom-right']);
 
     // Always define from left to right, top to bottom
     if (startX > endX) {
@@ -1562,65 +1562,65 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
 
     if (startX === endX) {
-      if (endY - startY < ldThis.MIN_DIMENSION) {
-        endY = startY + ldThis.MIN_DIMENSION;
+      if (endY - startY < ldState.MIN_DIMENSION) {
+        endY = startY + ldState.MIN_DIMENSION;
       }
     } else if (startY === endY) {
-      if (endX - startX < ldThis.MIN_DIMENSION) {
-        endX = startX + ldThis.MIN_DIMENSION;
+      if (endX - startX < ldState.MIN_DIMENSION) {
+        endX = startX + ldState.MIN_DIMENSION;
       }
     } else {
-      if (endX - startX < ldThis.MIN_DIMENSION) {
-        endX = startX + ldThis.MIN_DIMENSION;
+      if (endX - startX < ldState.MIN_DIMENSION) {
+        endX = startX + ldState.MIN_DIMENSION;
       }
-      if (endY - startY < ldThis.MIN_DIMENSION) {
-        endY = startY + ldThis.MIN_DIMENSION;
+      if (endY - startY < ldState.MIN_DIMENSION) {
+        endY = startY + ldState.MIN_DIMENSION;
       }
     }
 
-    if (ldThis.currentDrawType === 'Ellipse') {
+    if (ldState.currentDrawType === 'Ellipse') {
       shape = new LdEllipse(startX, startY, endX - startX, endY - startY);
       recttmp = shape.generate();
-    } else if (ldThis.currentDrawType === 'TextBox') {
+    } else if (ldState.currentDrawType === 'TextBox') {
       shape = new LdText(startX, startY, endX - startX, endY - startY);
       recttmp = shape.generate();
-    } else if (ldThis.currentDrawType === 'VariableBox') {
+    } else if (ldState.currentDrawType === 'VariableBox') {
       shape = new LdVariable(startX, startY, endX - startX, endY - startY);
       recttmp = shape.generate();
-    } else if (ldThis.currentDrawType === 'Line') {
+    } else if (ldState.currentDrawType === 'Line') {
       shape = new LdLine(startX, startY, endX - startX, endY - startY, endX, endY);
       recttmp = shape.generate();
       if (startY === endY) {
-        ldThis.tr.enabledAnchors(['middle-left', 'middle-right']);
+        ldState.tr.enabledAnchors(['middle-left', 'middle-right']);
       } else {
-        ldThis.tr.enabledAnchors(['top-center', 'bottom-center']);
+        ldState.tr.enabledAnchors(['top-center', 'bottom-center']);
       }
     } else {
       shape = new LdRect(startX, startY, endX - startX, endY - startY);
       recttmp = shape.generate();
     }
-    if (ldThis.currentDrawType === 'VariableBox') {
-      ldThis.layerVar.add(recttmp);
+    if (ldState.currentDrawType === 'VariableBox') {
+      ldState.layerVar.add(recttmp);
     } else {
-      ldThis.layer.add(recttmp);
+      ldState.layer.add(recttmp);
     }
-    ldThis.tr.nodes([recttmp]);
+    ldState.tr.nodes([recttmp]);
 
-    ldThis.stage.draw();
+    ldState.stage.draw();
 
-    ldThis.currentMode = 'select';
-    ldThis.selectedShape = recttmp;
-    ldThis.stage.fire('ldSelectOne');
+    ldState.currentMode = 'select';
+    ldState.selectedShape = recttmp;
+    ldState.stage.fire('ldSelectOne');
 
     // set select button to active
     document.querySelectorAll('[data-active]').forEach(elem => elem.dataset.active = 'false');
     document.querySelector('[data-action="select"]').dataset.active = 'true';
 
-    if (ldThis.currentDrawType === 'TextBox') {
+    if (ldState.currentDrawType === 'TextBox') {
       document.querySelector('#ldSave').focus();
-      ldThis.textButtons.text.select();
+      ldState.textButtons.text.select();
     }
-    ldThis.currentDrawType = undefined;
+    ldState.currentDrawType = undefined;
   };
   // END of example...
 
@@ -1670,10 +1670,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     // TODO: Look at: https://konvajs.org/docs/sandbox/Relative_Pointer_Position.html
     // - for using Stage to get x/y...
     [startX, startY] = getCoords(event);
-    if (ldThis.currentMode !== 'select') {
-      ldThis.outline.x(startX);
-      ldThis.outline.y(startY);
-      ldThis.layer.add(ldThis.outline);
+    if (ldState.currentMode !== 'select') {
+      ldState.outline.x(startX);
+      ldState.outline.y(startY);
+      ldState.layer.add(ldState.outline);
     }
     // console.log('starting', startX, startY);
   });
@@ -1681,19 +1681,19 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     // Might want to debounce...
     let tmpX;
     let tmpY;
-    if (ldThis.currentMode !== 'select') {
+    if (ldState.currentMode !== 'select') {
       [tmpX, tmpY] = getCoords(event);
-      ldThis.outline.width(tmpX - startX);
-      ldThis.outline.height(tmpY - startY);
-      ldThis.layer.draw();
+      ldState.outline.width(tmpX - startX);
+      ldState.outline.height(tmpY - startY);
+      ldState.layer.draw();
     }
   });
   ldCanvas.addEventListener('mouseup', (event) => {
-    if (ldThis.currentMode !== 'select') {
-      ldThis.outline.remove();
+    if (ldState.currentMode !== 'select') {
+      ldState.outline.remove();
 
       [endX, endY] = getCoords(event);
-      if (ldThis.currentDrawType === 'Line') {
+      if (ldState.currentDrawType === 'Line') {
         if (Math.abs(endX - startX) > Math.abs(endY - startY)) {
           endY = startY;
         } else {
@@ -1733,8 +1733,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     let rotY;
 
     const jsonOut = {
-      width: ldThis.stage.width(),
-      height: ldThis.stage.height(),
+      width: ldState.stage.width(),
+      height: ldState.stage.height(),
       nodes: [],
     };
     // console.log('shapes', shapes.length);
@@ -2016,17 +2016,17 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       marshal.load();
     });
 
-    ldThis.stage.draw();
+    ldState.stage.draw();
   };
 
-  const hasUnsetVariables = () => ldThis.layerVar.getChildren().some(item => item.attrs.varType === 'unset');
+  const hasUnsetVariables = () => ldState.layerVar.getChildren().some(item => item.attrs.varType === 'unset');
 
-  const changesMade = () => ldThis.changesMade;
+  const changesMade = () => ldState.changesMade;
 
   const renumberVariables = () => {
     let pos;
     let varNum;
-    const items = ldThis.layerVar.getChildren().filter(item => item.attrs.varType !== 'Static Barcode').map(item => item.attrs.varNum).sort();
+    const items = ldState.layerVar.getChildren().filter(item => item.attrs.varType !== 'Static Barcode').map(item => item.attrs.varNum).sort();
     // console.log(items);
     if (items.length === 0) { return; }
 
@@ -2034,7 +2034,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     // console.log(items, seqs);
     if (items.every((a, i) => a === seqs[i])) { return; }
 
-    ldThis.layerVar.getChildren().filter(item => item.attrs.varType !== 'Static Barcode').forEach((item) => {
+    ldState.layerVar.getChildren().filter(item => item.attrs.varType !== 'Static Barcode').forEach((item) => {
       varNum = item.attrs.varNum;
       pos = items.indexOf(varNum);
       if (seqs[pos] !== varNum) {
@@ -2056,19 +2056,19 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
     const jsonOut = {
       version: 1,
-      width: ldThis.stage.width(),
-      height: ldThis.stage.height(),
+      width: ldState.stage.width(),
+      height: ldState.stage.height(),
       nodes: [],
     };
 
-    ldThis.layerVar.getChildren().forEach((item) => {
+    ldState.layerVar.getChildren().forEach((item) => {
       if (item.name() === 'variableBox') {
         marshal = new LdMarshal(item);
         jsonOut.nodes.push(marshal.dump());
       }
     });
 
-    ldThis.layer.getChildren().forEach((item) => {
+    ldState.layer.getChildren().forEach((item) => {
       if (item.getClassName() === 'Transformer') {
         return;
       }
@@ -2085,20 +2085,20 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     // MyLabel.fixIds();
     // const keyValues = MyLabel.exportToJSON(labelConfig.labelName);
     const form = new FormData();
-    form.append('labelName', ldThis.labelConfig.labelName);
-    form.append('labelDimension', ldThis.labelConfig.labelDimension);
-    form.append('pixelPerMM', ldThis.labelConfig.pxPerMm);
+    form.append('labelName', ldState.labelConfig.labelName);
+    form.append('labelDimension', ldState.labelConfig.labelDimension);
+    form.append('pixelPerMM', ldState.labelConfig.pxPerMm);
     form.append('label', JSON.stringify(dump()));
     // form.append('XMLString', ' this.generateXMLFile(),');
     form.append('imageString', getBackgroundImage());
-    form.append('labelWidth', ldThis.labelConfig.width);
-    form.append('labelHeight', ldThis.labelConfig.height);
+    form.append('labelWidth', ldState.labelConfig.width);
+    form.append('labelHeight', ldState.labelConfig.height);
     // Object.keys(keyValues).forEach((attr) => {
     //   form.append(attr, keyValues[attr]);
     // });
     form.append('_csrf', document.querySelector('meta[name="_csrf"]').content);
 
-    fetch(ldThis.savePath, {
+    fetch(ldState.savePath, {
       method: 'post',
       credentials: 'same-origin',
       headers: new Headers({
@@ -2109,7 +2109,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       .then(response => response.json())
       .then((data) => {
         if (data.redirect) {
-          ldThis.changesMade = false;
+          ldState.changesMade = false;
           window.location = data.redirect;
         } else if (data.flash) {
           if (data.flash.notice) {
@@ -2162,11 +2162,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     let fno;
     let nm;
     let txtObj;
-    const nodes = ldThis.layer.getChildren().map((item) => {
+    const nodes = ldState.layer.getChildren().map((item) => {
       nm = item.name();
       return `<li>${item._id} - ${nm || item.getClassName()}</li>`; // eslint-disable-line no-underscore-dangle
     });
-    ldThis.layerVar.getChildren().forEach((item) => {
+    ldState.layerVar.getChildren().forEach((item) => {
       no = item.getAttr('varNum');
       fno = no ? ` (F${no})` : '';
       nm = item.name();
