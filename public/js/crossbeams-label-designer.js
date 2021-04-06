@@ -339,6 +339,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           height: this.elem.height(),
           rotation: this.elem.rotation(),
         };
+        if (this.elem.rotation() === 90 || this.elem.rotation() === 270) {
+          node.width = this.elem.height();
+          node.height = this.elem.width();
+        }
         node.variableNumber = `F${this.elem.getAttr('varNum')}`;
         node.varType = this.elem.getAttr('varType');
         node.varAttrs = this.elem.getAttr('varAttrs');
@@ -1989,6 +1993,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       }
     });
 
+    // console.log('import', jsonOut);
     return jsonOut;
   };
 
