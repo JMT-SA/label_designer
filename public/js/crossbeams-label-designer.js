@@ -979,7 +979,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       txtObj.text(variableTypeValue);
       ldThis.textButtons.text.value = variableTypeValue;
     }
-    ldThis.selectedShape.attrs.varType = variableTypeValue;
+    if (variableTypeValue === 'Compound Variable') {
+      ldThis.selectedShape.attrs.varType = ldThis.variableUI.compoundRes.value;
+    } else {
+      ldThis.selectedShape.attrs.varType = variableTypeValue;
+    }
     ldThis.selectedShape.attrs.varAttrs = varAttrs;
     if (varAttrs.whiteOnBlack) {
       txtObj.fill('#CA48BC');
@@ -1015,6 +1019,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   const clearCompoundTexts = () => {
     ldThis.variableUI.compoundTxt.value = '';
+    ldThis.variableUI.compoundSel.selectr.setChoiceByValue('');
     ldThis.variableUI.compoundRes.value = 'CMP:';
     ldThis.variableUI.compoundDisp.textContent = '';
   };
@@ -1171,14 +1176,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   const showVariableDialog = () => {
     const curr = ldThis.selectedShape.attrs.varAttrs;
-    const varType = ldThis.selectedShape.attrs.varType;
+    const varType = ldThis.selectedShape.attrs.varType.indexOf('CMP:') === 0 ? 'Compound Variable' : ldThis.selectedShape.attrs.varType;
 
     ldThis.variableUI.varDialog.show();
     ldThis.variableUI.varForm.reset();
     ldThis.variableUI.variableSelect.selectr.setChoiceByValue(varType === 'unset' ? '' : varType);
 
     ldThis.variableUI.whiteOnBlack.checked = curr.whiteOnBlack;
-    // fontSizePt: opts.fontSizePt || 8, // should this be looked-up? Only written on dump() ?
     ldThis.variableUI.barcodeBool.checked = curr.barcode;
     ldThis.variableUI.barcodeText.checked = curr.barcodeText;
     ldThis.variableUI.barcodeTop.value = curr.barcodeTop;
@@ -1188,7 +1192,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldThis.variableUI.staticInputValue.value = curr.staticValue ? curr.staticValue : '';
 
     // Set the UI barcode show/hide state
-    varChange(ldThis.selectedShape.varType);
+    varChange(varType);
     toggleBarcodeOptions(curr.barcode);
   };
 
