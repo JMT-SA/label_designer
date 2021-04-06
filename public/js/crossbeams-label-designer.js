@@ -80,42 +80,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   // VariableBox
   class LdVariable extends LdShape {
-    // XML requirements from var:
-    // --------------------------
-    // <id>57</id>
-    // <variable_field_count>F3</variable_field_count>
-    // <variable_type>Commodity Description</variable_type>
-    //
-    // S: <rotation_angle>0</rotation_angle>
-    // S: <startx>215</startx>
-    // S: <starty>159</starty>
-    // S: <width>257</width>
-    // S: <height>63</height>
-    // S: <fontsize_px>38</fontsize_px>
-    // <fontsize_pt>14</fontsize_pt>  -- derive from lookup table...
-    // S: <align>left</align>
-    // S: <fontfamily>Arial</fontfamily>
-    // S: <bold>false</bold>
-    // S: <italic>false</italic>
-    // S: <underline>false</underline>
-    //
-    // <barcode>false</barcode>
-    // <barcodetext>false</barcodetext>
-    // <barcodetop>true</barcodetop>
-    // <barcodewidthfactor>1.5</barcodewidthfactor>
-    // <barcode_margin_px>5</barcode_margin_px>
-    // <barcode_symbology>CODE_128</barcode_symbology>
-
-    // NOTE: need to resize with transformer without altering text size
     generate(opts = {}) {
-      const rotation = opts.rotation || 0;
+      let rotation = opts.rotation || 0;
       if (rotation === 360) {
         rotation = 0;
       }
-      const horiz = (rotation === 0) || (rotation === 180)
       const optAttrs = opts.varAttrs || {};
       const varAttrs = {
-        // fontSizePt: optAttrs.fontSizePt || 8, // should this be looked-up? Only written on dump() ?
         whiteOnBlack: optAttrs.whiteOnBlack || false,
         barcode: optAttrs.barcode || false,
         barcodeText: optAttrs.barcodeText || false,
@@ -149,23 +120,21 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       this.shape = new Konva.Group({
         x: this.x,
         y: this.y,
-        // width: this.width,
-        // height: this.height,
-        width: horiz ? this.width : this.height,
-        height: horiz ? this.height : this.width,
+        width: this.width,
+        height: this.height,
         offset: 0,
         draggable: true,
         varNum: vn,
         varType: opts.varType || 'unset',
         varAttrs,
-        rotation: rotation,
+        rotation,
       });
 
       const txtPart = new Konva.Text({
         x: 0,
         y: 0,
-        width: horiz ? this.width : this.height,
-        height: horiz ? this.height : this.width,
+        width: this.width,
+        height: this.height,
         fontSize: opts.fontSize || 22,
         fontFamily: opts.fontFamily || 'Arial',
         text: opts.text || 'Unset Variable',
@@ -174,48 +143,51 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         fontStyle: opts.fontStyle || 'normal',
         textDecoration: opts.textDecoration || '',
         align: opts.align || 'left',
+        rotation,
       });
       const rectPart = new Konva.Rect({
         x: 0,
         y: 0,
-        width: horiz ? this.width : this.height,
-        height: horiz ? this.height : this.width,
+        width: this.width,
+        height: this.height,
         stroke: opts.stroke || rectFill,
         strokeWidth: 2,
         strokeScaleEnabled: false,
         name: 'rect',
-      });
-      txtPart.on('transform', () => {
-        txtPart.setAttrs({
-          width: txtPart.width() * txtPart.scaleX(),
-          height: txtPart.height() * txtPart.scaleY(),
-          scaleX: 1,
-          scaleY: 1,
-        });
+        rotation,
       });
 
       // Ensure the text in the variable does not stretch with transforming:
-      this.shape.on('transform', () => {
-        const txtElem = this.shape.getChildren((node) => node.getClassName() === 'Text')[0];
+      this.shape.on('transformend', () => {
+        const txtElem = this.shape.getChildren(node => node.getClassName() === 'Text')[0];
         const rectElem = this.shape.getChildren(node => node.getClassName() === 'Rect')[0];
 
         txtElem.setAttrs({
           width: this.shape.width() * this.shape.scaleX(),
           height: this.shape.height() * this.shape.scaleY(),
+          scaleX: 1,
+          scaleY: 1,
         });
 
         rectElem.setAttrs({
-          width: Math.max(rectElem.width() * this.shape.scaleX(), ldState.MIN_DIMENSION),
-          height: Math.max(rectElem.height() * this.shape.scaleY(), ldState.MIN_DIMENSION),
+          width: this.shape.width() * this.shape.scaleX(),
+          height: this.shape.height() * this.shape.scaleY(),
+          scaleX: 1,
+          scaleY: 1,
         });
 
         this.shape.setAttrs({
           width: Math.max(this.shape.width() * this.shape.scaleX(), ldState.MIN_DIMENSION),
           height: Math.max(this.shape.height() * this.shape.scaleY(), ldState.MIN_DIMENSION),
+          scaleX: 1,
+          scaleY: 1,
         });
-        ldState.layerVar.batchDraw();
+
+        ldState.layerVar.draw();
+        ldState.tr.forceUpdate();
       });
 
+      // On double-click of a variable, focus on the text editor
       this.shape.on('dblclick', () => {
         ldState.textButtons.text.focus();
         ldState.selectedShape = this.shape;
@@ -558,7 +530,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   const setAlignButtons = (enable) => {
     document.querySelectorAll('[data-action="align"]').forEach(elem => elem.disabled = !enable);
-  }
+  };
 
   const setCopyButtons = (enable) => {
     document.querySelector('[data-action="copy"]').disabled = !enable;
@@ -673,6 +645,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       strokeWidth: 1,
     });
 
+    // Initialise image dialog
     ldState.imgUpDialog = new window.A11yDialog(document.getElementById('image-dialog-form'));
     ldState.imgUpDialog.on('hide', () => {
       document.querySelector('#image-dialog-form .notice').setAttribute('style', 'display:none;');
@@ -682,6 +655,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       document.querySelector('[data-action="select"]').focus();
     });
 
+    // Add image button click
     document.querySelector('#image-dialog-form button.upload').addEventListener('click', () => {
       const files = document.querySelector('#image-dialog-form input[type="file"]').files;
       if (files.length > 0) {
@@ -715,6 +689,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       }
     });
 
+    // UI elements for defining variables
     ldState.variableUI = {
       varDialog: new window.A11yDialog(document.getElementById('variable-info-dialog-form')),
       varForm: document.querySelector('form.variable-info-form'),
@@ -738,12 +713,14 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       barcodeMargin: document.querySelector('#barcode_margin'),
     };
 
+    // Listen for change of text input and update Text of Variable contents
     ldState.textButtons.text.addEventListener('input', () => {
       const txtObj = resolveTextObject();
       txtObj.text(ldState.textButtons.text.value);
       ldState.stage.draw();
     });
 
+    // Listen for change of font size
     ldState.textButtons.fontSize.addEventListener('change', () => {
       let txtObj;
       if (ldState.selectedMultiple.length > 0) {
@@ -758,6 +735,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.stage.draw();
     });
 
+    // Listen for change of font family
     ldState.textButtons.fontFamily.addEventListener('change', () => {
       let txtObj;
       if (ldState.selectedMultiple.length > 0) {
@@ -802,11 +780,15 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       width: ((labelConfig.width !== undefined) ? (labelConfig.width - 1) * labelConfig.pxPerMm : 700),
       height: ((labelConfig.height !== undefined) ? (labelConfig.height - 1) * labelConfig.pxPerMm : 500),
     });
+
+    // Start of drag
     ldState.stage.on('dragstart', () => {
       if (ldState.currentMode !== 'select') {
         ldState.stage.stopDrag();
       }
     });
+
+    // Single shape selected
     ldState.stage.on('ldSelectOne', () => {
       ldState.selectedMultiple = [];
       ldState.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left',
@@ -831,11 +813,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       } else {
         setTextButtons(false);
       }
-
-      // line thickness: line, rect, ellipse
-      // bui, just, size, font, textarea: text, var
-      // console.log('Selected one', ldState.selectedShape);
     });
+
+    // Shape(s) unselected
     ldState.stage.on('ldSelectNone', () => {
       ldState.tr.nodes([]);
       ldState.stage.draw();
@@ -849,6 +829,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       document.querySelector('#set-variable-opt').dataset.menu = 'off';
       // console.log('Selected none', ldState.selectedShape);
     });
+
+    // Multiple shapes selected
     ldState.stage.on('ldSelectMultiple', () => {
       ldState.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left',
         'bottom-left', 'bottom-center', 'bottom-right']);
@@ -861,6 +843,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       // console.log('Selected multiple', ldState.selectedMultiple);
     });
 
+    // Assemble the drawing canvas
     ldState.layer = new Konva.Layer();
     ldState.layerVar = new Konva.Layer();
     // Set the drawing area's background to white.
@@ -872,7 +855,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.stage.add(ldState.layer);
     ldState.stage.add(ldState.layerVar);
 
-    // clicks should select/deselect shapes
+    // Listen for select/unselect in the canvas stage
     ldState.stage.on('click tap', (e) => {
       // if click on empty area - remove all selections
       if (e.target === ldState.stage) {
@@ -880,10 +863,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         return;
       }
 
-      // // do nothing if clicked NOT on our rectangles
-      // if (!e.target.hasName('rect')) {
-      //   return;
-      // }
       let target = e.target;
       const parentGroup = target.findAncestor('Group');
       if (parentGroup) {
@@ -926,6 +905,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.layerVar.draw();
     });
 
+    // Listen for context menu event in the canvas stage
     ldState.stage.on('contextmenu', (e) => {
       // prevent default behavior
       e.evt.preventDefault();
@@ -949,23 +929,18 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
       // show menu
       menuNode.style.display = 'initial';
-      // const containerRect = ldState.stage.container().getBoundingClientRect();
-      // console.log('pos', ldState.stage.getPointerPosition().x, containerRect.left);
       menuNode.style.top = `${ldState.stage.getPointerPosition().y + 4}px`;
       menuNode.style.left = `${ldState.stage.getPointerPosition().x + 4}px`;
-      // menuNode.style.top = `${containerRect.top + ldState.stage.getPointerPosition().y + 4}px`;
-      // menuNode.style.left = `${containerRect.left + ldState.stage.getPointerPosition().x + 4}px`;
-      // console.log('style', menuNode.style);
     });
   };
 
   const ldCanvas = document.getElementById('paper');
 
+  // When save is pressed in the variable dialog - save settings to the shape
   const saveVariableSettings = (variableTypeValue) => {
     const txtObj = ldState.selectedShape.getChildren(node => node.getClassName() === 'Text')[0];
     const rectObj = ldState.selectedShape.getChildren(node => node.getClassName() === 'Rect')[0];
     const varAttrs = {
-      // fontSizePt: opts.fontSizePt || 8, // should this be looked-up? Only written on dump() ?
       whiteOnBlack: ldState.variableUI.whiteOnBlack.checked,
       barcode: ldState.variableUI.barcodeBool.checked,
       barcodeText: ldState.variableUI.barcodeText.checked,
@@ -998,6 +973,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.stage.draw();
   };
 
+  // Variable dialog: toggle barcode options
   const toggleBarcodeOptions = (checked) => {
     if (checked) {
       ldState.variableUI.whiteOnBlack.checked = false;
@@ -1009,6 +985,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
   };
 
+  // Variable dialog: toggle error display
   const toggleErrorNotice = (show) => {
     if (show) {
       ldState.variableUI.errBox.style.display = 'block';
@@ -1024,6 +1001,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.variableUI.compoundDisp.textContent = '';
   };
 
+  // On dialog save pressed, validate inputs and call save action
   const dialogSaveButton = () => {
     const noVarErr = 'Please ensure that a Variable type is saved';
     const noStaticErr = 'Please fill in text for a Static Barcode';
@@ -1047,6 +1025,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
   };
 
+  // Listen to changes in variable selection
   const varChange = (value) => {
     if (value === 'Static Barcode') {
       ldState.variableUI.staticInput.style.display = 'flex';
@@ -1075,6 +1054,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
   };
 
+  // On resize of a shape, ensure the shape does not end up too small to work with
   const adjustWidth = (elem, width) => {
     let points;
     // VAR...
@@ -1092,11 +1072,25 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         elem.points(points);
       }
     } else if (elem.name() === 'variableBox') {
-      elem.width(elem.width() + width);
-      if (elem.width() < ldState.MIN_DIMENSION) {
-        elem.width(ldState.MIN_DIMENSION);
+      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+        elem.height(elem.height() + width);
+        if (elem.height() < ldState.MIN_DIMENSION) {
+          elem.height(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.height(elem.height()));
+      } else {
+        elem.width(elem.width() + width);
+        if (elem.width() < ldState.MIN_DIMENSION) {
+          elem.width(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.width(elem.width()));
       }
-      elem.getChildren().forEach(node => node.width(elem.width()));
+      ldState.tr.forceUpdate();
+    } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+      elem.height(elem.height() + width);
+      if (elem.height() < ldState.MIN_DIMENSION) {
+        elem.height(ldState.MIN_DIMENSION);
+      }
     } else {
       elem.width(elem.width() + width);
       if (elem.width() < ldState.MIN_DIMENSION) {
@@ -1121,11 +1115,25 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         elem.points(points);
       }
     } else if (elem.name() === 'variableBox') {
-      elem.height(elem.height() + height);
-      if (elem.height() < ldState.MIN_DIMENSION) {
-        elem.height(ldState.MIN_DIMENSION);
+      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+        elem.width(elem.width() + height);
+        if (elem.width() < ldState.MIN_DIMENSION) {
+          elem.width(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.width(elem.width()));
+      } else {
+        elem.height(elem.height() + height);
+        if (elem.height() < ldState.MIN_DIMENSION) {
+          elem.height(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.height(elem.height()));
       }
-      elem.getChildren().forEach(node => node.height(elem.height()));
+      ldState.tr.forceUpdate();
+    } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+      elem.width(elem.width() + height);
+      if (elem.width() < ldState.MIN_DIMENSION) {
+        elem.width(ldState.MIN_DIMENSION);
+      }
     } else {
       elem.height(elem.height() + height);
       if (elem.height() < ldState.MIN_DIMENSION) {
@@ -1208,6 +1216,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   // --- END OF CONTEXT MENU
 
   document.addEventListener('DOMContentLoaded', () => {
+    // Make the variable select a Choices dropdown
     const holdSel = new Choices(ldState.variableUI.variableSelect, {
       searchEnabled: true,
       searchResultLimit: 100,
@@ -1233,6 +1242,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       varChange(event.detail.value);
     });
 
+    // Make the compound variable select a Choices dropdown
     const holdCmpSel = new Choices(ldState.variableUI.compoundSel, {
       searchEnabled: true,
       searchResultLimit: 100,
@@ -1368,6 +1378,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       updateLeftMarker(coords);
     });
 
+    // Listen for click event on toolbar buttons
     document.addEventListener('click', (event) => {
       let btn = event.target.closest('button[data-action]');
       let enable;
@@ -1437,6 +1448,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   const getSelectedMultiple = () => ldState.selectedMultiple;
 
+  // Align shapes along top or left edges
   const align = (edge) => {
     let startPoint;
 
@@ -1497,53 +1509,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   const getCurrentDrawType = () => ldState.currentDrawType;
 
-  const drawStarter = () => {
-    const rect1 = new Konva.Rect({
-      x: 20,
-      y: 20,
-      width: 100,
-      height: 50,
-      fill: 'green',
-      stroke: 'black',
-      name: 'Green',
-      strokeWidth: 4,
-    });
-    // add the shape to the layer
-    ldState.layer.add(rect1);
-
-    const rect2 = new Konva.Rect({
-      x: 150,
-      y: 40,
-      width: 100,
-      height: 50,
-      fill: 'red',
-      name: 'Red',
-      shadowBlur: 10,
-      cornerRadius: 10,
-    });
-    ldState.layer.add(rect2);
-
-    const rect3 = new Konva.Rect({
-      x: 50,
-      y: 120,
-      width: 100,
-      height: 100,
-      fill: 'blue',
-      name: 'Blue',
-      cornerRadius: [0, 10, 20, 30],
-    });
-    ldState.layer.add(rect3);
-
-    ldState.stage.draw();
-  };
-
-  const drawExtra = () => {
-    const shape = new LdText(220, 220, 80, 50);
-    const recttmp = shape.generate({ text: 'A test', fontFamily: 'Lato Light' });
-    ldState.layer.add(recttmp);
-    ldState.stage.draw();
-  };
-
+  // Draw a new shape on end of drag event
   const drawNew = (x, y, x2, y2) => {
     let recttmp;
     let shape;
@@ -1616,13 +1582,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     document.querySelectorAll('[data-active]').forEach(elem => elem.dataset.active = 'false');
     document.querySelector('[data-action="select"]').dataset.active = 'true';
 
+    // Automatically select the text for a text box so the user can just start typing
     if (ldState.currentDrawType === 'TextBox') {
       document.querySelector('#ldSave').focus();
       ldState.textButtons.text.select();
     }
     ldState.currentDrawType = undefined;
   };
-  // END of example...
 
   const findAbsolutePos = (obj) => {
     // Source: http://www.quirksmode.org/js/findpos.html
@@ -1662,10 +1628,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     // const offset = [0, 0];
     return [(mouseCoords.x - offset[0]), (mouseCoords.y - offset[1])];
   };
+
   let startX = null;
   let startY = null;
   let endX = null;
   let endY = null;
+
+  // Mouse down - record start position
   ldCanvas.addEventListener('mousedown', (event) => {
     // TODO: Look at: https://konvajs.org/docs/sandbox/Relative_Pointer_Position.html
     // - for using Stage to get x/y...
@@ -1677,6 +1646,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
     // console.log('starting', startX, startY);
   });
+
+  // While the mouse is bring dragged, display an outline of the proposed shape extents
   ldCanvas.addEventListener('mousemove', (event) => {
     // Might want to debounce...
     let tmpX;
@@ -1688,6 +1659,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.layer.draw();
     }
   });
+
+  // At end of drag, call drawNew to generate the new shape with the start and end coordinates
   ldCanvas.addEventListener('mouseup', (event) => {
     if (ldState.currentMode !== 'select') {
       ldState.outline.remove();
@@ -1710,6 +1683,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
   });
 
+  // Convert an old label design to a version 1 design
   const convert = (strConfig) => {
     // const config = JSON.parse(strConfig);
     // const config = JSON.parse(strConfig.labelJSON);
@@ -2001,6 +1975,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     return jsonOut;
   };
 
+  // Load a label design
   const load = (strConfig) => {
     let marshal;
 
@@ -2009,8 +1984,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       config = convert(strConfig);
     }
 
-    // let shape;
-    // let item;
     config.nodes.forEach((node) => {
       marshal = new LdMarshal(node);
       marshal.load();
@@ -2023,15 +1996,15 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   const changesMade = () => ldState.changesMade;
 
+  // Variable numbers can develop gaps when any are deleted, and static barcodes must not be counted
+  // This function renumbers the variables, keeping the existing sequence as much as possible
   const renumberVariables = () => {
     let pos;
     let varNum;
     const items = ldState.layerVar.getChildren().filter(item => item.attrs.varType !== 'Static Barcode').map(item => item.attrs.varNum).sort();
-    // console.log(items);
     if (items.length === 0) { return; }
 
     const seqs = Array(items.length).fill().map((_, idx) => 1 + idx);
-    // console.log(items, seqs);
     if (items.every((a, i) => a === seqs[i])) { return; }
 
     ldState.layerVar.getChildren().filter(item => item.attrs.varType !== 'Static Barcode').forEach((item) => {
@@ -2041,11 +2014,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         item.attrs.varNum = seqs[pos];
       }
     });
-    // make a range same length as items.
-    // sort items
-    // if identical, nothing to do
-    // else change variables' varNum to correct position value.
-    // 1st arr.index at varNum -> get value from 2nd index at same position.
   };
 
   // Dump the canvas' shapes to a JSON object.
@@ -2076,26 +2044,19 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       jsonOut.nodes.push(marshal.dump());
     });
 
-    // return JSON.stringify(jsonOut);
     return jsonOut;
   };
 
+  // Save the label design to the backend
   const saveLabel = () => {
-    // make fetch call...
-    // MyLabel.fixIds();
-    // const keyValues = MyLabel.exportToJSON(labelConfig.labelName);
     const form = new FormData();
     form.append('labelName', ldState.labelConfig.labelName);
     form.append('labelDimension', ldState.labelConfig.labelDimension);
     form.append('pixelPerMM', ldState.labelConfig.pxPerMm);
     form.append('label', JSON.stringify(dump()));
-    // form.append('XMLString', ' this.generateXMLFile(),');
     form.append('imageString', getBackgroundImage());
     form.append('labelWidth', ldState.labelConfig.width);
     form.append('labelHeight', ldState.labelConfig.height);
-    // Object.keys(keyValues).forEach((attr) => {
-    //   form.append(attr, keyValues[attr]);
-    // });
     form.append('_csrf', document.querySelector('meta[name="_csrf"]').content);
 
     fetch(ldState.savePath, {
@@ -2153,10 +2114,12 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       });
   };
 
+  // Listen for click on the save button
   document.querySelector('#ldSave').addEventListener('click', () => {
     saveLabel();
   });
 
+  // Write debug information to the page
   const debug = () => {
     let no;
     let fno;
@@ -2179,12 +2142,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     debugSpace.innerHTML = out;
   };
 
-  // Canvas.container().addEventListener('mousedown', (event) => {
-  //   DrawApp.drawStart(event);
-  // });
-  // Canvas.container().addEventListener('mouseup', () => {
-  //   DrawApp.drawEnd();
-  // });
+  const getTransformer = () => ldState.tr;
 
   return {
     init,
@@ -2192,26 +2150,15 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     getSelectedMultiple,
     getCurrentMode,
     getCurrentDrawType,
-    drawStarter,
-    drawExtra,
+    getTransformer,
     align,
     debug,
     dump,
     load,
     convert,
-    getBackgroundImage, // variables on different layer....
+    getBackgroundImage,
     renumberVariables,
     hasUnsetVariables,
     changesMade,
   };
 }());
-
-// const labelConfig = {
-//   labelName: 'A test Label',
-//   width: 100,
-//   height: 100,
-//   pxPerMm: 8,
-//   // helpURL: '/help/system/rmd/rmd_properties', // PART OF OPTIONS MENU?
-// };
-//
-// LabelDesigner.init(labelConfig);
