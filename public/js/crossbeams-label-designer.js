@@ -1180,7 +1180,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
   };
 
-  const getBackgroundImage = () => ldState.layer.toDataURL();
+  // De-select any shapes and return a png copy of all shapes except those on the variable layer
+  const getBackgroundImage = () => {
+    ldState.tr.nodes([]);
+    ldState.stage.draw();
+    ldState.stage.fire('ldSelectNone');
+    return ldState.layer.toDataURL();
+  };
 
   const showVariableDialog = () => {
     const curr = ldState.selectedShape.attrs.varAttrs;
@@ -1856,7 +1862,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           height: dShape.height,
 
           fontSize: Number(dShape.fontSizePx),
-          // fontSizePt: shape.attrs.fontSizePt, // settings.fontSizePt = fontSizes[shape.textBox.fontSize()];
           fontFamily: family,
           text: textAttrs.text,
           fontStyle: style,
@@ -2001,7 +2006,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   const renumberVariables = () => {
     let pos;
     let varNum;
-    const items = ldState.layerVar.getChildren().filter(item => item.attrs.varType !== 'Static Barcode').map(item => item.attrs.varNum).sort();
+    const items = ldState.layerVar.getChildren()
+      .filter(item => item.attrs.varType !== 'Static Barcode')
+      .map(item => item.attrs.varNum)
+      .sort((a, b) => a - b);
+
     if (items.length === 0) { return; }
 
     const seqs = Array(items.length).fill().map((_, idx) => 1 + idx);
