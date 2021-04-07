@@ -102,6 +102,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         this.shape.points([points[0] + newX, points[1] + newY, points[2] + newX, points[3] + newY]);
         this.shape.x(0);
         this.shape.y(0);
+        ldState.changesMade = true;
       });
 
       return this.shape;
@@ -213,6 +214,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
         ldState.layerVar.draw();
         ldState.tr.forceUpdate();
+        ldState.changesMade = true;
       });
 
       // On double-click of a variable, focus on the text editor
@@ -259,6 +261,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           scaleX: 1,
           scaleY: 1,
         });
+        ldState.changesMade = true;
       });
       return this.shape;
     }
@@ -494,6 +497,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       }
       txtObj.fontStyle(ar.join(' '));
     }
+    ldState.changesMade = true;
   };
 
   const applyTextAlignment = (align, item) => {
@@ -646,6 +650,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         ldState.selectedShape.strokeWidth(Number(ldState.lineWidth.value));
       }
       ldState.stage.draw();
+      ldState.changesMade = true;
     });
 
     ldState.textButtons = {
@@ -710,6 +715,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
             setTextButtons(false);
             document.querySelectorAll('[data-active]').forEach(elem => elem.dataset.active = 'false');
             document.querySelector('[data-action="select"]').dataset.active = 'true';
+            ldState.changesMade = true;
           };
         }
       } else {
@@ -746,6 +752,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       const txtObj = resolveTextObject();
       txtObj.text(ldState.textButtons.text.value);
       ldState.stage.draw();
+      ldState.changesMade = true;
     });
 
     // Listen for change of font size
@@ -761,6 +768,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         txtObj.fontSize(Number(ldState.textButtons.fontSize.value));
       }
       ldState.stage.draw();
+      ldState.changesMade = true;
     });
 
     // Listen for change of font family
@@ -776,6 +784,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         txtObj.fontFamily(ldState.textButtons.fontFamily.value);
       }
       ldState.stage.draw();
+      ldState.changesMade = true;
     });
 
     /*
@@ -813,6 +822,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.stage.on('dragstart', () => {
       if (ldState.currentMode !== 'select') {
         ldState.stage.stopDrag();
+      }
+    });
+
+    // End of drag
+    ldState.stage.on('dragend', () => {
+      if (ldState.currentMode === 'select') {
+        ldState.changesMade = true;
       }
     });
 
@@ -999,6 +1015,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       rectObj.stroke('#188FA7');
     }
     ldState.stage.draw();
+    ldState.changesMade = true;
   };
 
   // Variable dialog: toggle barcode options
@@ -1125,6 +1142,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         elem.width(ldState.MIN_DIMENSION);
       }
     }
+    ldState.changesMade = true;
   };
 
   const adjustHeight = (elem, height) => {
@@ -1168,6 +1186,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         elem.height(ldState.MIN_DIMENSION);
       }
     }
+    ldState.changesMade = true;
   };
 
   const shapeForClipboard = (shape) => {
@@ -1337,6 +1356,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       if (event.key === 'Delete' && ldState.selectedShape) {
         ldState.selectedShape.destroy();
         ldState.stage.fire('ldSelectNone');
+        ldState.changesMade = true;
         // console.log('deleteme', event);
       }
 
@@ -1385,6 +1405,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         } else {
           ldState.selectedShape.move(move);
         }
+        ldState.changesMade = true;
       }
 
       if (width) {
@@ -1443,16 +1464,19 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         if (btn.dataset.action === 'rotate' && ldState.selectedShape) {
           ldState.selectedShape.rotate(90);
           ldState.stage.draw();
+          ldState.changesMade = true;
         }
         if (btn.dataset.action === 'remove' && ldState.selectedShape) {
           ldState.selectedShape.destroy();
           ldState.stage.fire('ldSelectNone');
+          ldState.changesMade = true;
         }
         if (btn.dataset.action === 'copy' && (ldState.selectedShape || ldState.selectedMultiple.length > 0)) {
           copyToClipboard();
         }
         if (btn.dataset.action === 'paste') {
           pasteFromClipboard();
+          ldState.changesMade = true;
         }
         if (btn.dataset.image) {
           ldState.imgUpDialog.show();
@@ -1471,6 +1495,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           applyTextStyle(enable, btn.dataset.textstyle);
         }
         ldState.stage.draw();
+        ldState.changesMade = true;
       }
 
       btn = event.target.closest('button[data-alignment]');
@@ -1485,6 +1510,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           applyTextAlignment(btn.dataset.alignment);
         }
         ldState.stage.draw();
+        ldState.changesMade = true;
       }
     });
   });
@@ -1554,6 +1580,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         }
       }
       ldState.stage.draw();
+      ldState.changesMade = true;
     }
 
     if (edge === 'top') {
@@ -1578,6 +1605,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         }
       }
       ldState.stage.draw();
+      ldState.changesMade = true;
     }
     return null;
   };
@@ -1650,6 +1678,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.tr.nodes([recttmp]);
 
     ldState.stage.draw();
+    ldState.changesMade = true;
 
     ldState.currentMode = 'select';
     ldState.selectedShape = recttmp;
