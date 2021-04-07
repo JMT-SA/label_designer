@@ -4,6 +4,22 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   const debugSpace = document.getElementById('debugSpace');
   const menuNode = document.getElementById('varMenu');
 
+  const getClosestInt = (arr, int) => {
+    let lo;
+    let hi;
+    arr.forEach((elem) => {
+      if (elem <= int && (lo === undefined || lo < elem)) lo = elem;
+      if (elem >= int && (hi === undefined || hi > elem)) hi = elem;
+    });
+    if (lo === hi) return lo;
+    if (lo === undefined) return hi;
+    if (hi === undefined) return lo;
+    if (int - lo > hi - int) return hi;
+    return lo;
+  };
+
+  const validFontSize = size => getClosestInt(ldState.fontSizesPx, Number(size));
+
   class LdShape {
     constructor(x, y, width, height) {
       this.x = x;
@@ -135,7 +151,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         y: 0,
         width: this.width,
         height: this.height,
-        fontSize: opts.fontSize || 22,
+        fontSize: validFontSize(opts.fontSize || 22),
         fontFamily: opts.fontFamily || 'Arial',
         text: opts.text || 'Unset Variable',
         fill: txtFill,
@@ -207,7 +223,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         y: this.y,
         width: this.width,
         height: this.height,
-        fontSize: opts.fontSize || 22,
+        fontSize: validFontSize(opts.fontSize || 22),
         fontFamily: opts.fontFamily || 'Arial',
         text: opts.text || 'Text',
         fill: 'black',
@@ -634,6 +650,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       fontSize: document.querySelector('#font-size'),
       fontFamily: document.querySelector('#font-family'),
     };
+
+    // Store all possible font size values so anything out-of-range can be corrected.
+    ldState.fontSizesPx = Array.from(ldState.textButtons.fontSize.options).map(x => Number(x.value));
 
     ldState.outline = new Konva.Rect({
       x: 0,
