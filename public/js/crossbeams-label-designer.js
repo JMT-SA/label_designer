@@ -159,7 +159,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         fontStyle: opts.fontStyle || 'normal',
         textDecoration: opts.textDecoration || '',
         align: opts.align || 'left',
-        rotation,
       });
       const rectPart = new Konva.Rect({
         x: 0,
@@ -170,7 +169,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         strokeWidth: 2,
         strokeScaleEnabled: false,
         name: 'rect',
-        rotation,
       });
 
       // Ensure the text in the variable does not stretch with transforming:
@@ -327,10 +325,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           height: this.elem.height(),
           rotation: this.elem.rotation(),
         };
-        if (this.elem.rotation() === 90 || this.elem.rotation() === 270) {
-          node.width = this.elem.height();
-          node.height = this.elem.width();
-        }
+
         node.variableNumber = `F${this.elem.getAttr('varNum')}`;
         node.varType = this.elem.getAttr('varType');
         node.varAttrs = this.elem.getAttr('varAttrs');
@@ -1473,6 +1468,37 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   const getSelectedMultiple = () => ldState.selectedMultiple;
 
+  // For multiselect alignment: if a shape has been rotated, adjust the x/y point to something that makes beter visual sense.
+  const resolveRotatedPoint = (edge, shape) => {
+    if (edge === 'left') {
+      if (!shape.rotation()) {
+        return shape.x();
+      }
+      if (shape.rotation() === 0 || shape.rotation() === 270) {
+        return shape.x();
+      }
+      if (shape.rotation() === 90) {
+        return shape.x() - shape.height();
+      }
+      if (shape.rotation() === 180) {
+        return shape.x() - shape.width();
+      }
+    }
+    if (!shape.rotation()) {
+      return shape.y();
+    }
+    if (shape.rotation() === 0) {
+      return shape.y();
+    }
+    if (shape.rotation() === 0 || shape.rotation() === 90) {
+      return shape.y();
+    }
+    if (shape.rotation() === 180) {
+      return shape.y() - shape.height();
+    }
+    return shape.y() - shape.width();
+  };
+
   // Align shapes along top or left edges
   const align = (edge) => {
     let startPoint;
@@ -1487,7 +1513,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       } else if (ldState.selectedMultiple[0].name() === 'ellipse') {
         startPoint = ldState.selectedMultiple[0].x() - ldState.selectedMultiple[0].radiusX();
       } else {
-        startPoint = ldState.selectedMultiple[0].x();
+        startPoint = resolveRotatedPoint(edge, ldState.selectedMultiple[0]);
       }
       for (let i = 1; i < ldState.selectedMultiple.length; i += 1) {
         if (ldState.selectedMultiple[i].name() === 'line') {
@@ -1499,7 +1525,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         } else if (ldState.selectedMultiple[i].name() === 'ellipse') {
           ldState.selectedMultiple[i].move({ x: (startPoint - (ldState.selectedMultiple[i].x() - ldState.selectedMultiple[i].radiusX())), y: 0 });
         } else {
-          ldState.selectedMultiple[i].move({ x: (startPoint - ldState.selectedMultiple[i].x()), y: 0 });
+          ldState.selectedMultiple[i].move({ x: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])), y: 0 });
         }
       }
       ldState.stage.draw();
@@ -1511,7 +1537,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       } else if (ldState.selectedMultiple[0].name() === 'ellipse') {
         startPoint = ldState.selectedMultiple[0].y() - ldState.selectedMultiple[0].radiusY();
       } else {
-        startPoint = ldState.selectedMultiple[0].y();
+        startPoint = resolveRotatedPoint(edge, ldState.selectedMultiple[0]);
       }
       for (let i = 1; i < ldState.selectedMultiple.length; i += 1) {
         if (ldState.selectedMultiple[i].name() === 'line') {
@@ -1523,11 +1549,12 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         } else if (ldState.selectedMultiple[i].name() === 'ellipse') {
           ldState.selectedMultiple[i].move({ x: 0, y: (startPoint - (ldState.selectedMultiple[i].y() - ldState.selectedMultiple[i].radiusY())) });
         } else {
-          ldState.selectedMultiple[i].move({ x: 0, y: (startPoint - ldState.selectedMultiple[i].y()) });
+          ldState.selectedMultiple[i].move({ x: 0, y: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])) });
         }
       }
       ldState.stage.draw();
     }
+    return null;
   };
 
   const getCurrentMode = () => ldState.currentMode;
