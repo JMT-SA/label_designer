@@ -4,9 +4,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   const debugSpace = document.getElementById('debugSpace');
   const menuNode = document.getElementById('varMenu');
 
+  // Match an integer to its closest equal in an array.
   const getClosestInt = (arr, int) => {
     let lo;
     let hi;
+    if (arr.indexOf(int) !== -1) {
+      return int;
+    }
     arr.forEach((elem) => {
       if (elem <= int && (lo === undefined || lo < elem)) lo = elem;
       if (elem >= int && (hi === undefined || hi > elem)) hi = elem;
@@ -90,6 +94,16 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         hitStrokeWidth: 10,
         name: 'line',
       });
+
+      this.shape.on('dragend', () => {
+        const points = this.shape.points();
+        const newX = this.shape.x();
+        const newY = this.shape.y();
+        this.shape.points([points[0] + newX, points[1] + newY, points[2] + newX, points[3] + newY]);
+        this.shape.x(0);
+        this.shape.y(0);
+      });
+
       return this.shape;
     }
   }
@@ -1182,8 +1196,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.clipboard.shapes.forEach((shape) => {
       marshal = new LdMarshal(shape);
       newSelection.push(marshal.load(ldState.copyOffset));
-      ldState.copyOffset += 5;
     });
+    ldState.copyOffset += 5;
     if (newSelection.length === 1) {
       ldState.currentMode = 'select';
       ldState.tr.nodes(newSelection);
@@ -1192,6 +1206,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.tr.nodes(newSelection);
       ldState.selectedMultiple = newSelection;
     }
+    ldState.stage.draw();
   };
 
   // De-select any shapes and return a png copy of all shapes except those on the variable layer
@@ -1305,7 +1320,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       let move;
       let width;
       let height;
-      // let points;
+      let points;
 
       if (event.target.id === 'textinput') {
         return null;
@@ -1357,8 +1372,16 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       if (move) {
         if (ldState.selectedMultiple.length > 0) {
           ldState.selectedMultiple.forEach((elem) => {
-            elem.move(move);
+            if (elem.name() === 'line') {
+              points = elem.points();
+              elem.points([points[0] + move.x, points[1] + move.y, points[2] + move.x, points[3] + move.y]);
+            } else {
+              elem.move(move);
+            }
           });
+        } else if (ldState.selectedShape.name() === 'line') {
+          points = ldState.selectedShape.points();
+          ldState.selectedShape.points([points[0] + move.x, points[1] + move.y, points[2] + move.x, points[3] + move.y]);
         } else {
           ldState.selectedShape.move(move);
         }
@@ -1388,6 +1411,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         event.stopPropagation();
         event.preventDefault();
       }
+
+      return null;
     });
 
     document.addEventListener('mousemove', (event) => {
