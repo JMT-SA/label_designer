@@ -4,7 +4,15 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   const debugSpace = document.getElementById('debugSpace');
   const menuNode = document.getElementById('varMenu');
 
-  // Match an integer to its closest equal in an array.
+  /**
+   * getClosestInt.
+   *
+   * Match an integer to its closest equal in an array.
+   *
+   * @param {array} arr - an array of integers.
+   * @param {number} int - an integer to be checked.
+   * @returns {number} the closest value from the array.
+   */
   const getClosestInt = (arr, int) => {
     let lo;
     let hi;
@@ -24,7 +32,20 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   const validFontSize = size => getClosestInt(ldState.fontSizesPx, Number(size));
 
+  /**
+   * LdShape.
+   *
+   * Base for all other shape classes.
+   */
   class LdShape {
+    /**
+     * constructor.
+     *
+     * @param {number} x - starting point x.
+     * @param {number} y - starting point y.
+     * @param {number} width - width of the bounding area.
+     * @param {number} height - height of the bounding area.
+     */
     constructor(x, y, width, height) {
       this.x = x;
       this.y = y;
@@ -35,8 +56,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   class LdImage extends LdShape {
     generate(opts = {}) {
+      let width = 0;
+      let height = 0;
+      let loaded = false;
       const img = new Image();
-      img.src = opts.imageSource; // might need to do onLoad...
+      img.src = opts.imageSource;
 
       this.shape = new Konva.Image({
         x: this.x,
@@ -46,15 +70,45 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         draggable: true,
         imageSource: opts.imageSource,
       });
+      loaded = true;
       if (this.width) {
         this.shape.width(this.width);
       } else {
-        this.shape.width(this.shape.attrs.image.width);
+        width = this.shape.image().width;
+        // Provide non-zero dimension if image is not fully loaded yet,
+        if (width === 0) {
+          loaded = false;
+          width = 30;
+        }
+        this.shape.width(width);
       }
       if (this.height) {
         this.shape.height(this.height);
       } else {
-        this.shape.height(this.shape.attrs.image.height);
+        height = this.shape.image().height;
+        // Provide non-zero dimension if image is not fully loaded yet,
+        if (height === 0) {
+          loaded = false;
+          height = 30;
+        }
+        this.shape.height(height);
+      }
+
+      // The image might not have finished loading soon enough to have dimensions,
+      // so check in a timeout and adjust the width and height accordingly.
+      if (!loaded) {
+        const aShape = this.shape;
+        setTimeout(function checkImgLoad() {
+          width = aShape.image().width;
+          height = aShape.image().height;
+          if (width === 0 || height === 0) {
+            setTimeout(checkImgLoad, 250);
+          } else {
+            aShape.height(height);
+            aShape.width(width);
+            aShape.draw();
+          }
+        }, 250);
       }
       return this.shape;
     }
@@ -284,11 +338,28 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
   }
 
+  /**
+   * LdMarshal.
+   *
+   * Class to control serialising and de-serialising shapes via dump() and load().
+   */
   class LdMarshal {
+    /**
+     * constructor.
+     *
+     * @param {shape|node} elem - the shape to be dumped, or the node to be loaded as a shape.
+     */
     constructor(elem) {
       this.elem = elem;
     }
 
+    /**
+     * dump.
+     *
+     * Dump a shape.
+     *
+     * @returns {object} a representation of the shape.
+     */
     dump() {
       let node;
       let txtObj;
@@ -360,6 +431,14 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       return node;
     }
 
+    /**
+     * load.
+     *
+     * Load a shape.
+     *
+     * @param {?number} offset - number of pixels to offset the top left x,y points. Use non-zero for paste so that a shape is offset from its origin.
+     * @returns {shape} the generated shape.
+     */
     load(offset = 0) {
       let shape;
       let item;
@@ -409,11 +488,16 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   // --- END OF SHAPES
 
   // Return the selected text object or the text object within the selected group.
+  /**
+   * resolveTextObject.
+   *
+   * @param {shape} item - a text or variable shape.
+   * @returns {shape} the text object or the variable's text part.
+   */
   const resolveTextObject = (item) => {
     const txtObj = item || ldState.selectedShape;
     if (txtObj.hasChildren()) {
       const tmp = txtObj.getChildren(node => node.getClassName() === 'Text')[0];
-      // console.log('txt-var', tmp);
       return tmp;
     }
     return txtObj;
@@ -425,8 +509,14 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ellipse: true,
   };
 
+  /**
+   * lineTypeSelected.
+   *
+   * Is the selected shape one that has a `stroke` attribute?
+   *
+   * @returns {boolean} true if the shape is a line, rect or ellipse, else false.
+   */
   const lineTypeSelected = () => {
-    // console.log('type', ldState.selectedShape.name(), LINE_TYPES[ldState.selectedShape.name()]);
     if (LINE_TYPES[ldState.selectedShape.name()]) return true;
 
     return false;
@@ -695,10 +785,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         const file = files[0];
         if (file) {
           const reader = new FileReader();
-          reader.readAsDataURL(file);
-          reader.onload = function readOnload(event) {
+
+          reader.addEventListener('load', () => {
             const shape = new LdImage(0, 0);
-            const recttmp = shape.generate({ imageSource: event.target.result });
+            const recttmp = shape.generate({ imageSource: reader.result });
             ldState.layer.add(recttmp);
             ldState.tr.nodes([recttmp]);
 
@@ -716,7 +806,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
             document.querySelectorAll('[data-active]').forEach(elem => elem.dataset.active = 'false');
             document.querySelector('[data-action="select"]').dataset.active = 'true';
             ldState.changesMade = true;
-          };
+          });
+          reader.readAsDataURL(file);
         }
       } else {
         document.querySelector('#image-dialog-form .notice').removeAttribute('style');
@@ -1351,6 +1442,15 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
       if (!ldState.selectedShape && !ldState.selectedMultiple.length > 0) {
         return null;
+      }
+
+      if (event.key === 'c' && event.ctrlKey && !document.querySelector('[data-action="copy"]').disabled) {
+        copyToClipboard();
+      }
+
+      if (event.key === 'v' && event.ctrlKey && !document.querySelector('[data-action="paste"]').disabled) {
+        pasteFromClipboard();
+        ldState.changesMade = true;
       }
 
       if (event.key === 'Delete' && ldState.selectedShape) {
