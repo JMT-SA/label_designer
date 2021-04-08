@@ -1,4 +1,63 @@
 /* eslint-disable no-return-assign */
+const UndoEngine = (function UndoEngine() {
+  const returnObject = {};
+
+  const undoStack = [];
+  let undoIndex = -1;
+
+  returnObject.canUndo = function canUndo() {
+    return (undoStack.length > 0) && (undoIndex >= 0);
+  };
+
+  returnObject.canRedo = function canRedo() {
+    return undoIndex < undoStack.length - 1;
+  };
+
+  // Add a command to the undo list and discard redos
+  // beyond the current position if we've performed any.
+  returnObject.addCommand = function addCommand(cmd) {
+    undoIndex += 1;
+    undoStack.splice(undoIndex);
+    undoStack.push(cmd);
+  };
+
+  returnObject.undo = function undo() {
+    if (!returnObject.canUndo()) {
+      throw new Error('ERROR: Cannot call undo at this time.');
+    }
+    const cmd = undoStack[undoIndex];
+    cmd.executeUndo();
+    undoIndex -= 1;
+  };
+
+  returnObject.redo = function redo() {
+    if (!returnObject.canRedo()) {
+      throw new Error('ERROR: Cannot call redo at this time.');
+    }
+    const cmd = undoStack[undoIndex + 1];
+    cmd.executeRedo();
+    undoIndex += 1;
+  };
+
+  returnObject.replaceId = function replaceId(prevId, newId) {
+    undoStack.forEach((item) => {
+      if (item.shapeId && item.shapeId === prevId) {
+        item.shapeId = newId;
+      }
+      if (item.shapeIds && item.shapeIds.includes(prevId)) {
+        item.shapeIds[item.shapeIds.indexOf(prevId)] = newId;
+      }
+    });
+  };
+
+  // FOR DEBUGGING: Return the undo stack.
+  returnObject.debugUndoStack = function debugUndo() {
+    return undoStack;
+  };
+
+  return returnObject;
+}());
+
 const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-classes-per-file
   const ldState = { changesMade: false };
   const debugSpace = document.getElementById('debugSpace');
@@ -31,6 +90,19 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   };
 
   const validFontSize = size => getClosestInt(ldState.fontSizesPx, Number(size));
+
+  const getShapeById = shapeId => ldState.stage.findOne(node => node._id === shapeId); // eslint-disable-line no-underscore-dangle
+
+  const getTextPartById = (shapeId) => {
+    const node = getShapeById(shapeId);
+    if (!node) { return null; }
+
+    if (node.hasChildren()) {
+      return node.getChildren(item => item.getClassName() === 'Text')[0];
+    }
+
+    return node;
+  };
 
   /**
    * LdShape.
@@ -734,13 +806,58 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     document.getElementById('labelName').innerHTML = labelConfig.labelName;
 
     ldState.lineWidth.addEventListener('change', () => {
+      const affectedShapes = [];
+      let prevState;
+
       if (ldState.selectedMultiple.length > 0) {
-        ldState.selectedMultiple.forEach(item => item.strokeWidth(Number(ldState.lineWidth.value)));
+        ldState.selectedMultiple.forEach((item) => {
+          if (!prevState) {
+            prevState = item.strokeWidth();
+          }
+          item.strokeWidth(Number(ldState.lineWidth.value));
+          affectedShapes.push(item._id); // eslint-disable-line no-underscore-dangle
+        });
       } else {
+        prevState = ldState.selectedShape.strokeWidth();
         ldState.selectedShape.strokeWidth(Number(ldState.lineWidth.value));
+        affectedShapes.push(ldState.selectedShape._id); // eslint-disable-line no-underscore-dangle
       }
       ldState.stage.draw();
       ldState.changesMade = true;
+
+      ldState.undoButton.disabled = false;
+      UndoEngine.addCommand({
+        shapeIds: affectedShapes,
+        action: 'strokeWidth',
+        current: Number(ldState.lineWidth.value),
+        previous: prevState,
+        executeUndo() {
+          let item;
+          this.shapeIds.forEach((id) => {
+            item = getShapeById(id);
+            item.strokeWidth(this.previous);
+          });
+          if ((ldState.selectedShape && this.shapeIds.includes(ldState.selectedShape._id)) // eslint-disable-line no-underscore-dangle
+            || (ldState.selectedMultiple.length > 0 && ldState.selectedMultiple.some(multi => this.shapeIds.includes(multi._id)))) { // eslint-disable-line no-underscore-dangle
+            ldState.lineWidth.value = this.previous;
+          }
+          ldState.stage.draw();
+          console.log('UNDO', this.shapeIds, this.action, this.previous);
+        },
+        executeRedo() {
+          let item;
+          this.shapeIds.forEach((id) => {
+            item = getShapeById(id);
+            item.strokeWidth(this.current);
+          });
+          if ((ldState.selectedShape && this.shapeIds.includes(ldState.selectedShape._id)) // eslint-disable-line no-underscore-dangle
+            || (ldState.selectedMultiple.length > 0 && ldState.selectedMultiple.some(multi => this.shapeIds.includes(multi._id)))) { // eslint-disable-line no-underscore-dangle
+            ldState.lineWidth.value = this.current;
+          }
+          ldState.stage.draw();
+          console.log('REDO', this.shapeIds, this.action, this.current);
+        },
+      });
     });
 
     ldState.textButtons = {
@@ -754,6 +871,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       fontSize: document.querySelector('#font-size'),
       fontFamily: document.querySelector('#font-family'),
     };
+
+    ldState.undoButton = document.querySelector('[data-action="undo"]');
+    ldState.redoButton = document.querySelector('[data-action="redo"]');
 
     // Store all possible font size values so anything out-of-range can be corrected.
     ldState.fontSizesPx = Array.from(ldState.textButtons.fontSize.options).map(x => Number(x.value));
@@ -841,41 +961,160 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     // Listen for change of text input and update Text of Variable contents
     ldState.textButtons.text.addEventListener('input', () => {
       const txtObj = resolveTextObject();
+      const pre = txtObj.text();
+      const post = ldState.textButtons.text.value;
+
       txtObj.text(ldState.textButtons.text.value);
       ldState.stage.draw();
       ldState.changesMade = true;
+      // add an undo cmd (add should set button states...)
+      ldState.undoButton.disabled = false;
+      UndoEngine.addCommand({
+        shapeId: ldState.selectedShape._id, // eslint-disable-line no-underscore-dangle
+        action: 'textChange',
+        current: post,
+        previous: pre,
+        executeUndo() {
+          const node = getTextPartById(this.shapeId);
+          if (node) {
+            node.text(this.previous);
+            if (node === ldState.selectedShape) {
+              ldState.textButtons.text.value = this.previous;
+            }
+            ldState.stage.draw();
+          }
+          console.log('UNDO', this.shapeId, this.previous);
+        },
+        executeRedo() {
+          const node = getTextPartById(this.shapeId);
+          if (node) {
+            node.text(this.current);
+            if (node === ldState.selectedShape) {
+              ldState.textButtons.text.value = this.current;
+            }
+            ldState.stage.draw();
+          }
+          console.log('REDO', this.shapeId, this.current);
+        },
+      });
     });
 
     // Listen for change of font size
     ldState.textButtons.fontSize.addEventListener('change', () => {
+      const affectedShapes = [];
+      let prevState;
       let txtObj;
+
       if (ldState.selectedMultiple.length > 0) {
         ldState.selectedMultiple.forEach((item) => {
           txtObj = resolveTextObject(item);
+          if (!prevState) {
+            prevState = txtObj.fontSize();
+          }
           txtObj.fontSize(Number(ldState.textButtons.fontSize.value));
+          affectedShapes.push(item._id); // eslint-disable-line no-underscore-dangle
         });
       } else {
         txtObj = resolveTextObject();
+        prevState = txtObj.fontSize();
         txtObj.fontSize(Number(ldState.textButtons.fontSize.value));
+        affectedShapes.push(ldState.selectedShape._id); // eslint-disable-line no-underscore-dangle
       }
       ldState.stage.draw();
       ldState.changesMade = true;
+
+      ldState.undoButton.disabled = false;
+      UndoEngine.addCommand({
+        shapeIds: affectedShapes,
+        action: 'fontSize',
+        current: Number(ldState.textButtons.fontSize.value),
+        previous: prevState,
+        executeUndo() {
+          let item;
+          this.shapeIds.forEach((id) => {
+            item = getTextPartById(id);
+            item.fontSize(this.previous);
+          });
+          if ((ldState.selectedShape && this.shapeIds.includes(ldState.selectedShape._id)) // eslint-disable-line no-underscore-dangle
+            || (ldState.selectedMultiple.length > 0 && ldState.selectedMultiple.some(multi => this.shapeIds.includes(multi._id)))) { // eslint-disable-line no-underscore-dangle
+            ldState.textButtons.fontSize.value = this.previous;
+          }
+          ldState.stage.draw();
+          console.log('UNDO', this.shapeIds, this.action, this.previous);
+        },
+        executeRedo() {
+          let item;
+          this.shapeIds.forEach((id) => {
+            item = getTextPartById(id);
+            item.fontSize(this.current);
+          });
+          if ((ldState.selectedShape && this.shapeIds.includes(ldState.selectedShape._id)) // eslint-disable-line no-underscore-dangle
+            || (ldState.selectedMultiple.length > 0 && ldState.selectedMultiple.some(multi => this.shapeIds.includes(multi._id)))) { // eslint-disable-line no-underscore-dangle
+            ldState.textButtons.fontSize.value = this.current;
+          }
+          ldState.stage.draw();
+          console.log('REDO', this.shapeIds, this.action, this.current);
+        },
+      });
     });
 
     // Listen for change of font family
     ldState.textButtons.fontFamily.addEventListener('change', () => {
+      const affectedShapes = [];
+      let prevState;
       let txtObj;
+
       if (ldState.selectedMultiple.length > 0) {
         ldState.selectedMultiple.forEach((item) => {
           txtObj = resolveTextObject(item);
+          if (!prevState) {
+            prevState = txtObj.fontFamily();
+          }
           txtObj.fontFamily(ldState.textButtons.fontFamily.value);
+          affectedShapes.push(item._id); // eslint-disable-line no-underscore-dangle
         });
       } else {
         txtObj = resolveTextObject();
+        prevState = txtObj.fontFamily();
         txtObj.fontFamily(ldState.textButtons.fontFamily.value);
+        affectedShapes.push(ldState.selectedShape._id); // eslint-disable-line no-underscore-dangle
       }
       ldState.stage.draw();
       ldState.changesMade = true;
+
+      ldState.undoButton.disabled = false;
+      UndoEngine.addCommand({
+        shapeIds: affectedShapes,
+        action: 'fontFamily',
+        current: ldState.textButtons.fontFamily.value,
+        previous: prevState,
+        executeUndo() {
+          let item;
+          this.shapeIds.forEach((id) => {
+            item = getTextPartById(id);
+            item.fontFamily(this.previous);
+          });
+          if ((ldState.selectedShape && this.shapeIds.includes(ldState.selectedShape._id)) // eslint-disable-line no-underscore-dangle
+            || (ldState.selectedMultiple.length > 0 && ldState.selectedMultiple.some(multi => this.shapeIds.includes(multi._id)))) { // eslint-disable-line no-underscore-dangle
+            ldState.textButtons.fontFamily.value = this.previous;
+          }
+          ldState.stage.draw();
+          console.log('UNDO', this.shapeIds, this.action, this.previous);
+        },
+        executeRedo() {
+          let item;
+          this.shapeIds.forEach((id) => {
+            item = getTextPartById(id);
+            item.fontFamily(this.current);
+          });
+          if ((ldState.selectedShape && this.shapeIds.includes(ldState.selectedShape._id)) // eslint-disable-line no-underscore-dangle
+            || (ldState.selectedMultiple.length > 0 && ldState.selectedMultiple.some(multi => this.shapeIds.includes(multi._id)))) { // eslint-disable-line no-underscore-dangle
+            ldState.textButtons.fontFamily.value = this.current;
+          }
+          ldState.stage.draw();
+          console.log('REDO', this.shapeIds, this.action, this.current);
+        },
+      });
     });
 
     /*
@@ -914,12 +1153,14 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       if (ldState.currentMode !== 'select') {
         ldState.stage.stopDrag();
       }
+      // else set start point
     });
 
     // End of drag
     ldState.stage.on('dragend', () => {
       if (ldState.currentMode === 'select') {
         ldState.changesMade = true;
+        // compare to start point and store a move undo command
       }
     });
 
@@ -1073,8 +1314,17 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   // When save is pressed in the variable dialog - save settings to the shape
   const saveVariableSettings = (variableTypeValue) => {
+    // For undo/redo, save the varAttrs, text, varType, txt.fill & rect.stroke
     const txtObj = ldState.selectedShape.getChildren(node => node.getClassName() === 'Text')[0];
     const rectObj = ldState.selectedShape.getChildren(node => node.getClassName() === 'Rect')[0];
+    const prevState = {
+      varAttrs: ldState.selectedShape.attrs.varAttrs,
+      varType: ldState.selectedShape.attrs.varType,
+      text: txtObj.text(),
+      fill: txtObj.fill(),
+      stroke: rectObj.stroke(),
+    };
+
     const varAttrs = {
       whiteOnBlack: ldState.variableUI.whiteOnBlack.checked,
       barcode: ldState.variableUI.barcodeBool.checked,
@@ -1107,6 +1357,46 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
     ldState.stage.draw();
     ldState.changesMade = true;
+
+    const newState = {
+      varAttrs,
+      varType: ldState.selectedShape.attrs.varType,
+      text: txtObj.text(),
+      fill: txtObj.fill(),
+      stroke: rectObj.stroke(),
+    };
+
+    ldState.undoButton.disabled = false;
+    UndoEngine.addCommand({
+      shapeId: ldState.selectedShape._id, // eslint-disable-line no-underscore-dangle
+      action: 'setVars',
+      current: newState,
+      previous: prevState,
+      executeUndo() {
+        const item = getShapeById(this.shapeId);
+        const txtItem = item.getChildren(node => node.getClassName() === 'Text')[0];
+        const rectItem = item.getChildren(node => node.getClassName() === 'Rect')[0];
+        item.attrs.varAttrs = this.previous.varAttrs;
+        item.attrs.varType = this.previous.varType;
+        txtItem.text(this.previous.text);
+        txtItem.fill(this.previous.fill);
+        rectItem.stroke(this.previous.stroke);
+        ldState.stage.draw();
+        console.log('UNDO', this.shapeId, this.action, this.previous);
+      },
+      executeRedo() {
+        const item = getShapeById(this.shapeId);
+        const txtItem = item.getChildren(node => node.getClassName() === 'Text')[0];
+        const rectItem = item.getChildren(node => node.getClassName() === 'Rect')[0];
+        item.attrs.varAttrs = this.current.varAttrs;
+        item.attrs.varType = this.current.varType;
+        txtItem.text(this.current.text);
+        txtItem.fill(this.current.fill);
+        rectItem.stroke(this.current.stroke);
+        ldState.stage.draw();
+        console.log('REDO', this.shapeId, this.action, this.current);
+      },
+    });
   };
 
   // Variable dialog: toggle barcode options
@@ -1150,7 +1440,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         toggleErrorNotice(true);
       } else {
         saveVariableSettings(variableTypeValue);
-        // UndoRedoModule.registerUndoEvent();
 
         ldState.variableUI.varDialog.hide();
         toggleErrorNotice(false);
@@ -1548,6 +1837,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     document.addEventListener('click', (event) => {
       let btn = event.target.closest('button[data-action]');
       let enable;
+      const affectedShapes = [];
+      let prevState;
+      let prevId;
+      let marshal;
 
       if (btn) {
         if (btn.dataset.active) {
@@ -1567,9 +1860,33 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           ldState.changesMade = true;
         }
         if (btn.dataset.action === 'remove' && ldState.selectedShape) {
+          marshal = new LdMarshal(ldState.selectedShape);
+          prevState = marshal.dump();
+          prevId = ldState.selectedShape._id; // eslint-disable-line no-underscore-dangle
           ldState.selectedShape.destroy();
           ldState.stage.fire('ldSelectNone');
           ldState.changesMade = true;
+
+          ldState.undoButton.disabled = false;
+          UndoEngine.addCommand({
+            shapeId: prevId,
+            action: 'delete',
+            current: null,
+            previous: prevState,
+            executeUndo() {
+              marshal = new LdMarshal(prevState);
+              const item = marshal.load();
+              UndoEngine.replaceId(this.shapeId, item._id); // eslint-disable-line no-underscore-dangle
+              ldState.stage.draw();
+              console.log('UNDO', this.shapeId, this.action, this.previous);
+            },
+            executeRedo() {
+              const item = getShapeById(this.shapeId);
+              item.destroy();
+              ldState.stage.draw();
+              console.log('REDO', this.shapeId, this.action, this.current);
+            },
+          });
         }
         if (btn.dataset.action === 'copy' && (ldState.selectedShape || ldState.selectedMultiple.length > 0)) {
           copyToClipboard();
@@ -1577,6 +1894,22 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         if (btn.dataset.action === 'paste') {
           pasteFromClipboard();
           ldState.changesMade = true;
+        }
+        if (btn.dataset.action === 'undo') {
+          UndoEngine.undo();
+          if (!UndoEngine.canUndo()) {
+            ldState.changesMade = false;
+            ldState.undoButton.disabled = true;
+          }
+          ldState.redoButton.disabled = false;
+        }
+        if (btn.dataset.action === 'redo') {
+          UndoEngine.redo();
+          ldState.undoButton.disabled = false;
+          ldState.changesMade = true;
+          if (!UndoEngine.canRedo()) {
+            ldState.redoButton.disabled = true;
+          }
         }
         if (btn.dataset.image) {
           ldState.imgUpDialog.show();
@@ -1590,25 +1923,113 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         if (ldState.selectedMultiple.length > 0) {
           ldState.selectedMultiple.forEach((item) => {
             applyTextStyle(enable, btn.dataset.textstyle, item);
+            affectedShapes.push(item._id); // eslint-disable-line no-underscore-dangle
           });
         } else {
           applyTextStyle(enable, btn.dataset.textstyle);
+          affectedShapes.push(ldState.selectedShape._id); // eslint-disable-line no-underscore-dangle
         }
+
+        ldState.undoButton.disabled = false;
+        UndoEngine.addCommand({
+          shapeIds: affectedShapes,
+          action: btn.dataset.textstyle,
+          button: btn,
+          current: enable,
+          previous: !enable,
+          executeUndo() {
+            let item;
+            this.shapeIds.forEach((id) => {
+              item = getShapeById(id);
+              applyTextStyle(this.previous, this.action, item);
+            });
+            if ((ldState.selectedShape && this.shapeIds.includes(ldState.selectedShape._id)) // eslint-disable-line no-underscore-dangle
+              || (ldState.selectedMultiple.length > 0 && ldState.selectedMultiple.some(multi => this.shapeIds.includes(multi._id)))) { // eslint-disable-line no-underscore-dangle
+              this.button.dataset.selected = this.previous;
+            }
+            ldState.stage.draw();
+            console.log('UNDO', this.shapeIds, this.action, this.previous);
+          },
+          executeRedo() {
+            let item;
+            this.shapeIds.forEach((id) => {
+              item = getShapeById(id);
+              applyTextStyle(this.current, this.action, item);
+            });
+            if ((ldState.selectedShape && this.shapeIds.includes(ldState.selectedShape._id)) // eslint-disable-line no-underscore-dangle
+              || (ldState.selectedMultiple.length > 0 && ldState.selectedMultiple.some(multi => this.shapeIds.includes(multi._id)))) { // eslint-disable-line no-underscore-dangle
+              this.button.dataset.selected = this.current;
+            }
+            ldState.stage.draw();
+            console.log('REDO', this.shapeIds, this.action, this.current);
+          },
+        });
         ldState.stage.draw();
         ldState.changesMade = true;
       }
 
       btn = event.target.closest('button[data-alignment]');
       if (btn) {
-        document.querySelectorAll('button[data-alignment]').forEach(elem => elem.dataset.selected = 'false');
+        document.querySelectorAll('button[data-alignment]').forEach((elem) => {
+          if (elem.dataset.selected === 'true') {
+            prevState = elem.dataset.alignment;
+          }
+          elem.dataset.selected = 'false';
+        });
         btn.dataset.selected = 'true';
         if (ldState.selectedMultiple.length > 0) {
           ldState.selectedMultiple.forEach((item) => {
             applyTextAlignment(btn.dataset.alignment, item);
+            affectedShapes.push(item._id); // eslint-disable-line no-underscore-dangle
           });
         } else {
           applyTextAlignment(btn.dataset.alignment);
+          affectedShapes.push(ldState.selectedShape._id); // eslint-disable-line no-underscore-dangle
         }
+        ldState.undoButton.disabled = false;
+        UndoEngine.addCommand({
+          shapeIds: affectedShapes,
+          action: 'alignText',
+          // button: btn,
+          current: btn.dataset.alignment,
+          previous: prevState,
+          executeUndo() {
+            let item;
+            this.shapeIds.forEach((id) => {
+              item = getShapeById(id);
+              applyTextAlignment(this.previous, item);
+            });
+            if ((ldState.selectedShape && this.shapeIds.includes(ldState.selectedShape._id)) // eslint-disable-line no-underscore-dangle
+              || (ldState.selectedMultiple.length > 0 && ldState.selectedMultiple.some(multi => this.shapeIds.includes(multi._id)))) { // eslint-disable-line no-underscore-dangle
+              document.querySelectorAll('button[data-alignment]').forEach((elem) => {
+                elem.dataset.selected = 'false';
+                if (elem.dataset.alignment === this.previous) {
+                  elem.dataset.selected = 'true';
+                }
+              });
+            }
+            ldState.stage.draw();
+            console.log('UNDO', this.shapeIds, this.action, this.previous);
+          },
+          executeRedo() {
+            let item;
+            this.shapeIds.forEach((id) => {
+              item = getShapeById(id);
+              applyTextAlignment(this.current, item);
+            });
+            if ((ldState.selectedShape && this.shapeIds.includes(ldState.selectedShape._id)) // eslint-disable-line no-underscore-dangle
+              || (ldState.selectedMultiple.length > 0 && ldState.selectedMultiple.some(multi => this.shapeIds.includes(multi._id)))) { // eslint-disable-line no-underscore-dangle
+              document.querySelectorAll('button[data-alignment]').forEach((elem) => {
+                elem.dataset.selected = 'false';
+                if (elem.dataset.alignment === this.current) {
+                  elem.dataset.selected = 'true';
+                }
+              });
+            }
+            ldState.stage.draw();
+            console.log('REDO', this.shapeIds, this.action, this.current);
+          },
+        });
         ldState.stage.draw();
         ldState.changesMade = true;
       }
@@ -1722,6 +2143,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     let startY = y;
     let endX = x2;
     let endY = y2;
+    let marshal;
+
     ldState.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left', 'bottom-left', 'bottom-center', 'bottom-right']);
 
     // Always define from left to right, top to bottom
@@ -1794,6 +2217,37 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.textButtons.text.select();
     }
     ldState.currentDrawType = undefined;
+
+    ldState.undoButton.disabled = false;
+    marshal = new LdMarshal(recttmp);
+    const newNode = marshal.dump();
+    UndoEngine.addCommand({
+      shapeId: recttmp._id, // eslint-disable-line no-underscore-dangle
+      action: 'add',
+      current: newNode,
+      previous: null,
+      executeUndo() {
+        const item = getShapeById(this.shapeId);
+        // remove from selection if the shape we are about to delete is selected.
+        if (ldState.tr.nodes().indexOf(item) >= 0) {
+          const hold = ldState.tr.nodes().slice(); // use slice to have new copy of array
+          // remove node from array
+          hold.splice(hold.indexOf(item), 1);
+          ldState.tr.nodes(hold);
+        }
+
+        item.destroy();
+        ldState.stage.draw();
+        console.log('UNDO', this.shapeId, this.action, this.previous);
+      },
+      executeRedo() {
+        marshal = new LdMarshal(newNode);
+        const item = marshal.load();
+        UndoEngine.replaceId(this.shapeId, item._id); // eslint-disable-line no-underscore-dangle
+        ldState.stage.draw();
+        console.log('REDO', this.shapeId, this.action, this.current);
+      },
+    });
   };
 
   const findAbsolutePos = (obj) => {
