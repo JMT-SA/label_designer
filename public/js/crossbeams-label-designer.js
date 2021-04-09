@@ -4,6 +4,8 @@ const UndoEngine = (function UndoEngine() {
 
   const undoStack = [];
   let undoIndex = -1;
+  let undoButton;
+  let redoButton;
 
   returnObject.canUndo = function canUndo() {
     return (undoStack.length > 0) && (undoIndex >= 0);
@@ -19,6 +21,7 @@ const UndoEngine = (function UndoEngine() {
     undoIndex += 1;
     undoStack.splice(undoIndex);
     undoStack.push(cmd);
+    undoButton.disabled = false;
   };
 
   returnObject.undo = function undo() {
@@ -28,6 +31,12 @@ const UndoEngine = (function UndoEngine() {
     const cmd = undoStack[undoIndex];
     cmd.executeUndo();
     undoIndex -= 1;
+    if (redoButton) {
+      redoButton.disabled = false;
+    }
+    if (undoButton && !returnObject.canUndo()) {
+      undoButton.disabled = true;
+    }
   };
 
   returnObject.redo = function redo() {
@@ -37,6 +46,12 @@ const UndoEngine = (function UndoEngine() {
     const cmd = undoStack[undoIndex + 1];
     cmd.executeRedo();
     undoIndex += 1;
+    if (undoButton) {
+      undoButton.disabled = false;
+    }
+    if (redoButton && !returnObject.canRedo()) {
+      redoButton.disabled = true;
+    }
   };
 
   returnObject.replaceId = function replaceId(prevId, newId) {
@@ -48,6 +63,16 @@ const UndoEngine = (function UndoEngine() {
         item.shapeIds[item.shapeIds.indexOf(prevId)] = newId;
       }
     });
+  };
+
+  returnObject.setUndoButton = function setUndoButton(btn) {
+    undoButton = btn;
+    undoButton.disabled = true;
+  };
+
+  returnObject.setRedoButton = function setRedoButton(btn) {
+    redoButton = btn;
+    redoButton.disabled = true;
   };
 
   // FOR DEBUGGING: Return the undo stack.
@@ -784,6 +809,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     // const pxPerMm = <%= @px_per_mm %>;
     // const fontDefaultPx = <%= @default_font_px %>; -- can hard-code to 22
     // const fontDefaultPt = <%= @default_font_pt %>; -- can hard-code to 8 (or translate from font sizes table)
+
+    UndoEngine.setUndoButton(document.querySelector('[data-action="undo"]'));
+    UndoEngine.setRedoButton(document.querySelector('[data-action="redo"]'));
+
     ldState.MIN_DIMENSION = 20;
     ldState.selectedShape = undefined;
     ldState.selectedMultiple = [];
@@ -825,7 +854,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.stage.draw();
       ldState.changesMade = true;
 
-      ldState.undoButton.disabled = false;
       UndoEngine.addCommand({
         shapeIds: affectedShapes,
         action: 'strokeWidth',
@@ -872,9 +900,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       fontFamily: document.querySelector('#font-family'),
     };
 
-    ldState.undoButton = document.querySelector('[data-action="undo"]');
-    ldState.redoButton = document.querySelector('[data-action="redo"]');
-
     // Store all possible font size values so anything out-of-range can be corrected.
     ldState.fontSizesPx = Array.from(ldState.textButtons.fontSize.options).map(x => Number(x.value));
 
@@ -901,6 +926,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     // Add image button click
     document.querySelector('#image-dialog-form button.upload').addEventListener('click', () => {
       const files = document.querySelector('#image-dialog-form input[type="file"]').files;
+      let marshal;
+
       if (files.length > 0) {
         const file = files[0];
         if (file) {
@@ -911,6 +938,36 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
             const recttmp = shape.generate({ imageSource: reader.result });
             ldState.layer.add(recttmp);
             ldState.tr.nodes([recttmp]);
+
+            marshal = new LdMarshal(recttmp);
+            const newNode = marshal.dump();
+            UndoEngine.addCommand({
+              shapeId: recttmp._id, // eslint-disable-line no-underscore-dangle
+              action: 'addImage',
+              current: newNode,
+              previous: null,
+              executeUndo() {
+                const item = getShapeById(this.shapeId);
+                // remove from selection if the shape we are about to delete is selected.
+                if (ldState.tr.nodes().indexOf(item) >= 0) {
+                  const hold = ldState.tr.nodes().slice(); // use slice to have new copy of array
+                  // remove node from array
+                  hold.splice(hold.indexOf(item), 1);
+                  ldState.tr.nodes(hold);
+                }
+
+                item.destroy();
+                ldState.stage.draw();
+                console.log('UNDO', this.shapeId, this.action, this.previous);
+              },
+              executeRedo() {
+                marshal = new LdMarshal(newNode);
+                const item = marshal.load();
+                UndoEngine.replaceId(this.shapeId, item._id); // eslint-disable-line no-underscore-dangle
+                ldState.stage.draw();
+                console.log('REDO', this.shapeId, this.action, this.current);
+              },
+            });
 
             // reset draw mode
             ldState.currentMode = 'select';
@@ -967,8 +1024,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       txtObj.text(ldState.textButtons.text.value);
       ldState.stage.draw();
       ldState.changesMade = true;
-      // add an undo cmd (add should set button states...)
-      ldState.undoButton.disabled = false;
       UndoEngine.addCommand({
         shapeId: ldState.selectedShape._id, // eslint-disable-line no-underscore-dangle
         action: 'textChange',
@@ -1023,7 +1078,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.stage.draw();
       ldState.changesMade = true;
 
-      ldState.undoButton.disabled = false;
       UndoEngine.addCommand({
         shapeIds: affectedShapes,
         action: 'fontSize',
@@ -1082,7 +1136,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.stage.draw();
       ldState.changesMade = true;
 
-      ldState.undoButton.disabled = false;
       UndoEngine.addCommand({
         shapeIds: affectedShapes,
         action: 'fontFamily',
@@ -1366,7 +1419,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       stroke: rectObj.stroke(),
     };
 
-    ldState.undoButton.disabled = false;
     UndoEngine.addCommand({
       shapeId: ldState.selectedShape._id, // eslint-disable-line no-underscore-dangle
       action: 'setVars',
@@ -1647,7 +1699,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.stage.fire('ldSelectNone');
     ldState.changesMade = true;
 
-    ldState.undoButton.disabled = false;
     UndoEngine.addCommand({
       shapeId: prevId,
       action: 'delete',
@@ -1766,17 +1817,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         UndoEngine.undo();
         if (!UndoEngine.canUndo()) {
           ldState.changesMade = false;
-          ldState.undoButton.disabled = true;
         }
-        ldState.redoButton.disabled = false;
       }
       if (event.key === 'y' && event.ctrlKey && !document.querySelector('[data-action="redo"]').disabled) {
         UndoEngine.redo();
-        ldState.undoButton.disabled = false;
         ldState.changesMade = true;
-        if (!UndoEngine.canRedo()) {
-          ldState.redoButton.disabled = true;
-        }
       }
 
       // Paste
@@ -1910,7 +1955,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           ldState.stage.draw();
           ldState.changesMade = true;
 
-          ldState.undoButton.disabled = false;
           UndoEngine.addCommand({
             shapeId: ldState.selectedShape._id, // eslint-disable-line no-underscore-dangle
             action: 'rotate',
@@ -1944,17 +1988,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           UndoEngine.undo();
           if (!UndoEngine.canUndo()) {
             ldState.changesMade = false;
-            ldState.undoButton.disabled = true;
           }
-          ldState.redoButton.disabled = false;
         }
         if (btn.dataset.action === 'redo') {
           UndoEngine.redo();
-          ldState.undoButton.disabled = false;
           ldState.changesMade = true;
-          if (!UndoEngine.canRedo()) {
-            ldState.redoButton.disabled = true;
-          }
         }
         if (btn.dataset.image) {
           ldState.imgUpDialog.show();
@@ -1975,7 +2013,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           affectedShapes.push(ldState.selectedShape._id); // eslint-disable-line no-underscore-dangle
         }
 
-        ldState.undoButton.disabled = false;
         UndoEngine.addCommand({
           shapeIds: affectedShapes,
           action: btn.dataset.textstyle,
@@ -2031,7 +2068,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           applyTextAlignment(btn.dataset.alignment);
           affectedShapes.push(ldState.selectedShape._id); // eslint-disable-line no-underscore-dangle
         }
-        ldState.undoButton.disabled = false;
         UndoEngine.addCommand({
           shapeIds: affectedShapes,
           action: 'alignText',
@@ -2263,7 +2299,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
     ldState.currentDrawType = undefined;
 
-    ldState.undoButton.disabled = false;
     marshal = new LdMarshal(recttmp);
     const newNode = marshal.dump();
     UndoEngine.addCommand({
