@@ -1638,6 +1638,37 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     toggleBarcodeOptions(curr.barcode);
   };
 
+  const deleteShape = (shape) => {
+    let marshal = new LdMarshal(shape);
+    const prevState = marshal.dump();
+    const prevId = shape._id; // eslint-disable-line no-underscore-dangle
+
+    shape.destroy();
+    ldState.stage.fire('ldSelectNone');
+    ldState.changesMade = true;
+
+    ldState.undoButton.disabled = false;
+    UndoEngine.addCommand({
+      shapeId: prevId,
+      action: 'delete',
+      current: null,
+      previous: prevState,
+      executeUndo() {
+        marshal = new LdMarshal(prevState);
+        const item = marshal.load();
+        UndoEngine.replaceId(this.shapeId, item._id); // eslint-disable-line no-underscore-dangle
+        ldState.stage.draw();
+        console.log('UNDO', this.shapeId, this.action, this.previous);
+      },
+      executeRedo() {
+        const item = getShapeById(this.shapeId);
+        item.destroy();
+        ldState.stage.draw();
+        console.log('REDO', this.shapeId, this.action, this.current);
+      },
+    });
+  };
+
   // --- START OF CONTEXT MENU
   document.getElementById('set-variable').addEventListener('click', () => {
     showVariableDialog();
@@ -1705,7 +1736,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       toggleBarcodeOptions(this.checked);
     });
 
-    document.querySelector('.btn-download-image').addEventListener('click', (event) => {
+    document.querySelector('.btn-download-image').addEventListener('click', () => {
       const href = getBackgroundImage();
       document.querySelector('#btn-download-image').href = href;
     });
@@ -1724,31 +1755,52 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       if (event.target.id === 'textinput') {
         return null;
       }
+
       // if dialog showing, quit
       if (event.target.closest('.dialog-content')) {
         return null;
       }
 
-      if (!ldState.selectedShape && !ldState.selectedMultiple.length > 0) {
-        return null;
+      // Undo/Redo
+      if (event.key === 'z' && event.ctrlKey && !document.querySelector('[data-action="undo"]').disabled) {
+        UndoEngine.undo();
+        if (!UndoEngine.canUndo()) {
+          ldState.changesMade = false;
+          ldState.undoButton.disabled = true;
+        }
+        ldState.redoButton.disabled = false;
+      }
+      if (event.key === 'y' && event.ctrlKey && !document.querySelector('[data-action="redo"]').disabled) {
+        UndoEngine.redo();
+        ldState.undoButton.disabled = false;
+        ldState.changesMade = true;
+        if (!UndoEngine.canRedo()) {
+          ldState.redoButton.disabled = true;
+        }
       }
 
-      if (event.key === 'c' && event.ctrlKey && !document.querySelector('[data-action="copy"]').disabled) {
-        copyToClipboard();
-      }
-
+      // Paste
       if (event.key === 'v' && event.ctrlKey && !document.querySelector('[data-action="paste"]').disabled) {
         pasteFromClipboard();
         ldState.changesMade = true;
       }
 
-      if (event.key === 'Delete' && ldState.selectedShape) {
-        ldState.selectedShape.destroy();
-        ldState.stage.fire('ldSelectNone');
-        ldState.changesMade = true;
-        // console.log('deleteme', event);
+      // The rest of the actions depend on selected shape(s).
+      if (!ldState.selectedShape && !ldState.selectedMultiple.length > 0) {
+        return null;
       }
 
+      // Copy
+      if (event.key === 'c' && event.ctrlKey && !document.querySelector('[data-action="copy"]').disabled) {
+        copyToClipboard();
+      }
+
+      // Delete (Remove)
+      if (event.key === 'Delete' && ldState.selectedShape) {
+        deleteShape(ldState.selectedShape);
+      }
+
+      // Move and resize
       if (event.key === 'ArrowUp') {
         if (event.ctrlKey) {
           height = -1;
@@ -1778,6 +1830,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         }
       }
 
+      // Apply move
       if (move) {
         if (ldState.selectedMultiple.length > 0) {
           ldState.selectedMultiple.forEach((elem) => {
@@ -1797,6 +1850,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         ldState.changesMade = true;
       }
 
+      // Apply Resize
       if (width) {
         if (ldState.selectedMultiple.length > 0) {
           ldState.selectedMultiple.forEach((elem) => {
@@ -1806,7 +1860,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           adjustWidth(ldState.selectedShape, width);
         }
       }
-
       if (height) {
         if (ldState.selectedMultiple.length > 0) {
           ldState.selectedMultiple.forEach((elem) => {
@@ -1839,8 +1892,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       let enable;
       const affectedShapes = [];
       let prevState;
-      let prevId;
-      let marshal;
 
       if (btn) {
         if (btn.dataset.active) {
@@ -1858,35 +1909,29 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           ldState.selectedShape.rotate(90);
           ldState.stage.draw();
           ldState.changesMade = true;
-        }
-        if (btn.dataset.action === 'remove' && ldState.selectedShape) {
-          marshal = new LdMarshal(ldState.selectedShape);
-          prevState = marshal.dump();
-          prevId = ldState.selectedShape._id; // eslint-disable-line no-underscore-dangle
-          ldState.selectedShape.destroy();
-          ldState.stage.fire('ldSelectNone');
-          ldState.changesMade = true;
 
           ldState.undoButton.disabled = false;
           UndoEngine.addCommand({
-            shapeId: prevId,
-            action: 'delete',
-            current: null,
-            previous: prevState,
+            shapeId: ldState.selectedShape._id, // eslint-disable-line no-underscore-dangle
+            action: 'rotate',
+            current: 90,
+            previous: -90,
             executeUndo() {
-              marshal = new LdMarshal(prevState);
-              const item = marshal.load();
-              UndoEngine.replaceId(this.shapeId, item._id); // eslint-disable-line no-underscore-dangle
+              const node = getShapeById(this.shapeId);
+              node.rotate(this.previous);
               ldState.stage.draw();
-              console.log('UNDO', this.shapeId, this.action, this.previous);
+              console.log('UNDO', this.shapeId, this.previous);
             },
             executeRedo() {
-              const item = getShapeById(this.shapeId);
-              item.destroy();
+              const node = getTextPartById(this.shapeId);
+              node.rotate(this.current);
               ldState.stage.draw();
-              console.log('REDO', this.shapeId, this.action, this.current);
+              console.log('REDO', this.shapeId, this.current);
             },
           });
+        }
+        if (btn.dataset.action === 'remove' && ldState.selectedShape) {
+          deleteShape(ldState.selectedShape);
         }
         if (btn.dataset.action === 'copy' && (ldState.selectedShape || ldState.selectedMultiple.length > 0)) {
           copyToClipboard();
