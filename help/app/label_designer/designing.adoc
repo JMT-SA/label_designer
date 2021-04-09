@@ -41,10 +41,10 @@ The top toolbar includes the following buttons (from left to right):
 1. **Ellipse** -- drag the mouse to generate an ellipse. If you hold the `CTRL` key down while drawing, you will generate a circle.
 1. **Remove** -- click to remove the selected shape(s) from the drawing area.
 1. **Rotate** -- click to rotate the selected shape 90 degrees (clockwise). This only applies to _text_ and _variable_ shapes.
-1. **Undo** -- click to undo the last action.
-1. **Redo** -- click to redo the last undone action.
-1. **Copy** -- copy the selected shape(s).
-1. **Paste** -- paste the copied shape(s) to the drawing area.
+1. **Undo** -- (CTRL-Z) click to undo the last action.
+1. **Redo** -- (CTRL-Y) click to redo the last undone action.
+1. **Copy** -- (CTRL-C) copy the selected shape(s).
+1. **Paste** -- (CTRL-V) paste the copied shape(s) to the drawing area.
 1. **Set stroke width** -- change the stroke width (line thickness) of selected lines, rectangles and ellipses.
 1. **Align left edges** -- align the left edges of two or more selected shapes to the 1st selected.
 1. **Align top edges** -- align the top edges of two or more selected shapes to the 1st selected.
@@ -91,5 +91,46 @@ If you multiselect two or more shapes, you can align the tops or left sides to t
 == Variables
 
 Right-click on a variable shape and choose _variable settings_ to open a dialog to define the dynamic variable to be printed.
+You can also hover over the _Options_ button and choose _variable settings_ from there.
 
-Choose a variable name in the first dropdown of the dialog. The text in the variable shape will show the same name. However you can change this by overwriting it in the text box.
+Once you have configured the settigs to your liking, press the _Save_ button to apply them to the shape.
+
+**Variable Type**:: Choose a _Variable Type_ in the first dropdown of the dialog. The text in the variable shape will show the same name. However you can change this by overwriting it in the text box.
+**Variable type: _Compound Variable_**:: Choose this to build up a combination of dynamic variables with fixed text. See below for further details.
+**Variable type: _Static Barcode_**:: Choose this to enter fixed text to be printed as a barcode. See below for further details.
+**Print white on black?**:: Select this if the text should be printed in white instead of black. **NB**. the variable should be positioned on top of a black image in order for it to show. **NB**. Barcodes cannot be printed in white text.
+**Is this a barcode?**:: Select this to render the dynamic variable as a barcode. See below for further details.
+
+=== Barcodes
+
+Barcodes have a few settings that govern how they are generated.
+
+.Barcode options
+image::label_designer_barcode_options.png[Barcode Variable options]
+
+Please note that barcodes might not print _exactly_ in the space you have selected -- the rules of how a barcode is to be generated can force it to be printed wider or higher than designed. For this reason it is important to preview your label design often in order to see how the barcode renders and adjust your design accordingly.
+
+**Show barcode text at**:: Select this to have the barcode print its value next to the barcode. Select _top_ or _bottom_ for the placement (_top_ is the default).
+**Barcode width factor**:: Enter any number here. This governs the width of the bars in the barcode and thus also the effective width of the whole barcode.A large number will generally lead to a more easily-scannable barcode (but it will also be wider).
+**Margin size**:: The amount of blank space around the barcode.
+**Barcode Symbology**:: The type of barcode to be generated. Note that some barcodes have strict rules as to what will print. Some will not print if the variable contains alphabetic text for example.
+
+=== Compound Variables
+
+Use the _Variable_ dropdown and the _Text_ box to build up a combination of variable(s) and text.
+
+.Compound Variable options
+image::label_designer_compound_variable.png[Compound Variable options]
+
+1. Select a variable and press the _Add_ button. You'll see a representation in the area marked _Layout of this compound variable_.
+1. Enter text and press the _Add_ button. You'll see a representation in the area marked _Layout of this compound variable_.
+1. At any time you can press the _Clear_ button and start over again.
+
+=== Static Barcode
+
+.Static barcode options
+image::label_designer_static_barcode.png[Static barcode Variable options]
+
+Fill in the static value to be rendered as a barcode next to _Static Barcode text_.
+
+Adjust the barcode settings in the same way as for a dynamic barcode.
