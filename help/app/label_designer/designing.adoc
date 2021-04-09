@@ -2,6 +2,16 @@
 
 The label designer page offers a rich environment for quickly designing label backgrounds and for positioning dynamic text or barcode content.
 
+Add shapes, text and dynamic variables. Set properties of variables, move and align shapes and press the _Save Label_ button when you're done. The save button will reload the page, so you can do this often while you work. It is usually best to save small changes as you go. Then you can easily reload the page to revert to a known good state without losing a lot of changes.
+
+The page is laid out with toolbars on top and a white area in which to design shapes.
+
+At the top and left of the design area are rulers to show the mouse position with markings in millimetres.
+
+A pair of numbers in brackets at the top right shows the current pixel position of the mouse. This number is roughly the pixels per mm multiplied by milimetres. e.g. a label 100mm x 100mm for an 8 pixel per mm printer will be 800 pixels wide.
+
+The orange frame around the drawing area represents a half millimetre margin all round the label. This is in place to allow for minor movement of labels during printing -- to avoid cuttting off information at the edge of the label.
+
 == Label shapes
 
 The designer offers the following shapes for forming the background:
@@ -88,10 +98,12 @@ If you multiselect two or more shapes, you can align the tops or left sides to t
 * Click the _Align top_ button to move the shapes so their top position is the same as the first shape's top position.
 * Click the _Align left_ button to move the shapes so their left position is the same as the first shape's left position.
 
-== Variables
+== Variable settings
 
 Right-click on a variable shape and choose _variable settings_ to open a dialog to define the dynamic variable to be printed.
 You can also hover over the _Options_ button and choose _variable settings_ from there.
+
+Choose a variable name in the first dropdown of the dialog. The text in the variable shape will show the same name. However you can change this by overwriting it in the text box.
 
 Once you have configured the settigs to your liking, press the _Save_ button to apply them to the shape.
 
