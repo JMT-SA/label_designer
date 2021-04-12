@@ -886,6 +886,96 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     });
   };
 
+  // On resize of a shape, ensure the shape does not end up too small to work with
+  const adjustWidth = (elem, width) => {
+    let points;
+    // VAR...
+    if (elem.name() === 'line') {
+      points = elem.points();
+      if (points[0] !== points[2]) {
+        points[2] += width;
+        if (Math.abs(points[2] - points[0]) < ldState.MIN_DIMENSION) {
+          if (points[2] > points[0]) {
+            points[2] = points[0] + ldState.MIN_DIMENSION;
+          } else {
+            points[0] = points[2] + ldState.MIN_DIMENSION;
+          }
+        }
+        elem.points(points);
+      }
+    } else if (elem.name() === 'variableBox') {
+      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+        elem.height(elem.height() + width);
+        if (elem.height() < ldState.MIN_DIMENSION) {
+          elem.height(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.height(elem.height()));
+      } else {
+        elem.width(elem.width() + width);
+        if (elem.width() < ldState.MIN_DIMENSION) {
+          elem.width(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.width(elem.width()));
+      }
+      ldState.tr.forceUpdate();
+    } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+      elem.height(elem.height() + width);
+      if (elem.height() < ldState.MIN_DIMENSION) {
+        elem.height(ldState.MIN_DIMENSION);
+      }
+    } else {
+      elem.width(elem.width() + width);
+      if (elem.width() < ldState.MIN_DIMENSION) {
+        elem.width(ldState.MIN_DIMENSION);
+      }
+    }
+    ldState.changesMade = true;
+  };
+
+  const adjustHeight = (elem, height) => {
+    let points;
+    if (elem.name() === 'line') {
+      points = elem.points();
+      if (points[1] !== points[3]) {
+        points[3] += height;
+        if (Math.abs(points[3] - points[1]) < ldState.MIN_DIMENSION) {
+          if (points[3] > points[1]) {
+            points[3] = points[1] + ldState.MIN_DIMENSION;
+          } else {
+            points[1] = points[3] + ldState.MIN_DIMENSION;
+          }
+        }
+        elem.points(points);
+      }
+    } else if (elem.name() === 'variableBox') {
+      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+        elem.width(elem.width() + height);
+        if (elem.width() < ldState.MIN_DIMENSION) {
+          elem.width(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.width(elem.width()));
+      } else {
+        elem.height(elem.height() + height);
+        if (elem.height() < ldState.MIN_DIMENSION) {
+          elem.height(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.height(elem.height()));
+      }
+      ldState.tr.forceUpdate();
+    } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+      elem.width(elem.width() + height);
+      if (elem.width() < ldState.MIN_DIMENSION) {
+        elem.width(ldState.MIN_DIMENSION);
+      }
+    } else {
+      elem.height(elem.height() + height);
+      if (elem.height() < ldState.MIN_DIMENSION) {
+        elem.height(ldState.MIN_DIMENSION);
+      }
+    }
+    ldState.changesMade = true;
+  };
+
   const init = (labelConfig) => {
     UndoEngine.setUndoButton(document.querySelector('[data-action="undo"]'));
     UndoEngine.setRedoButton(document.querySelector('[data-action="redo"]'));
@@ -900,6 +990,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.copyOffset = 5;
     ldState.dragStartX = 0;
     ldState.dragStartY = 0;
+    // ldState.startTransform = undefined;
 
     ldState.labelConfig = labelConfig;
     ldState.savePath = labelConfig.savePath;
@@ -1401,6 +1492,61 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     konvaDiv.classList.add('bg-white');
     ldState.tr = new Konva.Transformer({ rotateEnabled: false });
     ldState.tr.nodes([]);
+    // ldState.tr.on('transformstart', (event) => {
+    //   ldState.startTransform = event.target.getClientRect();
+    //   // console.log('tr.start', event.target.getAbsoluteTransform());
+    //   console.log('tr.startrect', ldState.tr.getClientRect());
+    //   console.log('tr.starttfr', ldState.tr.getAbsoluteTransform());
+    // });
+    // ldState.tr.on('transformend', (event) => {
+    //   console.log('tr.endrect', ldState.tr.getClientRect());
+    //   console.log('tr.endtfr', ldState.tr.getAbsoluteTransform());
+    //   const endTransform = event.target.getClientRect();
+    //   const width = endTransform.width - ldState.startTransform.width;
+    //   const height = endTransform.height - ldState.startTransform.height;
+    //   const change = {
+    //     width,
+    //     height,
+    //   };
+    //   console.log('change', change);
+    //
+    //   UndoEngine.addCommand({
+    //     shapeIds: ldState.tr.nodes().map(item => item._id), // eslint-disable-line no-underscore-dangle
+    //     action: 'resize',
+    //     current: change,
+    //     previous: { width: change.width * -1, height: change.height * -1 },
+    //     executeUndo() {
+    //       let item;
+    //       this.shapeIds.forEach((id) => {
+    //         item = getShapeById(id);
+    //         if (this.previous.width !== 0) {
+    //           adjustWidth(item, this.previous.width);
+    //         }
+    //         if (this.previous.height !== 0) {
+    //           adjustHeight(item, this.previous.height);
+    //         }
+    //       });
+    //       ldState.stage.draw();
+    //       console.log('UNDO', this.shapeIds, this.previous);
+    //     },
+    //     executeRedo() {
+    //       let item;
+    //       this.shapeIds.forEach((id) => {
+    //         item = getShapeById(id);
+    //         if (this.current.width !== 0) {
+    //           adjustWidth(item, this.current.width);
+    //         }
+    //         if (this.current.height !== 0) {
+    //           adjustHeight(item, this.current.height);
+    //         }
+    //       });
+    //       ldState.stage.draw();
+    //       console.log('REDO', this.shapeIds, this.current);
+    //     },
+    //   });
+    //   // console.log('tr.end', event.target.getAbsoluteTransform());
+    //   // console.log('tr.endrect', event.target.getClientRect());
+    // });
     ldState.layer.add(ldState.tr);
     ldState.stage.add(ldState.layer);
     ldState.stage.add(ldState.layerVar);
@@ -1661,96 +1807,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.variableUI.compoundVars.hidden = true;
       clearCompoundTexts();
     }
-  };
-
-  // On resize of a shape, ensure the shape does not end up too small to work with
-  const adjustWidth = (elem, width) => {
-    let points;
-    // VAR...
-    if (elem.name() === 'line') {
-      points = elem.points();
-      if (points[0] !== points[2]) {
-        points[2] += width;
-        if (Math.abs(points[2] - points[0]) < ldState.MIN_DIMENSION) {
-          if (points[2] > points[0]) {
-            points[2] = points[0] + ldState.MIN_DIMENSION;
-          } else {
-            points[0] = points[2] + ldState.MIN_DIMENSION;
-          }
-        }
-        elem.points(points);
-      }
-    } else if (elem.name() === 'variableBox') {
-      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
-        elem.height(elem.height() + width);
-        if (elem.height() < ldState.MIN_DIMENSION) {
-          elem.height(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.height(elem.height()));
-      } else {
-        elem.width(elem.width() + width);
-        if (elem.width() < ldState.MIN_DIMENSION) {
-          elem.width(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.width(elem.width()));
-      }
-      ldState.tr.forceUpdate();
-    } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
-      elem.height(elem.height() + width);
-      if (elem.height() < ldState.MIN_DIMENSION) {
-        elem.height(ldState.MIN_DIMENSION);
-      }
-    } else {
-      elem.width(elem.width() + width);
-      if (elem.width() < ldState.MIN_DIMENSION) {
-        elem.width(ldState.MIN_DIMENSION);
-      }
-    }
-    ldState.changesMade = true;
-  };
-
-  const adjustHeight = (elem, height) => {
-    let points;
-    if (elem.name() === 'line') {
-      points = elem.points();
-      if (points[1] !== points[3]) {
-        points[3] += height;
-        if (Math.abs(points[3] - points[1]) < ldState.MIN_DIMENSION) {
-          if (points[3] > points[1]) {
-            points[3] = points[1] + ldState.MIN_DIMENSION;
-          } else {
-            points[1] = points[3] + ldState.MIN_DIMENSION;
-          }
-        }
-        elem.points(points);
-      }
-    } else if (elem.name() === 'variableBox') {
-      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
-        elem.width(elem.width() + height);
-        if (elem.width() < ldState.MIN_DIMENSION) {
-          elem.width(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.width(elem.width()));
-      } else {
-        elem.height(elem.height() + height);
-        if (elem.height() < ldState.MIN_DIMENSION) {
-          elem.height(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.height(elem.height()));
-      }
-      ldState.tr.forceUpdate();
-    } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
-      elem.width(elem.width() + height);
-      if (elem.width() < ldState.MIN_DIMENSION) {
-        elem.width(ldState.MIN_DIMENSION);
-      }
-    } else {
-      elem.height(elem.height() + height);
-      if (elem.height() < ldState.MIN_DIMENSION) {
-        elem.height(ldState.MIN_DIMENSION);
-      }
-    }
-    ldState.changesMade = true;
   };
 
   const shapeForClipboard = (shape) => {
@@ -2403,11 +2459,19 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           undoCmds.push(cmd);
           ldState.selectedMultiple[i].points(points);
         } else if (ldState.selectedMultiple[i].name() === 'ellipse') {
-          cmd = { id: ldState.selectedMultiple[i]._id, line: false, move: { x: (startPoint - (ldState.selectedMultiple[i].x() - ldState.selectedMultiple[i].radiusX())), y: 0 } }; // eslint-disable-line no-underscore-dangle
+          cmd = {
+            id: ldState.selectedMultiple[i]._id, // eslint-disable-line no-underscore-dangle
+            line: false,
+            move: { x: (startPoint - (ldState.selectedMultiple[i].x() - ldState.selectedMultiple[i].radiusX())), y: 0 },
+          };
           undoCmds.push(cmd);
           ldState.selectedMultiple[i].move({ x: (startPoint - (ldState.selectedMultiple[i].x() - ldState.selectedMultiple[i].radiusX())), y: 0 });
         } else {
-          cmd = { id: ldState.selectedMultiple[i]._id, line: false, move: { x: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])), y: 0 } }; // eslint-disable-line no-underscore-dangle
+          cmd = {
+            id: ldState.selectedMultiple[i]._id, // eslint-disable-line no-underscore-dangle
+            line: false,
+            move: { x: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])), y: 0 },
+          };
           undoCmds.push(cmd);
           ldState.selectedMultiple[i].move({ x: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])), y: 0 });
         }
@@ -2435,11 +2499,19 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           undoCmds.push(cmd);
           ldState.selectedMultiple[i].points(points);
         } else if (ldState.selectedMultiple[i].name() === 'ellipse') {
-          cmd = { id: ldState.selectedMultiple[i]._id, line: false, move: { x: 0, y: (startPoint - (ldState.selectedMultiple[i].y() - ldState.selectedMultiple[i].radiusY())) } }; // eslint-disable-line no-underscore-dangle
+          cmd = {
+            id: ldState.selectedMultiple[i]._id, // eslint-disable-line no-underscore-dangle
+            line: false,
+            move: { x: 0, y: (startPoint - (ldState.selectedMultiple[i].y() - ldState.selectedMultiple[i].radiusY())) },
+          };
           undoCmds.push(cmd);
           ldState.selectedMultiple[i].move({ x: 0, y: (startPoint - (ldState.selectedMultiple[i].y() - ldState.selectedMultiple[i].radiusY())) });
         } else {
-          cmd = { id: ldState.selectedMultiple[i]._id, line: false, move: { x: 0, y: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])) } } // eslint-disable-line no-underscore-dangle;
+          cmd = {
+            id: ldState.selectedMultiple[i]._id, // eslint-disable-line no-underscore-dangle
+            line: false,
+            move: { x: 0, y: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])) },
+          };
           undoCmds.push(cmd);
           ldState.selectedMultiple[i].move({ x: 0, y: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])) });
         }
