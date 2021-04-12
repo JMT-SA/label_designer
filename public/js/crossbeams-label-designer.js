@@ -1384,7 +1384,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         ldState.dragStartY = pos.y;
       } else if (!event.target.nodes) { // Ignore when a Transformer is dragged
         const pos = event.target.absolutePosition();
-        if (pos.x === 0 && pos.y === 0) { // Lines do not have absolutePosition
+        if (event.target.points) { // Lines do not have absolutePosition
           const points = event.target.points();
           pos.x = points[0];
           pos.y = points[1];
@@ -1431,6 +1431,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
     // Single shape selected
     ldState.stage.on('ldSelectOne', () => {
+      document.querySelector('#send-to-back-opt').dataset.menu = 'on';
       ldState.selectedMultiple = [];
       ldState.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left',
         'bottom-left', 'bottom-center', 'bottom-right']);
@@ -1458,6 +1459,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
     // Shape(s) unselected
     ldState.stage.on('ldSelectNone', () => {
+      document.querySelector('#send-to-back-opt').dataset.menu = 'off';
       ldState.tr.nodes([]);
       ldState.stage.draw();
       ldState.selectedShape = undefined;
@@ -1473,6 +1475,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
     // Multiple shapes selected
     ldState.stage.on('ldSelectMultiple', () => {
+      document.querySelector('#send-to-back-opt').dataset.menu = 'off';
       ldState.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left',
         'bottom-left', 'bottom-center', 'bottom-right']);
       setSelectedButtons(false);
@@ -1618,6 +1621,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       e.evt.preventDefault();
       if (e.target === ldState.stage) {
         // if we are on empty place of the stage we will do nothing
+        menuNode.style.display = 'none';
         return;
       }
       if (ldState.selectedMultiple.length > 0) {
@@ -1625,12 +1629,19 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       }
       const parentGroup = e.target.findAncestor('Group');
       if (!parentGroup || parentGroup.name() !== 'variableBox') {
-        return;
+        document.querySelectorAll('[data-filter="variable"]').forEach(elem => elem.hidden = true);
+      } else {
+        document.querySelectorAll('[data-filter="variable"]').forEach(elem => elem.hidden = false);
       }
 
       // Make selection
-      ldState.tr.nodes([parentGroup]);
-      ldState.selectedShape = parentGroup;
+      if (parentGroup) {
+        ldState.tr.nodes([parentGroup]);
+        ldState.selectedShape = parentGroup;
+      } else {
+        ldState.tr.nodes([e.target]);
+        ldState.selectedShape = e.target;
+      }
       ldState.stage.draw();
       ldState.stage.fire('ldSelectOne');
 
@@ -1950,6 +1961,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   document.getElementById('set-variable').addEventListener('click', () => {
     showVariableDialog();
   });
+  document.getElementById('send-to-back').addEventListener('click', () => {
+    ldState.selectedShape.moveToBottom();
+  });
 
   window.addEventListener('click', () => {
     // hide menu
@@ -2021,6 +2035,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     document.querySelector('#set-variable-opt').addEventListener('click', (event) => {
       event.preventDefault();
       showVariableDialog();
+    });
+
+    document.querySelector('#send-to-back-opt').addEventListener('click', (event) => {
+      ldState.selectedShape.moveToBottom();
+      event.preventDefault();
     });
 
     document.addEventListener('keydown', (event) => {

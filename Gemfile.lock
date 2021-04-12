@@ -32,7 +32,7 @@ GIT
 PATH
   remote: /home/james/ra/crossbeams/crossbeams-label_designer
   specs:
-    crossbeams-label_designer (0.2.4)
+    crossbeams-label_designer (1.0.0)
       dry-configurable
       erubi
       json

@@ -90,6 +90,11 @@ If you hold down the CTRL key while pressing up, down, left or right arrows, the
 * CTRL and LEFT :: shrinks the width.
 * CTRL and RIGHT :: grows the width.
 
+=== Overlapping
+
+If two shapes overlap it might be difficult to select one of them. To remedy this, right-click on the shape and choose the _Move to bottom_ option.
+This will invisibly move the selected shape to a lower level of the drawing. Click elsewhere and then select the shape that was overlapped -- which is now accessible because it is "above" the first shape.
+
 === Align
 
 If you multiselect two or more shapes, you can align the tops or left sides to the top or left of the first shape you selected.
@@ -146,3 +151,15 @@ image::label_designer_static_barcode.png[Static barcode Variable options]
 Fill in the static value to be rendered as a barcode next to _Static Barcode text_.
 
 Adjust the barcode settings in the same way as for a dynamic barcode.
+
+== Undo/Redo
+
+Almost any action taken in the drawing process between saves can be undone or redone.
+
+Press the undo button to undo the previous action. If you press undo again, the action before that will be undone and so on.
+
+At any point you can press redo to "undo" the undo action. However if you go back two steps and then make a new change, you will no longer have redo actions available because you have started a new drawing process.
+
+You can press CTRL-Z to undo an action and CTRL-Y to redo an action.
+
+Note that at this time it is not possible to undo resizing of shapes.
