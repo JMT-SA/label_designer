@@ -801,15 +801,49 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
   };
 
-  const init = (labelConfig) => {
-    // pass in width & height, label sizes(?), px/mm, label var options(?), design json
-    // const labelConfig = <%= @label_config %>;
-    // const labelSizes = <%= @label_sizes %>; --  change to w + h?
-    // const fontSizes = <%= @font_sizes_json %>; == popint to px (could be fixed in JS def - OR does this depend on px/mm?)
-    // const pxPerMm = <%= @px_per_mm %>;
-    // const fontDefaultPx = <%= @default_font_px %>; -- can hard-code to 22
-    // const fontDefaultPt = <%= @default_font_pt %>; -- can hard-code to 8 (or translate from font sizes table)
+  const registerMoveUndo = (selectedShapes, move) => {
+    const affectedShapes = selectedShapes.map(item => item._id); // eslint-disable-line no-underscore-dangle
+    const prevState = { x: move.x === 0 ? 0 : move.x * -1, y: move.y === 0 ? 0 : move.y * -1 };
 
+    UndoEngine.addCommand({
+      shapeIds: affectedShapes,
+      action: 'move',
+      current: move,
+      previous: prevState,
+      executeUndo() {
+        let item;
+        let points;
+        this.shapeIds.forEach((id) => {
+          item = getShapeById(id);
+          if (item.name() === 'line') {
+            points = item.points();
+            item.points([points[0] + this.previous.x, points[1] + this.previous.y, points[2] + this.previous.x, points[3] + this.previous.y]);
+          } else {
+            item.move(this.previous);
+          }
+        });
+        ldState.stage.draw();
+        console.log('UNDO', this.shapeIds, this.action, this.previous);
+      },
+      executeRedo() {
+        let item;
+        let points;
+        this.shapeIds.forEach((id) => {
+          item = getShapeById(id);
+          if (item.name() === 'line') {
+            points = item.points();
+            item.points([points[0] + this.current.x, points[1] + this.current.y, points[2] + this.current.x, points[3] + this.current.y]);
+          } else {
+            item.move(this.current);
+          }
+        });
+        ldState.stage.draw();
+        console.log('REDO', this.shapeIds, this.action, this.current);
+      },
+    });
+  };
+
+  const init = (labelConfig) => {
     UndoEngine.setUndoButton(document.querySelector('[data-action="undo"]'));
     UndoEngine.setRedoButton(document.querySelector('[data-action="redo"]'));
 
@@ -821,6 +855,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.varNum = 0;
     ldState.clipboard = { shapes: [] };
     ldState.copyOffset = 5;
+    ldState.dragStartX = 0;
+    ldState.dragStartY = 0;
 
     ldState.labelConfig = labelConfig;
     ldState.savePath = labelConfig.savePath;
@@ -1202,19 +1238,61 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     });
 
     // Start of drag
-    ldState.stage.on('dragstart', () => {
+    ldState.stage.on('dragstart', (event) => {
       if (ldState.currentMode !== 'select') {
         ldState.stage.stopDrag();
+      } else if (ldState.selectedMultiple.length > 0) {
+        if (!event.target.nodes) { // Use transformer
+          return null;
+        }
+        const pos = event.target.absolutePosition();
+        ldState.dragStartX = pos.x;
+        ldState.dragStartY = pos.y;
+      } else if (!event.target.nodes) { // Ignore when a Transformer is dragged
+        const pos = event.target.absolutePosition();
+        if (pos.x === 0 && pos.y === 0) { // Lines do not have absolutePosition
+          const points = event.target.points();
+          pos.x = points[0];
+          pos.y = points[1];
+        }
+        ldState.dragStartX = pos.x;
+        ldState.dragStartY = pos.y;
       }
-      // else set start point
+      return null;
     });
 
     // End of drag
-    ldState.stage.on('dragend', () => {
+    ldState.stage.on('dragend', (event) => {
       if (ldState.currentMode === 'select') {
-        ldState.changesMade = true;
-        // compare to start point and store a move undo command
+        if (ldState.selectedMultiple.length > 0) {
+          if (!event.target.nodes) {
+            return null;
+          }
+          const pos = event.target.absolutePosition();
+          const move = {
+            x: pos.x - ldState.dragStartX,
+            y: pos.y - ldState.dragStartY,
+          };
+          registerMoveUndo(ldState.selectedMultiple, move); // move amount is not accurate...
+        } else {
+          if (event.target.nodes) { // Ignore when a Transformer is dragged
+            return null;
+          }
+          ldState.changesMade = true;
+          const pos = event.target.absolutePosition();
+          if (pos.x === 0 && pos.y === 0) {
+            const points = event.target.points();
+            pos.x = points[0];
+            pos.y = points[1];
+          }
+          const move = {
+            x: pos.x - ldState.dragStartX,
+            y: pos.y - ldState.dragStartY,
+          };
+          registerMoveUndo([event.target], move);
+        }
       }
+      return null;
     });
 
     // Single shape selected
@@ -1643,10 +1721,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   const pasteFromClipboard = () => {
     const newSelection = [];
     let marshal;
+    const undos = [];
 
     ldState.clipboard.shapes.forEach((shape) => {
       marshal = new LdMarshal(shape);
       newSelection.push(marshal.load(ldState.copyOffset));
+      marshal = new LdMarshal(newSelection[newSelection.length - 1]);
+      undos.push(marshal.dump());
     });
     ldState.copyOffset += 5;
     if (newSelection.length === 1) {
@@ -1658,6 +1739,41 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.selectedMultiple = newSelection;
     }
     ldState.stage.draw();
+
+    UndoEngine.addCommand({
+      shapeIds: newSelection.map(item => item._id), // eslint-disable-line no-underscore-dangle
+      action: 'paste',
+      current: undos,
+      previous: null,
+      executeUndo() {
+        let item;
+        this.shapeIds.forEach((id) => {
+          item = getShapeById(id);
+          if (ldState.tr.nodes().includes(item)) {
+            const nodes = ldState.tr.nodes().slice(); // use slice to have new copy of array
+            // remove node from array
+            nodes.splice(nodes.indexOf(item), 1);
+            ldState.tr.nodes(nodes);
+          }
+          item.destroy();
+        });
+        ldState.stage.draw();
+        console.log('UNDO', this.shapeIds, this.action, this.previous);
+      },
+      executeRedo() {
+        let item;
+        const newIds = [];
+        this.current.forEach((node, idx) => {
+          marshal = new LdMarshal(node);
+          item = marshal.load();
+          UndoEngine.replaceId(this.shapeIds[idx], item._id); // eslint-disable-line no-underscore-dangle
+          newIds.push(item._id); // eslint-disable-line no-underscore-dangle
+        });
+        ldState.stage.draw();
+        this.shapeIds = newIds;
+        console.log('REDO', this.shapeIds, this.action, this.current);
+      },
+    });
   };
 
   // De-select any shapes and return a png copy of all shapes except those on the variable layer
@@ -1886,11 +2002,14 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
               elem.move(move);
             }
           });
+          registerMoveUndo(ldState.selectedMultiple, move);
         } else if (ldState.selectedShape.name() === 'line') {
           points = ldState.selectedShape.points();
           ldState.selectedShape.points([points[0] + move.x, points[1] + move.y, points[2] + move.x, points[3] + move.y]);
+          registerMoveUndo([ldState.selectedShape], move);
         } else {
           ldState.selectedShape.move(move);
+          registerMoveUndo([ldState.selectedShape], move);
         }
         ldState.changesMade = true;
       }
@@ -1914,6 +2033,54 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           adjustHeight(ldState.selectedShape, height);
         }
       }
+      if (width || height) {
+        let affectedShapes = [];
+        if (ldState.selectedMultiple.length > 0) {
+          affectedShapes = ldState.selectedMultiple.map(item => item._id); // eslint-disable-line no-underscore-dangle
+        } else {
+          affectedShapes.push(ldState.selectedShape._id); // eslint-disable-line no-underscore-dangle
+        }
+        const change = {
+          width: width || 0,
+          height: height || 0,
+        };
+        // register undo
+        UndoEngine.addCommand({
+          shapeIds: affectedShapes,
+          action: 'resize',
+          current: change,
+          previous: { width: change.width * -1, height: change.height * -1 },
+          executeUndo() {
+            let item;
+            this.shapeIds.forEach((id) => {
+              item = getShapeById(id);
+              if (this.previous.width !== 0) {
+                adjustWidth(item, this.previous.width);
+              }
+              if (this.previous.height !== 0) {
+                adjustHeight(item, this.previous.height);
+              }
+            });
+            ldState.stage.draw();
+            console.log('UNDO', this.shapeIds, this.previous);
+          },
+          executeRedo() {
+            let item;
+            this.shapeIds.forEach((id) => {
+              item = getShapeById(id);
+              if (this.current.width !== 0) {
+                adjustWidth(item, this.current.width);
+              }
+              if (this.current.height !== 0) {
+                adjustHeight(item, this.current.height);
+              }
+            });
+            ldState.stage.draw();
+            console.log('REDO', this.shapeIds, this.current);
+          },
+        });
+      }
+
       if (move || width || height) {
         ldState.stage.draw();
         event.stopPropagation();
