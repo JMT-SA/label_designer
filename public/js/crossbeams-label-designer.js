@@ -1437,7 +1437,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         ldState.selectedShape = target;
         ldState.stage.fire('ldSelectOne');
       } else if (metaPressed && isSelected) {
-        console.log('len', ldState.tr.nodes().length);
         if (ldState.tr.nodes().length > 1) {
           setNodeSelectionColours(false, ldState.tr.nodes());
         }
@@ -2377,6 +2376,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   // Align shapes along top or left edges
   const align = (edge) => {
     let startPoint;
+    const undoCmds = [];
+    let cmd;
 
     if (ldState.selectedMultiple.length === 0) {
       return 'Multiple shapes have not been selected';
@@ -2393,13 +2394,21 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       for (let i = 1; i < ldState.selectedMultiple.length; i += 1) {
         if (ldState.selectedMultiple[i].name() === 'line') {
           const points = ldState.selectedMultiple[i].points();
+          cmd = { id: ldState.selectedMultiple[i]._id, line: true, from: points.slice() }; // eslint-disable-line no-underscore-dangle
           const shift = points[0] - startPoint;
           points[0] = startPoint;
           points[2] -= shift;
+
+          cmd.to = points;
+          undoCmds.push(cmd);
           ldState.selectedMultiple[i].points(points);
         } else if (ldState.selectedMultiple[i].name() === 'ellipse') {
+          cmd = { id: ldState.selectedMultiple[i]._id, line: false, move: { x: (startPoint - (ldState.selectedMultiple[i].x() - ldState.selectedMultiple[i].radiusX())), y: 0 } }; // eslint-disable-line no-underscore-dangle
+          undoCmds.push(cmd);
           ldState.selectedMultiple[i].move({ x: (startPoint - (ldState.selectedMultiple[i].x() - ldState.selectedMultiple[i].radiusX())), y: 0 });
         } else {
+          cmd = { id: ldState.selectedMultiple[i]._id, line: false, move: { x: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])), y: 0 } }; // eslint-disable-line no-underscore-dangle
+          undoCmds.push(cmd);
           ldState.selectedMultiple[i].move({ x: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])), y: 0 });
         }
       }
@@ -2418,19 +2427,60 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       for (let i = 1; i < ldState.selectedMultiple.length; i += 1) {
         if (ldState.selectedMultiple[i].name() === 'line') {
           const points = ldState.selectedMultiple[i].points();
+          cmd = { id: ldState.selectedMultiple[i]._id, line: true, from: points.slice() }; // eslint-disable-line no-underscore-dangle
           const shift = points[1] - startPoint;
           points[1] = startPoint;
           points[3] -= shift;
+          cmd.to = points;
+          undoCmds.push(cmd);
           ldState.selectedMultiple[i].points(points);
         } else if (ldState.selectedMultiple[i].name() === 'ellipse') {
+          cmd = { id: ldState.selectedMultiple[i]._id, line: false, move: { x: 0, y: (startPoint - (ldState.selectedMultiple[i].y() - ldState.selectedMultiple[i].radiusY())) } }; // eslint-disable-line no-underscore-dangle
+          undoCmds.push(cmd);
           ldState.selectedMultiple[i].move({ x: 0, y: (startPoint - (ldState.selectedMultiple[i].y() - ldState.selectedMultiple[i].radiusY())) });
         } else {
+          cmd = { id: ldState.selectedMultiple[i]._id, line: false, move: { x: 0, y: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])) } } // eslint-disable-line no-underscore-dangle;
+          undoCmds.push(cmd);
           ldState.selectedMultiple[i].move({ x: 0, y: (startPoint - resolveRotatedPoint(edge, ldState.selectedMultiple[i])) });
         }
       }
       ldState.stage.draw();
       ldState.changesMade = true;
     }
+
+    UndoEngine.addCommand({
+      // shapeId: recttmp._id, // eslint-disable-line no-underscore-dangle
+      action: 'align',
+      changes: undoCmds,
+      executeUndo() {
+        let item;
+        let move;
+        this.changes.forEach((change) => {
+          item = getShapeById(change.id);
+          if (change.line) {
+            item.points(change.from);
+          } else {
+            move = { x: change.move.x * -1, y: change.move.y * -1 };
+            item.move(move);
+          }
+        });
+        ldState.stage.draw();
+        console.log('UNDO', this.action, this.changes);
+      },
+      executeRedo() {
+        let item;
+        this.changes.forEach((change) => {
+          item = getShapeById(change.id);
+          if (change.line) {
+            item.points(change.to);
+          } else {
+            item.move(change.move);
+          }
+        });
+        ldState.stage.draw();
+        console.log('REDO', this.action, this.changes);
+      },
+    });
     return null;
   };
 
