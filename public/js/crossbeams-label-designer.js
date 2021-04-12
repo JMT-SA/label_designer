@@ -843,6 +843,49 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     });
   };
 
+  const setNodeSelectionColours = (change, nodes) => {
+    let txtElem;
+    let rectElem;
+    let txtFill = 'black';
+    let rectFill = '#188FA7';
+
+    nodes.forEach((node) => {
+      if (change) {
+        if (node.name() === 'textBox') {
+          node.fill('orange');
+        } else if (node.name() === 'variableBox') {
+          txtElem = node.getChildren(item => item.getClassName() === 'Text')[0];
+          rectElem = node.getChildren(item => item.getClassName() === 'Rect')[0];
+          txtElem.fill('orange');
+          rectElem.stroke('orange');
+        } else {
+          node.stroke('orange'); // image...?
+        }
+      } else {
+        if (node.name() === 'textBox') {
+          node.fill('black');
+        } else if (node.name() === 'variableBox') {
+          txtElem = node.getChildren(item => item.getClassName() === 'Text')[0];
+          rectElem = node.getChildren(item => item.getClassName() === 'Rect')[0];
+          txtFill = 'black';
+          rectFill = '#188FA7';
+          if (node.attrs.varAttrs.whiteOnBlack) {
+            txtFill = '#CA48BC';
+            rectFill = '#CA48BC';
+          }
+          if (node.attrs.varAttrs.barcode) {
+            txtFill = '#9E3B00';
+            rectFill = '#9E3B00';
+          }
+          txtElem.fill(txtFill);
+          rectElem.stroke(rectFill);
+        } else {
+          node.stroke('black'); // image...?
+        }
+      }
+    });
+  };
+
   const init = (labelConfig) => {
     UndoEngine.setUndoButton(document.querySelector('[data-action="undo"]'));
     UndoEngine.setRedoButton(document.querySelector('[data-action="redo"]'));
@@ -1366,6 +1409,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.stage.on('click tap', (e) => {
       // if click on empty area - remove all selections
       if (e.target === ldState.stage) {
+        if (ldState.tr.nodes().length > 1) {
+          setNodeSelectionColours(false, ldState.tr.nodes());
+        }
         ldState.stage.fire('ldSelectNone');
         return;
       }
@@ -1384,10 +1430,17 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       if (!metaPressed && !isSelected) {
         // if no key pressed and the node is not selected
         // select just one
+        if (ldState.tr.nodes().length > 1) {
+          setNodeSelectionColours(false, ldState.tr.nodes());
+        }
         ldState.tr.nodes([target]);
         ldState.selectedShape = target;
         ldState.stage.fire('ldSelectOne');
       } else if (metaPressed && isSelected) {
+        console.log('len', ldState.tr.nodes().length);
+        if (ldState.tr.nodes().length > 1) {
+          setNodeSelectionColours(false, ldState.tr.nodes());
+        }
         // if we pressed keys and node was selected
         // we need to remove it from selection:
         const nodes = ldState.tr.nodes().slice(); // use slice to have new copy of array
@@ -1399,6 +1452,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           ldState.stage.fire('ldSelectOne');
         } else {
           ldState.selectedMultiple = nodes;
+          setNodeSelectionColours(true, ldState.tr.nodes());
           ldState.stage.fire('ldSelectMultiple');
         }
       } else if (metaPressed && !isSelected) {
@@ -1406,6 +1460,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         const nodes = ldState.tr.nodes().concat([target]);
         ldState.tr.nodes(nodes);
         ldState.selectedMultiple = nodes;
+        setNodeSelectionColours(true, ldState.tr.nodes());
         ldState.stage.fire('ldSelectMultiple');
       }
       ldState.layer.draw();
