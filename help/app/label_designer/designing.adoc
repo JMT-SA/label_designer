@@ -75,6 +75,17 @@ The bottom toolbar applies to text and variable shapes only and includes the fol
 1. **Font Size** -- choose the font size.
 1. **Font** -- choose the font. **NB**. Not all fonts can be used for variables, but they can all be chosen for background text.
 
+== Selecting shapes
+
+* Click on a shape to select it. It will be surrounded by a blue border with squares that can be dragged to resize it. Any shapes that are already selected will be de-selected.
+* Click on a shape while the CTRL or SHIFT keys are down, and the shape will be added to the selection. The shape's border turns orange. If the shape was already part of the selection, it will be de-selected.
+* Click anywhere on the background to de-select all shapes.
+
+=== Overlapping
+
+If two shapes overlap it might be difficult to select one of them. To remedy this, right-click on the shape and choose the _Move to bottom_ option.
+This will invisibly move the selected shape to a lower level of the drawing. Click elsewhere and then select the shape that was overlapped -- which is now accessible because it is "above" the first shape.
+
 == Positioning and resizing shapes
 
 You can use the mouse to drag a shape to another part of the drawing area.
@@ -89,11 +100,6 @@ If you hold down the CTRL key while pressing up, down, left or right arrows, the
 * CTRL and DOWN :: grows the height.
 * CTRL and LEFT :: shrinks the width.
 * CTRL and RIGHT :: grows the width.
-
-=== Overlapping
-
-If two shapes overlap it might be difficult to select one of them. To remedy this, right-click on the shape and choose the _Move to bottom_ option.
-This will invisibly move the selected shape to a lower level of the drawing. Click elsewhere and then select the shape that was overlapped -- which is now accessible because it is "above" the first shape.
 
 === Align
 
