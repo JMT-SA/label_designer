@@ -10,6 +10,7 @@ module LabelApp
     required(:commodity).filled(:string)
     required(:market).filled(:string)
     required(:language).filled(:string)
+    required(:print_rotation).filled(:integer)
     optional(:category).maybe(:string)
     optional(:sub_category).maybe(:string)
     optional(:multi_label).maybe(:bool)

@@ -26,7 +26,8 @@ module LabelApp
         language: params[:language],
         category: params[:category],
         variable_set: params[:variable_set],
-        sub_category: params[:sub_category]
+        sub_category: params[:sub_category],
+        print_rotation: params[:print_rotation]
       }.merge(extcols)
       success_response('Ok', attrs)
     end
@@ -172,7 +173,7 @@ module LabelApp
 
     def label_zip(id)
       instance = label(id)
-      LabelFiles.new.make_label_zip(instance)
+      LabelFiles.new(instance.print_rotation).make_label_zip(instance)
     end
 
     def label_export(id)
@@ -213,7 +214,7 @@ module LabelApp
       # repo.update_label(id, sample_data: "{#{vars.map { |k, v| %("#{k}":"#{v}") }.join(',')}}")
       repo.update_label(id, sample_data: repo.hash_for_jsonb_col(vars))
 
-      fname, binary_data = LabelFiles.new.make_label_zip(instance, vars)
+      fname, binary_data = LabelFiles.new(instance.print_rotation).make_label_zip(instance, vars)
       # File.open('zz.zip', 'w') { |f| f.puts binary_data }
 
       mes_repo = MesserverApp::MesserverRepo.new
@@ -242,7 +243,7 @@ module LabelApp
       instance = label(id)
       repo.update_label(id, sample_data: repo.hash_for_jsonb_col(vars))
 
-      fname, binary_data = LabelFiles.new.make_label_zip(instance, vars)
+      fname, binary_data = LabelFiles.new(instance.print_rotation).make_label_zip(instance, vars)
       # File.open('zz.zip', 'w') { |f| f.puts binary_data }
 
       mes_repo = MesserverApp::MesserverRepo.new
