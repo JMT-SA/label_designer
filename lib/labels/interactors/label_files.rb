@@ -134,29 +134,43 @@ module LabelApp
 
     def rotate_xml(xml, px_mm) # rubocop:disable Metrics/AbcSize
       # TODO: Make this more intelligent - rotate 90 / -90 and also adjust already-rotated vars
-      raise Crossbeams::FrameworkError, "Rotation of #{rotation} degrees has not been implemented yet." unless rotation == 90
+      # raise Crossbeams::FrameworkError, "Rotation of #{rotation} degrees has not been implemented yet." unless rotation == 90
 
       doc = Nokogiri::XML(xml)
       image_height = doc.at_xpath('//image_height').content.to_i
       image_width = doc.at_xpath('//image_width').content.to_i
-      doc.xpath('//variable').each do |var|
+      doc.xpath('//variable').each do |var| # rubocop:disable Metrics/BlockLength
         rot_angle = var.at_xpath('rotation_angle')
         startx = var.at_xpath('startx')
         starty = var.at_xpath('starty')
+        baseline_x = var.at_xpath('baseline_x')
+        baseline_y = var.at_xpath('baseline_y')
         width = var.at_xpath('width')
         height = var.at_xpath('height')
         size = var.at_xpath('fontsize_px').content.to_i
 
+        cap_height = case var.at_xpath('fontfamily').content
+                     when 'Arial'
+                       (size * 0.72).round
+                     when 'Times New Roman'
+                       (size * 0.63).round
+                     when 'Courier New'
+                       (size * 0.66).round
+                     else
+                       size
+                     end
         adjust = calculate_var_rotation(
-          image_height: image_height,
-          image_width: image_width,
+          image_height: image_height - px_mm,
+          image_width: image_width - px_mm,
           x1: startx.content.to_i,
           y1: starty.content.to_i,
+          baseline_x: baseline_x.content.to_i,
+          baseline_y: baseline_y.content.to_i,
           width: width.content.to_i,
           height: height.content.to_i,
           rotation: rot_angle.content.to_i,
-          px_mm: px_mm,
-          font_size_px: size.to_i
+          font_size_px: size,
+          cap_height: cap_height
         )
 
         rot_angle.content = adjust[:rotation]
@@ -164,20 +178,71 @@ module LabelApp
         starty.content = adjust[:starty]
         width.content = adjust[:width]
         height.content = adjust[:height]
+        baseline_x.content = adjust[:baseline_x]
+        baseline_y.content = adjust[:baseline_y]
       end
       # puts doc.to_xml
+      File.open('vars.xml', 'w') { |f| f << doc.to_xml }
       doc.to_xml.gsub(/>\s+</, '><')
     end
 
     def calculate_var_rotation(opts) # rubocop:disable Metrics/AbcSize
       # TODO: does printing work with -90? or should it be 270?
       adj = { rotation: opts[:rotation] + rotation }
-      # adj[:rotation] = 0 if adj[:rotation] == 360 # change -90 to 270?
+      adj[:rotation] = 0 if adj[:rotation] == 360
+      adj[:rotation] = 270 if adj[:rotation] == -90
+
       # Following hard-coded for rotate 0 to 90
+      # it also seems to introduce a bit of drift for variable positions
       adj[:width] = opts[:height]
       adj[:height] = opts[:width]
-      adj[:startx] = opts[:image_height] - adj[:width] - opts[:y1] + opts[:px_mm] + opts[:font_size_px]
-      adj[:starty] = opts[:x1]
+
+      # Rotate Right (90)
+      if opts[:rotation].zero? && rotation == 90
+        adj[:startx] = opts[:image_height] - opts[:y1] - opts[:height]
+        adj[:starty] = opts[:x1]
+        adj[:baseline_x] = opts[:image_height] - opts[:y1] - opts[:cap_height]
+        adj[:baseline_y] = opts[:baseline_x]
+      end
+      if opts[:rotation] == 90 && rotation == 90
+        adj[:startx] = opts[:image_height] - opts[:y1] - opts[:width]
+        adj[:starty] = opts[:x1] - opts[:height]
+        adj[:baseline_x] = opts[:image_height] - opts[:y1]
+        adj[:baseline_y] = opts[:x1] - opts[:cap_height]
+        adj[:width] = opts[:width]
+        adj[:height] = opts[:height]
+      end
+      if opts[:rotation] == 180 && rotation == 90
+        adj[:startx] = opts[:image_height] - opts[:y1]
+        adj[:starty] = opts[:x1] - opts[:width]
+        adj[:baseline_x] = opts[:image_height] - opts[:y1] + opts[:cap_height]
+        adj[:baseline_y] = opts[:x1]
+      end
+      if opts[:rotation] == 270 && rotation == 90
+        adj[:startx] = opts[:image_height] - opts[:y1]
+        adj[:starty] = opts[:x1]
+        adj[:baseline_x] = opts[:image_height] - opts[:y1]
+        adj[:baseline_y] = opts[:x1] + opts[:cap_height]
+        adj[:width] = opts[:width]
+        adj[:height] = opts[:height]
+      end
+
+      # Rotate Left (-90)
+      if opts[:rotation].zero? && rotation == -90
+        # p "-90 :: #{opts[:image_width]} -- #{opts[:x1]} -- #{opts[:image_height]}"
+        adj[:startx] = opts[:y1]
+        # adj[:starty] = opts[:image_height] - opts[:x1]
+        # This seems to work, but doesn't look right...
+        adj[:starty] = opts[:image_height] - opts[:x1] - opts[:width]
+        adj[:baseline_x] = opts[:baseline_x] + opts[:cap_height]
+        adj[:baseline_y] = opts[:y1]
+      end
+      # if opts[:rotation] == 90 && rotation == -90
+      # end
+      # if opts[:rotation] == 180 && rotation == -90
+      # end
+      # if opts[:rotation] == 270 && rotation == -90
+      # end
       adj
     end
 
