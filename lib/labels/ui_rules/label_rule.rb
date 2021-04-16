@@ -132,5 +132,16 @@ module UiRules
         behaviour.enable :reject_reason, when: :approve_action, changes_to: ['r']
       end
     end
+
+    def rotation_string
+      case @form_object.print_rotation
+      when 90
+        'Right'
+      when -90
+        'Left'
+      else
+        ''
+      end
+    end
   end
 end

@@ -95,6 +95,7 @@ module LabelApp
 
     def zip_single_label(label, fname, label_properties) # rubocop:disable Metrics/AbcSize
       if rotation.zero?
+        File.open('vars.xml', 'w') { |f| f << label.variable_xml }
         Zip::OutputStream.write_buffer do |zio|
           zio.put_next_entry("#{fname}_1.png")
           zio.write label.png_image
@@ -186,62 +187,60 @@ module LabelApp
       doc.to_xml.gsub(/>\s+</, '><')
     end
 
-    def calculate_var_rotation(opts) # rubocop:disable Metrics/AbcSize
-      # TODO: does printing work with -90? or should it be 270?
+    def calculate_var_rotation(opts) # rubocop:disable Metrics/AbcSize, Metrics/PerceivedComplexity, Metrics/CyclomaticComplexity
+      # TODO: Test this with a label where w & h are not the same (some w/h could be mixed up)
       adj = { rotation: opts[:rotation] + rotation }
       adj[:rotation] = 0 if adj[:rotation] == 360
       adj[:rotation] = 270 if adj[:rotation] == -90
 
-      # Following hard-coded for rotate 0 to 90
-      # it also seems to introduce a bit of drift for variable positions
-      adj[:width] = opts[:height]
-      adj[:height] = opts[:width]
+      adj[:width] = opts[:width]
+      adj[:height] = opts[:height]
 
       # Rotate Right (90)
-      if opts[:rotation].zero? && rotation == 90
+      if opts[:rotation].zero? && rotation == 90 # effectively 90
         adj[:startx] = opts[:image_height] - opts[:y1] - opts[:height]
         adj[:starty] = opts[:x1]
         adj[:baseline_x] = opts[:image_height] - opts[:y1] - opts[:cap_height]
         adj[:baseline_y] = opts[:baseline_x]
       end
-      if opts[:rotation] == 90 && rotation == 90
+      if opts[:rotation] == 90 && rotation == 90 # effectively 180
         adj[:startx] = opts[:image_height] - opts[:y1] - opts[:width]
         adj[:starty] = opts[:x1] - opts[:height]
         adj[:baseline_x] = opts[:image_height] - opts[:y1]
         adj[:baseline_y] = opts[:x1] - opts[:cap_height]
-        adj[:width] = opts[:width]
-        adj[:height] = opts[:height]
       end
-      if opts[:rotation] == 180 && rotation == 90
+      if opts[:rotation] == 180 && rotation == 90 # effectively 270
         adj[:startx] = opts[:image_height] - opts[:y1]
         adj[:starty] = opts[:x1] - opts[:width]
         adj[:baseline_x] = opts[:image_height] - opts[:y1] + opts[:cap_height]
         adj[:baseline_y] = opts[:x1]
       end
-      if opts[:rotation] == 270 && rotation == 90
+      if opts[:rotation] == 270 && rotation == 90 # effectively 0
         adj[:startx] = opts[:image_height] - opts[:y1]
         adj[:starty] = opts[:x1]
         adj[:baseline_x] = opts[:image_height] - opts[:y1]
         adj[:baseline_y] = opts[:x1] + opts[:cap_height]
-        adj[:width] = opts[:width]
-        adj[:height] = opts[:height]
       end
 
       # Rotate Left (-90)
-      if opts[:rotation].zero? && rotation == -90
+      if opts[:rotation].zero? && rotation == -90 # effectively 270
         # p "-90 :: #{opts[:image_width]} -- #{opts[:x1]} -- #{opts[:image_height]}"
         adj[:startx] = opts[:y1]
         # adj[:starty] = opts[:image_height] - opts[:x1]
         # This seems to work, but doesn't look right...
         adj[:starty] = opts[:image_height] - opts[:x1] - opts[:width]
-        adj[:baseline_x] = opts[:baseline_x] + opts[:cap_height]
-        adj[:baseline_y] = opts[:y1]
+        adj[:baseline_x] = opts[:y1]
+        adj[:baseline_y] = opts[:image_height] - opts[:x1] - opts[:width]
       end
-      # if opts[:rotation] == 90 && rotation == -90
+      if opts[:rotation] == 90 && rotation == -90 # effectively 0
+        adj[:startx] = opts[:image_height] - opts[:y1]
+        adj[:starty] = opts[:x1]
+        adj[:baseline_x] = opts[:image_height] - opts[:y1]
+        adj[:baseline_y] = opts[:x1] + opts[:cap_height]
+      end
+      # if opts[:rotation] == 180 && rotation == -90 # effectively 90
       # end
-      # if opts[:rotation] == 180 && rotation == -90
-      # end
-      # if opts[:rotation] == 270 && rotation == -90
+      # if opts[:rotation] == 270 && rotation == -90 # effectively 180
       # end
       adj
     end
