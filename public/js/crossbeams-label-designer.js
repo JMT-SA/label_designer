@@ -2626,13 +2626,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       [startY, endY] = [endY, startY];
     }
 
-    if (startX === endX) {
-      if (endY - startY < ldState.MIN_DIMENSION) {
-        endY = startY + ldState.MIN_DIMENSION;
-      }
-    } else if (startY === endY) {
+    if (ldState.currentDrawType === 'Line' && startY === endY) {
       if (endX - startX < ldState.MIN_DIMENSION) {
         endX = startX + ldState.MIN_DIMENSION;
+      }
+    } else if (ldState.currentDrawType === 'Line' && startX === endX) {
+      if (endY - startY < ldState.MIN_DIMENSION) {
+        endY = startY + ldState.MIN_DIMENSION;
       }
     } else {
       if (endX - startX < ldState.MIN_DIMENSION) {
