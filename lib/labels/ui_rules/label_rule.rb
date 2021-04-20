@@ -31,6 +31,7 @@ module UiRules
         options: [['None', 0], ['Right', 90], ['Left', -90]],
         required: true,
         sort_items: false,
+        invisible: cannot_rotate,
         hint: '<p>When printing, rotate the label design from horizontal to vertical.</p><p>Choose "Right" to rotate clockwise (90&deg;) and "Left" to rotate anti-clockwise (-90&deg;).</p>'
       }
     end
@@ -131,6 +132,15 @@ module UiRules
       behaviours do |behaviour|
         behaviour.enable :reject_reason, when: :approve_action, changes_to: ['r']
       end
+    end
+
+    def cannot_rotate
+      return false if @form_object.variable_xml.nil?
+
+      doc = Nokogiri::XML(@form_object.variable_xml)
+      ver = doc.search('label_version')
+      # Older labels do not have a label version node
+      ver.empty?
     end
 
     def rotation_string

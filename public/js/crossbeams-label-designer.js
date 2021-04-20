@@ -1102,6 +1102,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         const file = files[0];
         if (file) {
           const reader = new FileReader();
+          if (ldState.tr.nodes().length > 1) {
+            setNodeSelectionColours(false, ldState.tr.nodes());
+          }
 
           reader.addEventListener('load', () => {
             const shape = new LdImage(0, 0);
@@ -1843,6 +1846,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     const newSelection = [];
     let marshal;
     const undos = [];
+    if (ldState.tr.nodes().length > 1) {
+      setNodeSelectionColours(false, ldState.tr.nodes());
+    }
 
     ldState.clipboard.shapes.forEach((shape) => {
       marshal = new LdMarshal(shape);
@@ -1851,6 +1857,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       undos.push(marshal.dump());
     });
     ldState.copyOffset += 5;
+    if (ldState.tr.nodes().length > 1) {
+      setNodeSelectionColours(false, ldState.tr.nodes());
+    }
     if (newSelection.length === 1) {
       ldState.currentMode = 'select';
       ldState.tr.nodes(newSelection);
@@ -1858,6 +1867,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     } else {
       ldState.tr.nodes(newSelection);
       ldState.selectedMultiple = newSelection;
+    }
+    if (ldState.tr.nodes().length > 1) {
+      setNodeSelectionColours(true, ldState.tr.nodes());
     }
     ldState.stage.draw();
 
@@ -1868,6 +1880,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       previous: null,
       executeUndo() {
         let item;
+        if (ldState.tr.nodes().length > 1) {
+          setNodeSelectionColours(false, ldState.tr.nodes());
+        }
         this.shapeIds.forEach((id) => {
           item = getShapeById(id);
           if (ldState.tr.nodes().includes(item)) {
@@ -1878,18 +1893,27 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           }
           item.destroy();
         });
+        if (ldState.tr.nodes().length > 1) {
+          setNodeSelectionColours(true, ldState.tr.nodes());
+        }
         ldState.stage.draw();
         console.log('UNDO', this.shapeIds, this.action, this.previous);
       },
       executeRedo() {
         let item;
         const newIds = [];
+        if (ldState.tr.nodes().length > 1) {
+          setNodeSelectionColours(false, ldState.tr.nodes());
+        }
         this.current.forEach((node, idx) => {
           marshal = new LdMarshal(node);
           item = marshal.load();
           UndoEngine.replaceId(this.shapeIds[idx], item._id); // eslint-disable-line no-underscore-dangle
           newIds.push(item._id); // eslint-disable-line no-underscore-dangle
         });
+        if (ldState.tr.nodes().length > 1) {
+          setNodeSelectionColours(true, ldState.tr.nodes());
+        }
         ldState.stage.draw();
         this.shapeIds = newIds;
         console.log('REDO', this.shapeIds, this.action, this.current);
@@ -1899,6 +1923,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   // De-select any shapes and return a png copy of all shapes except those on the variable layer
   const getBackgroundImage = () => {
+    if (ldState.tr.nodes().length > 1) {
+      setNodeSelectionColours(false, ldState.tr.nodes());
+    }
     ldState.tr.nodes([]);
     ldState.stage.draw();
     ldState.stage.fire('ldSelectNone');
@@ -3083,6 +3110,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
     let config = typeof strConfig === 'string' ? JSON.parse(strConfig) : strConfig;
     if (!config.version) {
+      // Show an upgrade message to the user
+      document.getElementById('upgradeNote').hidden = false;
       config = convert(strConfig);
     }
 
