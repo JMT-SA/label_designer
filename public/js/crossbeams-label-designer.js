@@ -828,8 +828,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         name: 'ellipse',
         x: this.x + (this.width / 2),
         y: this.y + (this.height / 2),
-        radiusX: this.width,
-        radiusY: this.height,
+        radiusX: this.width / 2,
+        radiusY: this.height / 2,
         stroke: 'black',
         strokeWidth: opts.strokeWidth || 2,
         strokeScaleEnabled: false,
@@ -887,8 +887,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       }
 
       if (this.elem.name() === 'ellipse') {
-        node.width = this.elem.radiusX();
-        node.height = this.elem.radiusY();
+        node.x = this.elem.x() - this.elem.radiusX();
+        node.y = this.elem.y() - this.elem.radiusY();
+        node.width = this.elem.radiusX() * 2;
+        node.height = this.elem.radiusY() * 2;
       }
 
       if (['line', 'rect', 'ellipse'].includes(this.elem.name())) {
