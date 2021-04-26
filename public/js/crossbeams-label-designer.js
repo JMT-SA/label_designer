@@ -114,6 +114,113 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     return lo;
   };
 
+  /**
+   * adjustWidth.
+   *
+   * On resize of a shape, ensure the shape does not end up too small to work with.
+   *
+   * @param {shape} elem - a shape to be resized.
+   * @param {number} width - the amount (+/-) to increase or decrease the width.
+   * @returns {void}
+   */
+  const adjustWidth = (elem, width) => {
+    let points;
+
+    if (elem.name() === 'line') {
+      points = elem.points();
+      if (points[0] !== points[2]) {
+        points[2] += width;
+        if (Math.abs(points[2] - points[0]) < ldState.MIN_DIMENSION) {
+          if (points[2] > points[0]) {
+            points[2] = points[0] + ldState.MIN_DIMENSION;
+          } else {
+            points[0] = points[2] + ldState.MIN_DIMENSION;
+          }
+        }
+        elem.points(points);
+      }
+    } else if (elem.name() === 'variableBox') {
+      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+        elem.height(elem.height() + width);
+        if (elem.height() < ldState.MIN_DIMENSION) {
+          elem.height(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.height(elem.height()));
+      } else {
+        elem.width(elem.width() + width);
+        if (elem.width() < ldState.MIN_DIMENSION) {
+          elem.width(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.width(elem.width()));
+      }
+      ldState.tr.forceUpdate();
+    } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+      elem.height(elem.height() + width);
+      if (elem.height() < ldState.MIN_DIMENSION) {
+        elem.height(ldState.MIN_DIMENSION);
+      }
+    } else {
+      elem.width(elem.width() + width);
+      if (elem.width() < ldState.MIN_DIMENSION) {
+        elem.width(ldState.MIN_DIMENSION);
+      }
+    }
+    ldState.changesMade = true;
+  };
+
+  /**
+   * adjustHeight.
+   *
+   * On resize of a shape, ensure the shape does not end up too small to work with.
+   *
+   * @param {shape} elem - a shape to be resized.
+   * @param {number} height - the amount (+/-) to increase or decrease the height.
+   * @returns {void}
+   */
+  const adjustHeight = (elem, height) => {
+    let points;
+    if (elem.name() === 'line') {
+      points = elem.points();
+      if (points[1] !== points[3]) {
+        points[3] += height;
+        if (Math.abs(points[3] - points[1]) < ldState.MIN_DIMENSION) {
+          if (points[3] > points[1]) {
+            points[3] = points[1] + ldState.MIN_DIMENSION;
+          } else {
+            points[1] = points[3] + ldState.MIN_DIMENSION;
+          }
+        }
+        elem.points(points);
+      }
+    } else if (elem.name() === 'variableBox') {
+      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+        elem.width(elem.width() + height);
+        if (elem.width() < ldState.MIN_DIMENSION) {
+          elem.width(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.width(elem.width()));
+      } else {
+        elem.height(elem.height() + height);
+        if (elem.height() < ldState.MIN_DIMENSION) {
+          elem.height(ldState.MIN_DIMENSION);
+        }
+        elem.getChildren().forEach(node => node.height(elem.height()));
+      }
+      ldState.tr.forceUpdate();
+    } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
+      elem.width(elem.width() + height);
+      if (elem.width() < ldState.MIN_DIMENSION) {
+        elem.width(ldState.MIN_DIMENSION);
+      }
+    } else {
+      elem.height(elem.height() + height);
+      if (elem.height() < ldState.MIN_DIMENSION) {
+        elem.height(ldState.MIN_DIMENSION);
+      }
+    }
+    ldState.changesMade = true;
+  };
+
   const validFontSize = size => getClosestInt(ldState.fontSizesPx, Number(size));
 
   const getShapeById = shapeId => ldState.stage.findOne(node => node._id === shapeId); // eslint-disable-line no-underscore-dangle
@@ -153,20 +260,99 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   class LdImage extends LdShape {
     generate(opts = {}) {
+      // TODO: return null if no imagesrc...
+      let startX;
+      let startY;
+      let startW;
+      let startH;
+
       let width = 0;
       let height = 0;
       let loaded = false;
       const img = new Image();
       img.src = opts.imageSource;
+      img.onload = () => { ldState.layer.draw(); }; // Ensure image is drawn once it has been loaded.
 
       this.shape = new Konva.Image({
+        name: 'image',
         x: this.x,
         y: this.y,
         image: img,
-        name: 'image',
         draggable: true,
         imageSource: opts.imageSource,
       });
+
+      this.shape.on('transform', () => {
+        this.shape.setAttrs({
+          width: this.shape.width() * this.shape.scaleX(),
+          height: this.shape.height() * this.shape.scaleY(),
+          scaleX: 1,
+          scaleY: 1,
+        });
+        ldState.changesMade = true;
+      });
+
+      this.shape.on('transformstart', () => {
+        startX = this.shape.x();
+        startY = this.shape.y();
+        startW = this.shape.width();
+        startH = this.shape.height();
+      });
+      this.shape.on('transformend', () => {
+        if (ldState.selectedMultiple.length > 0) {
+          return;
+        }
+
+        const change = {
+          x: Math.round(this.shape.x()) - Math.round(startX),
+          y: Math.round(this.shape.y()) - Math.round(startY),
+          width: Math.round(this.shape.width() - startW),
+          height: Math.round(this.shape.height() - startH),
+        };
+
+        UndoEngine.addCommand({
+          shapeId: this.shape._id, // eslint-disable-line no-underscore-dangle
+          action: 'resize',
+          current: change,
+          previous: {
+            x: change.x * -1,
+            y: change.y * -1,
+            width: change.width * -1,
+            height: change.height * -1,
+          },
+          executeUndo() {
+            const item = getShapeById(this.shapeId);
+
+            if (this.previous.x !== 0 || this.previous.y !== 0) {
+              item.move({ x: this.previous.x, y: this.previous.y });
+            }
+            if (this.previous.width !== 0) {
+              adjustWidth(item, this.previous.width);
+            }
+            if (this.previous.height !== 0) {
+              adjustHeight(item, this.previous.height);
+            }
+            ldState.stage.draw();
+            console.log('UNDO', this.shapeId, this.previous);
+          },
+          executeRedo() {
+            const item = getShapeById(this.shapeId);
+
+            if (this.current.x !== 0 || this.current.y !== 0) {
+              item.move({ x: this.current.x, y: this.current.y });
+            }
+            if (this.current.width !== 0) {
+              adjustWidth(item, this.current.width);
+            }
+            if (this.current.height !== 0) {
+              adjustHeight(item, this.current.height);
+            }
+            ldState.stage.draw();
+            console.log('REDO', this.shapeId, this.current);
+          },
+        });
+      });
+
       loaded = true;
       if (this.width) {
         this.shape.width(this.width);
@@ -213,7 +399,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   class LdRect extends LdShape {
     generate(opts = {}) {
+      let startX;
+      let startY;
+      let startW;
+      let startH;
+
       this.shape = new Konva.Rect({
+        name: 'rect',
         x: this.x,
         y: this.y,
         width: this.width,
@@ -222,7 +414,78 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         strokeWidth: opts.strokeWidth || 2,
         strokeScaleEnabled: false,
         draggable: true,
-        name: 'rect',
+      });
+
+      this.shape.on('transform', () => {
+        this.shape.setAttrs({
+          width: this.shape.width() * this.shape.scaleX(),
+          height: this.shape.height() * this.shape.scaleY(),
+          scaleX: 1,
+          scaleY: 1,
+        });
+        ldState.changesMade = true;
+      });
+
+      this.shape.on('transformstart', () => {
+        startX = this.shape.x();
+        startY = this.shape.y();
+        startW = this.shape.width();
+        startH = this.shape.height();
+      });
+      this.shape.on('transformend', () => {
+        if (ldState.selectedMultiple.length > 0) {
+          return;
+        }
+        // x & y could move when resized...
+        const change = {
+          x: Math.round(this.shape.x()) - Math.round(startX),
+          y: Math.round(this.shape.y()) - Math.round(startY),
+          width: Math.round(this.shape.width() - startW),
+          height: Math.round(this.shape.height() - startH),
+        };
+        console.log('after', change);
+
+        UndoEngine.addCommand({
+          shapeId: this.shape._id, // eslint-disable-line no-underscore-dangle
+          action: 'resize',
+          current: change,
+          previous: {
+            x: change.x * -1,
+            y: change.y * -1,
+            width: change.width * -1,
+            height: change.height * -1,
+          },
+          executeUndo() {
+            const item = getShapeById(this.shapeId);
+
+            if (this.previous.x !== 0 || this.previous.y !== 0) {
+              item.move({ x: this.previous.x, y: this.previous.y });
+            }
+            if (this.previous.width !== 0) {
+              adjustWidth(item, this.previous.width);
+            }
+            if (this.previous.height !== 0) {
+              adjustHeight(item, this.previous.height);
+            }
+            ldState.stage.draw();
+            console.log('UNDO', this.shapeId, this.previous);
+          },
+          executeRedo() {
+            const item = getShapeById(this.shapeId);
+
+            if (this.current.x !== 0 || this.current.y !== 0) {
+              item.move({ x: this.current.x, y: this.current.y });
+            }
+            if (this.current.width !== 0) {
+              adjustWidth(item, this.current.width);
+            }
+            if (this.current.height !== 0) {
+              adjustHeight(item, this.current.height);
+            }
+            ldState.stage.draw();
+            console.log('REDO', this.shapeId, this.current);
+          },
+        });
       });
       return this.shape;
     }
@@ -236,14 +499,16 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
 
     generate(opts = {}) {
+      let startPoints;
+
       this.shape = new Konva.Line({
+        name: 'line',
         points: [this.x, this.y, this.endX, this.endY],
         stroke: 'black',
         strokeWidth: opts.strokeWidth || 2,
         strokeScaleEnabled: false,
         draggable: true,
         hitStrokeWidth: 10,
-        name: 'line',
       });
 
       this.shape.on('dragend', () => {
@@ -254,6 +519,78 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         this.shape.x(0);
         this.shape.y(0);
         ldState.changesMade = true;
+      });
+
+      this.shape.on('transform', () => {
+        const points = this.shape.points();
+        const x = this.shape.x();
+        const y = this.shape.y();
+        // console.log('x,y', x, y);
+
+        this.shape.setAttrs({
+          points: [
+            x + (points[0] * this.shape.scaleX()),
+            y + (points[1] * this.shape.scaleY()),
+            x + (points[2] * this.shape.scaleX()),
+            y + (points[3] * this.shape.scaleY()),
+          ],
+          scaleX: 1,
+          scaleY: 1,
+          x: 0,
+          y: 0,
+        });
+        ldState.changesMade = true;
+      });
+
+      this.shape.on('transformstart', () => {
+        startPoints = this.shape.points().slice();
+      });
+      this.shape.on('transformend', () => {
+        if (ldState.selectedMultiple.length > 0) {
+          return;
+        }
+        const newPoints = this.shape.points().slice();
+        console.log('ppts', startPoints, newPoints);
+        const change = {
+          x: Math.round(newPoints[0] - startPoints[0]),
+          y: Math.round(newPoints[1] - startPoints[1]),
+          x2: Math.round(newPoints[2] - startPoints[2]),
+          y2: Math.round(newPoints[3] - startPoints[3]),
+        };
+        console.log('after', change);
+
+        UndoEngine.addCommand({
+          shapeId: this.shape._id, // eslint-disable-line no-underscore-dangle
+          action: 'resize',
+          current: change,
+          previous: {
+            x: change.x * -1,
+            y: change.y * -1,
+            x2: change.x2 * -1,
+            y2: change.y2 * -1,
+          },
+          executeUndo() {
+            const item = getShapeById(this.shapeId);
+            const currPoints = item.points();
+            item.points([currPoints[0] + this.previous.x,
+              currPoints[1] + this.previous.y,
+              currPoints[2] + this.previous.x2,
+              currPoints[3] + this.previous.y2]);
+            console.log('undo line', item.points());
+            ldState.stage.draw();
+            console.log('UNDO', this.shapeId, this.previous);
+          },
+          executeRedo() {
+            const item = getShapeById(this.shapeId);
+            const currPoints = item.points();
+            item.points([currPoints[0] + this.current.x,
+              currPoints[1] + this.current.y,
+              currPoints[2] + this.current.x2,
+              currPoints[3] + this.current.y2]);
+            ldState.stage.draw();
+            console.log('REDO', this.shapeId, this.current);
+          },
+        });
       });
 
       return this.shape;
@@ -313,6 +650,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       });
 
       const txtPart = new Konva.Text({
+        name: 'text',
         x: 0,
         y: 0,
         width: this.width,
@@ -321,12 +659,12 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         fontFamily: opts.fontFamily || 'Arial',
         text: opts.text || 'Unset Variable',
         fill: txtFill,
-        name: 'text',
         fontStyle: opts.fontStyle || 'normal',
         textDecoration: opts.textDecoration || '',
         align: opts.align || 'left',
       });
       const rectPart = new Konva.Rect({
+        name: 'rect',
         x: 0,
         y: 0,
         width: this.width,
@@ -334,7 +672,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         stroke: opts.stroke || rectFill,
         strokeWidth: 2,
         strokeScaleEnabled: false,
-        name: 'rect',
       });
 
       // Ensure the text in the variable does not stretch with transforming:
@@ -384,6 +721,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   class LdText extends LdShape {
     generate(opts = {}) {
       this.shape = new Konva.Text({
+        name: 'textBox',
         x: this.x,
         y: this.y,
         width: this.width,
@@ -393,7 +731,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         text: opts.text || 'Text',
         fill: 'black',
         draggable: true,
-        name: 'textBox',
         fontStyle: opts.fontStyle || 'normal',
         textDecoration: opts.textDecoration || '',
         align: opts.align || 'left',
@@ -421,6 +758,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   class LdEllipse extends LdShape {
     generate(opts = {}) {
       this.shape = new Konva.Ellipse({
+        name: 'ellipse',
         x: this.x + (this.width / 2),
         y: this.y + (this.height / 2),
         radiusX: this.width,
@@ -429,7 +767,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         strokeWidth: opts.strokeWidth || 2,
         strokeScaleEnabled: false,
         draggable: true,
-        name: 'ellipse',
       });
       return this.shape;
     }
@@ -462,9 +799,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       let txtObj;
 
       node = {
+        name: this.elem.name(),
         x: this.elem.x(),
         y: this.elem.y(),
-        name: this.elem.name(),
         width: this.elem.width(),
         height: this.elem.height(),
       };
@@ -884,96 +1221,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         }
       }
     });
-  };
-
-  // On resize of a shape, ensure the shape does not end up too small to work with
-  const adjustWidth = (elem, width) => {
-    let points;
-    // VAR...
-    if (elem.name() === 'line') {
-      points = elem.points();
-      if (points[0] !== points[2]) {
-        points[2] += width;
-        if (Math.abs(points[2] - points[0]) < ldState.MIN_DIMENSION) {
-          if (points[2] > points[0]) {
-            points[2] = points[0] + ldState.MIN_DIMENSION;
-          } else {
-            points[0] = points[2] + ldState.MIN_DIMENSION;
-          }
-        }
-        elem.points(points);
-      }
-    } else if (elem.name() === 'variableBox') {
-      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
-        elem.height(elem.height() + width);
-        if (elem.height() < ldState.MIN_DIMENSION) {
-          elem.height(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.height(elem.height()));
-      } else {
-        elem.width(elem.width() + width);
-        if (elem.width() < ldState.MIN_DIMENSION) {
-          elem.width(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.width(elem.width()));
-      }
-      ldState.tr.forceUpdate();
-    } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
-      elem.height(elem.height() + width);
-      if (elem.height() < ldState.MIN_DIMENSION) {
-        elem.height(ldState.MIN_DIMENSION);
-      }
-    } else {
-      elem.width(elem.width() + width);
-      if (elem.width() < ldState.MIN_DIMENSION) {
-        elem.width(ldState.MIN_DIMENSION);
-      }
-    }
-    ldState.changesMade = true;
-  };
-
-  const adjustHeight = (elem, height) => {
-    let points;
-    if (elem.name() === 'line') {
-      points = elem.points();
-      if (points[1] !== points[3]) {
-        points[3] += height;
-        if (Math.abs(points[3] - points[1]) < ldState.MIN_DIMENSION) {
-          if (points[3] > points[1]) {
-            points[3] = points[1] + ldState.MIN_DIMENSION;
-          } else {
-            points[1] = points[3] + ldState.MIN_DIMENSION;
-          }
-        }
-        elem.points(points);
-      }
-    } else if (elem.name() === 'variableBox') {
-      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
-        elem.width(elem.width() + height);
-        if (elem.width() < ldState.MIN_DIMENSION) {
-          elem.width(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.width(elem.width()));
-      } else {
-        elem.height(elem.height() + height);
-        if (elem.height() < ldState.MIN_DIMENSION) {
-          elem.height(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.height(elem.height()));
-      }
-      ldState.tr.forceUpdate();
-    } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
-      elem.width(elem.width() + height);
-      if (elem.width() < ldState.MIN_DIMENSION) {
-        elem.width(ldState.MIN_DIMENSION);
-      }
-    } else {
-      elem.height(elem.height() + height);
-      if (elem.height() < ldState.MIN_DIMENSION) {
-        elem.height(ldState.MIN_DIMENSION);
-      }
-    }
-    ldState.changesMade = true;
   };
 
   const init = (labelConfig) => {
@@ -1444,7 +1691,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       if (lineTypeSelected()) {
         setLineButtons(true);
         if (ldState.selectedShape.name() === 'line') {
-          ldState.tr.enabledAnchors(['middle-right', 'middle-left']);
+          if (ldState.selectedShape.points()[0] === ldState.selectedShape.points()[2]) {
+            ldState.tr.enabledAnchors(['top-center', 'bottom-center']);
+          } else {
+            ldState.tr.enabledAnchors(['middle-right', 'middle-left']);
+          }
         }
       } else {
         setLineButtons(false);
@@ -2261,7 +2512,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       const affectedShapes = [];
       let prevState;
 
-      if (btn) {
+      // On Chrome, this event will fire even if the button is disabled...
+      if (btn && !btn.disabled) {
         if (btn.dataset.active) {
           document.querySelectorAll('[data-active]').forEach(elem => elem.dataset.active = 'false');
           btn.dataset.active = 'true';
@@ -2323,7 +2575,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       }
 
       btn = event.target.closest('button[data-textstyle]');
-      if (btn) {
+      if (btn && !btn.disabled) {
         enable = btn.dataset.selected === 'false';
         btn.dataset.selected = enable;
         if (ldState.selectedMultiple.length > 0) {
@@ -2374,7 +2626,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       }
 
       btn = event.target.closest('button[data-alignment]');
-      if (btn) {
+      if (btn && !btn.disabled) {
         document.querySelectorAll('button[data-alignment]').forEach((elem) => {
           if (elem.dataset.selected === 'true') {
             prevState = elem.dataset.alignment;

@@ -96,10 +96,13 @@ Click on the small squares of a selected shape to resize it. Using the squares a
 
 If you hold down the CTRL key while pressing up, down, left or right arrows, the shape will shrink or grow as follows:
 
-* CTRL and UP :: shrinks the height.
-* CTRL and DOWN :: grows the height.
-* CTRL and LEFT :: shrinks the width.
-* CTRL and RIGHT :: grows the width.
+* CTRL and UP :: shrinks the height. The bottom of the shape moves up.
+* CTRL and DOWN :: grows the height. The bottom of the shape moves down.
+* CTRL and LEFT :: shrinks the width. The right of the shape moves left.
+* CTRL and RIGHT :: grows the width. The right of the shape moves right.
+
+NOTE: Be aware that when text or variable shapes are rotated, the side of the shape that moves will change. 
+For example: If a shape is rotated once to the right (90&deg;), the up/down arrows will move the left side, while the left/right arrows will move the bottom side.
 
 === Align
 
