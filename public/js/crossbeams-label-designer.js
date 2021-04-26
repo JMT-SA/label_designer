@@ -439,14 +439,13 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         if (ldState.selectedMultiple.length > 0) {
           return;
         }
-        // x & y could move when resized...
+
         const change = {
           x: Math.round(this.shape.x()) - Math.round(startX),
           y: Math.round(this.shape.y()) - Math.round(startY),
           width: Math.round(this.shape.width() - startW),
           height: Math.round(this.shape.height() - startH),
         };
-        console.log('after', change);
 
         UndoEngine.addCommand({
           shapeId: this.shape._id, // eslint-disable-line no-underscore-dangle
@@ -603,6 +602,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   // VariableBox
   class LdVariable extends LdShape {
     generate(opts = {}) {
+      let startX;
+      let startY;
+      let startW;
+      let startH;
+
       let rotation = opts.rotation || 0;
       if (rotation === 360) {
         rotation = 0;
@@ -676,6 +680,15 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         strokeScaleEnabled: false,
       });
 
+      this.shape.on('transformstart', () => {
+        startX = this.shape.x();
+        startY = this.shape.y();
+        startW = this.shape.width();
+        startH = this.shape.height();
+      });
+      // this.shape.on('transformend', () => {
+      // });
+
       // Ensure the text in the variable does not stretch with transforming:
       this.shape.on('transformend', () => {
         const txtElem = this.shape.getChildren(node => node.getClassName() === 'Text')[0];
@@ -705,6 +718,59 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         ldState.layerVar.draw();
         ldState.tr.forceUpdate();
         ldState.changesMade = true;
+
+        if (ldState.selectedMultiple.length > 0) {
+          return;
+        }
+
+        const change = {
+          x: Math.round(this.shape.x()) - Math.round(startX),
+          y: Math.round(this.shape.y()) - Math.round(startY),
+          width: Math.round(this.shape.width() - startW),
+          height: Math.round(this.shape.height() - startH),
+        };
+
+        UndoEngine.addCommand({
+          shapeId: this.shape._id, // eslint-disable-line no-underscore-dangle
+          action: 'resize',
+          current: change,
+          previous: {
+            x: change.x * -1,
+            y: change.y * -1,
+            width: change.width * -1,
+            height: change.height * -1,
+          },
+          executeUndo() {
+            const item = getShapeById(this.shapeId);
+
+            if (this.previous.x !== 0 || this.previous.y !== 0) {
+              item.move({ x: this.previous.x, y: this.previous.y });
+            }
+            if (this.previous.width !== 0) {
+              adjustWidth(item, this.previous.width);
+            }
+            if (this.previous.height !== 0) {
+              adjustHeight(item, this.previous.height);
+            }
+            ldState.stage.draw();
+            console.log('UNDO', this.shapeId, this.previous);
+          },
+          executeRedo() {
+            const item = getShapeById(this.shapeId);
+
+            if (this.current.x !== 0 || this.current.y !== 0) {
+              item.move({ x: this.current.x, y: this.current.y });
+            }
+            if (this.current.width !== 0) {
+              adjustWidth(item, this.current.width);
+            }
+            if (this.current.height !== 0) {
+              adjustHeight(item, this.current.height);
+            }
+            ldState.stage.draw();
+            console.log('REDO', this.shapeId, this.current);
+          },
+        });
       });
 
       // On double-click of a variable, focus on the text editor
@@ -824,6 +890,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   class LdEllipse extends LdShape {
     generate(opts = {}) {
+      let startX;
+      let startY;
+      let startRx;
+      let startRy;
+
       this.shape = new Konva.Ellipse({
         name: 'ellipse',
         x: this.x + (this.width / 2),
@@ -834,6 +905,67 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         strokeWidth: opts.strokeWidth || 2,
         strokeScaleEnabled: false,
         draggable: true,
+      });
+
+      this.shape.on('transform', () => {
+        this.shape.setAttrs({
+          radiusX: this.shape.radiusX() * this.shape.scaleX(),
+          radiusY: this.shape.radiusY() * this.shape.scaleY(),
+          scaleX: 1,
+          scaleY: 1,
+        });
+        ldState.changesMade = true;
+      });
+
+      this.shape.on('transformstart', () => {
+        startX = this.shape.x();
+        startY = this.shape.y();
+        startRx = this.shape.radiusX();
+        startRy = this.shape.radiusY();
+      });
+      this.shape.on('transformend', () => {
+        if (ldState.selectedMultiple.length > 0) {
+          return;
+        }
+
+        UndoEngine.addCommand({
+          shapeId: this.shape._id, // eslint-disable-line no-underscore-dangle
+          action: 'resize',
+          current: {
+            x: this.shape.x(),
+            y: this.shape.y(),
+            rX: this.shape.radiusX(),
+            rY: this.shape.radiusY(),
+          },
+          previous: {
+            x: startX,
+            y: startY,
+            rX: startRx,
+            rY: startRy,
+          },
+          executeUndo() {
+            const item = getShapeById(this.shapeId);
+            item.setAttrs({
+              x: this.previous.x,
+              y: this.previous.y,
+              radiusX: this.previous.rX,
+              radiusY: this.previous.rY,
+            });
+            ldState.stage.draw();
+            console.log('UNDO', this.shapeId, this.previous);
+          },
+          executeRedo() {
+            const item = getShapeById(this.shapeId);
+            item.setAttrs({
+              x: this.current.x,
+              y: this.current.y,
+              radiusX: this.current.rX,
+              radiusY: this.current.rY,
+            });
+            ldState.stage.draw();
+            console.log('REDO', this.shapeId, this.current);
+          },
+        });
       });
       return this.shape;
     }
