@@ -260,7 +260,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   class LdImage extends LdShape {
     generate(opts = {}) {
-      // TODO: return null if no imagesrc...
+      // Do not add an image if the input is corrupt...
+      if (!opts.imageSource) {
+        return null;
+      }
       let startX;
       let startY;
       let startW;
@@ -611,7 +614,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         barcodeText: optAttrs.barcodeText || false,
         barcodeTop: optAttrs.barcodeTop || 'true',
         barcodeWidthFactor: optAttrs.barcodeWidthFactor || 1.5,
-        barcodeMargin: optAttrs.barcodeMargin || 5,
         barcodeSymbology: optAttrs.barcodeSymbology || 'CODE_128',
         staticValue: optAttrs.staticValue || null,
       };
@@ -720,6 +722,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   class LdText extends LdShape {
     generate(opts = {}) {
+      let startX;
+      let startY;
+      let startW;
+      let startH;
+
       this.shape = new Konva.Text({
         name: 'textBox',
         x: this.x,
@@ -750,6 +757,66 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           scaleY: 1,
         });
         ldState.changesMade = true;
+      });
+
+      this.shape.on('transformstart', () => {
+        startX = this.shape.x();
+        startY = this.shape.y();
+        startW = this.shape.width();
+        startH = this.shape.height();
+      });
+      this.shape.on('transformend', () => {
+        if (ldState.selectedMultiple.length > 0) {
+          return;
+        }
+        const change = {
+          x: Math.round(this.shape.x()) - Math.round(startX),
+          y: Math.round(this.shape.y()) - Math.round(startY),
+          width: Math.round(this.shape.width() - startW),
+          height: Math.round(this.shape.height() - startH),
+        };
+
+        UndoEngine.addCommand({
+          shapeId: this.shape._id, // eslint-disable-line no-underscore-dangle
+          action: 'resize',
+          current: change,
+          previous: {
+            x: change.x * -1,
+            y: change.y * -1,
+            width: change.width * -1,
+            height: change.height * -1,
+          },
+          executeUndo() {
+            const item = getShapeById(this.shapeId);
+
+            if (this.previous.x !== 0 || this.previous.y !== 0) {
+              item.move({ x: this.previous.x, y: this.previous.y });
+            }
+            if (this.previous.width !== 0) {
+              adjustWidth(item, this.previous.width);
+            }
+            if (this.previous.height !== 0) {
+              adjustHeight(item, this.previous.height);
+            }
+            ldState.stage.draw();
+            console.log('UNDO', this.shapeId, this.previous);
+          },
+          executeRedo() {
+            const item = getShapeById(this.shapeId);
+
+            if (this.current.x !== 0 || this.current.y !== 0) {
+              item.move({ x: this.current.x, y: this.current.y });
+            }
+            if (this.current.width !== 0) {
+              adjustWidth(item, this.current.width);
+            }
+            if (this.current.height !== 0) {
+              adjustHeight(item, this.current.height);
+            }
+            ldState.stage.draw();
+            console.log('REDO', this.shapeId, this.current);
+          },
+        });
       });
       return this.shape;
     }
@@ -880,7 +947,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       if (this.elem.name === 'image') {
         shape = new LdImage(this.elem.x + offset, this.elem.y + offset, this.elem.width, this.elem.height);
         item = shape.generate(this.elem);
-        ldState.layer.add(item);
+        if (item !== null) {
+          ldState.layer.add(item);
+        }
       }
       if (this.elem.name === 'rect') {
         shape = new LdRect(this.elem.x + offset, this.elem.y + offset, this.elem.width, this.elem.height);
@@ -1432,7 +1501,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       barcodeText: document.querySelector('#barcode_text'),
       barcodeTop: document.querySelector('#barcode_top'),
       barcodeWidthFactor: document.querySelector('#barcode_width_factor'),
-      barcodeMargin: document.querySelector('#barcode_margin'),
     };
 
     // Listen for change of text input and update Text of Variable contents
@@ -1927,7 +1995,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       barcodeText: ldState.variableUI.barcodeText.checked,
       barcodeTop: ldState.variableUI.barcodeTop.value,
       barcodeWidthFactor: ldState.variableUI.barcodeWidthFactor.value,
-      barcodeMargin: ldState.variableUI.barcodeMargin.value,
       barcodeSymbology: ldState.variableUI.barcodeSymbology.value,
       staticValue: variableTypeValue === 'Static Barcode' ? ldState.variableUI.staticInputValue.value : null,
     };
@@ -2196,7 +2263,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.variableUI.barcodeText.checked = curr.barcodeText;
     ldState.variableUI.barcodeTop.value = curr.barcodeTop;
     ldState.variableUI.barcodeWidthFactor.value = curr.barcodeWidthFactor;
-    ldState.variableUI.barcodeMargin.value = curr.barcodeMargin;
     ldState.variableUI.barcodeSymbology.value = curr.barcodeSymbology;
     ldState.variableUI.staticInputValue.value = curr.staticValue ? curr.staticValue : '';
 
@@ -3225,7 +3291,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           barcodeText: shape.attrs.showBarcodeText === 'true',
           barcodeTop: shape.attrs.barcodeTop,
           barcodeWidthFactor: Number(shape.attrs.barcodeWidthFactor),
-          barcodeMargin: Number(shape.attrs.barcodeMargin),
           barcodeSymbology: shape.attrs.barcodeSymbology,
           staticValue: shape.attrs.staticValue || null,
         };

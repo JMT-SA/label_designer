@@ -24,14 +24,14 @@ The designer offers the following shapes for forming the background:
 
 == Dynamic variables
 
-These are represented as text within a rectangle. The rectangle denotes the print area and the text represents the format that will be used when printing the dynamic value. Each shape is associated with the variable to be used for printing and with other attributes - especially for barcodes.
+These are represented as text within a rectangle. The rectangle denotes the print area and the text represents the format that will be used when printing the dynamic value. Each shape is associated with the variable to be used for printing and with other attributes -- especially for barcodes.
 
 There are four types of variable:
 
-1. _Standard dynamic variable_ - the value of the variable will be printed as-is.
-2. _Standard dynamic variable barcode_ - the value of the variable will be printed as a barcode.
-3. _Compound variable_ - a grouping of variables with static text to be printed together.
-4. _Static barcode_ - a non-dynamic value that will be printed as a barcode.
+1. _Standard dynamic variable_ -- the value of the variable will be printed as-is.
+2. _Standard dynamic variable barcode_ -- the value of the variable will be printed as a barcode.
+3. _Compound variable_ -- a grouping of variables with static text to be printed together.
+4. _Static barcode_ -- a non-dynamic value that will be printed as a barcode.
 
 == Toolbars
 
@@ -138,7 +138,6 @@ Please note that barcodes might not print _exactly_ in the space you have select
 
 **Show barcode text at**:: Select this to have the barcode print its value next to the barcode. Select _top_ or _bottom_ for the placement (_top_ is the default).
 **Barcode width factor**:: Enter any number here. This governs the width of the bars in the barcode and thus also the effective width of the whole barcode.A large number will generally lead to a more easily-scannable barcode (but it will also be wider).
-**Margin size**:: The amount of blank space around the barcode.
 **Barcode Symbology**:: The type of barcode to be generated. Note that some barcodes have strict rules as to what will print. Some will not print if the variable contains alphabetic text for example.
 
 === Compound Variables
