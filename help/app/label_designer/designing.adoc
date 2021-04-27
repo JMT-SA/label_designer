@@ -112,6 +112,27 @@ If you multiselect two or more shapes, you can align the tops or left sides to t
 * Click the _Align top_ button to move the shapes so their top position is the same as the first shape's top position.
 * Click the _Align left_ button to move the shapes so their left position is the same as the first shape's left position.
 
+=== Some notes about lining-up shapes and setting their sizes
+
+When you place variables on your design, you do not know exactly what the label will look like until you preview or print it. Here are some design hints.
+
+To line up text and a variable, look at the bottom of the text in each shape. Try to line up the bottom of the letters in each shape (ignoring the dropped parts of letters like "p", "g", "y" etc.). This will usually give the most pleasing layout in the label.
+
+You can always draw a line and move it to check that letters line up and then delete it when you have the layout you want.
+
+==== Barcode sizes
+
+Different barcodes have different rules governing how they are created. This means that a barcode will not always fit inside the variable box you design -- and you won't know until you do a preview with _**relevant**_ data.
+
+Usually the dimension that will expand is the horizontal one -- the barcode will become wider from left to right. This also depends on the size of the data that the barcode represents ("_123456789_" will print wider than "_123_" for most symbologies).
+
+If the _barcode width factor_ is low, the bars of the code will be closer together and the barcode will be smaller. However the lower the factor, the more difficult it is for scanners to read them (especially in low-light or at a distance).
+
+A higher width factor will make thicker, more widely-spaced bars which are easier and quicker to scan.
+Small (_0.1_) increments make a big difference, and you're unlikely to need a width factor above _3.0_.
+
+The default setting for _barcode width factor_ (_1.5_) is a good choice for most situations. If scanners take a long time to scan a barcode, consider a higher factor.
+
 == Variable settings
 
 Right-click on a variable shape and choose _variable settings_ to open a dialog to define the dynamic variable to be printed.
@@ -162,12 +183,10 @@ Adjust the barcode settings in the same way as for a dynamic barcode.
 
 == Undo/Redo
 
-Almost any action taken in the drawing process between saves can be undone or redone.
+Almost any action taken in the drawing process between saves can be undone or redone. Resizing of multiple shapes together cannot be undone.
 
 Press the undo button to undo the previous action. If you press undo again, the action before that will be undone and so on.
 
 At any point you can press redo to "undo" the undo action. However if you go back two steps and then make a new change, you will no longer have redo actions available because you have started a new drawing process.
 
 You can press CTRL-Z to undo an action and CTRL-Y to redo an action.
-
-Note that at this time it is not possible to undo resizing of shapes.
