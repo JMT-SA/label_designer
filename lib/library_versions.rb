@@ -107,7 +107,10 @@ class LibraryVersions
   end
 
   def konva_version
-    format_lib('Konva', File.readlines('public/js/konva.min.js', encoding: 'UTF-8')[1].chomp.split(' v').last)
+    src = File.readlines('public/js/konva.min.js', encoding: 'UTF-8')
+    str = src[1].chomp.split(' v').last
+    str = src[2].chomp.split(' v').last if str =~ %r{/*}
+    format_lib('Konva', str)
   end
 
   def lodash_version

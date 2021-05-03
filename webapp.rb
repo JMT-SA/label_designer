@@ -300,7 +300,7 @@ class LabelDesigner < Roda
                       category: extra_attributes[:category],
                       sub_category: extra_attributes[:sub_category],
                       variable_set: extra_attributes[:variable_set],
-                      print_rotation: extra_attributes[:print_rotation],
+                      print_rotation: extra_attributes[:print_rotation].to_i,
                       # variable_xml: params[:XMLString],
                       variable_xml: xml,
                       png_image: img }

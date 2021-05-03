@@ -124,6 +124,8 @@ You can always draw a line and move it to check that letters line up and then de
 
 Different barcodes have different rules governing how they are created. This means that a barcode will not always fit inside the variable box you design -- and you won't know until you do a preview with _**relevant**_ data.
 
+A QR Code must be a square (same width and height).
+
 Usually the dimension that will expand is the horizontal one -- the barcode will become wider from left to right. This also depends on the size of the data that the barcode represents ("_123456789_" will print wider than "_123_" for most symbologies).
 
 If the _barcode width factor_ is low, the bars of the code will be closer together and the barcode will be smaller. However the lower the factor, the more difficult it is for scanners to read them (especially in low-light or at a distance).
@@ -157,7 +159,7 @@ image::label_designer_barcode_options.png[Barcode Variable options]
 
 Please note that barcodes might not print _exactly_ in the space you have selected -- the rules of how a barcode is to be generated can force it to be printed wider or higher than designed. For this reason it is important to preview your label design often in order to see how the barcode renders and adjust your design accordingly.
 
-**Show barcode text at**:: Select this to have the barcode print its value next to the barcode. Select _top_ or _bottom_ for the placement (_top_ is the default).
+**Show barcode text at**:: Select this to have the barcode print its value next to the barcode. Select _top_ or _bottom_ for the placement (_top_ is the default). Note that QR Codes and PDF419 barcodes do not allow for text to be printed.
 **Barcode width factor**:: Enter any number here. This governs the width of the bars in the barcode and thus also the effective width of the whole barcode.A large number will generally lead to a more easily-scannable barcode (but it will also be wider).
 **Barcode Symbology**:: The type of barcode to be generated. Note that some barcodes have strict rules as to what will print. Some will not print if the variable contains alphabetic text for example.
 

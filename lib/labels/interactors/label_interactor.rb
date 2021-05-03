@@ -27,7 +27,7 @@ module LabelApp
         category: params[:category],
         variable_set: params[:variable_set],
         sub_category: params[:sub_category],
-        print_rotation: params[:print_rotation]
+        print_rotation: params[:print_rotation].to_i
       }.merge(extcols)
       success_response('Ok', attrs)
     end

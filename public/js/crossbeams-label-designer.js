@@ -114,6 +114,14 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     return lo;
   };
 
+  const rationaliseRotation = (amt) => {
+    if (!amt) {
+      return 0;
+    }
+
+    return ((amt / 90) % 4) * 90;
+  };
+
   /**
    * adjustWidth.
    *
@@ -235,6 +243,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
     return node;
   };
+
+  const shapeIsQRcode = shape => shape.attrs.varAttrs.barcodeSymbology === 'QR_CODE';
 
   /**
    * LdShape.
@@ -686,31 +696,44 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         startW = this.shape.width();
         startH = this.shape.height();
       });
-      // this.shape.on('transformend', () => {
-      // });
 
       // Ensure the text in the variable does not stretch with transforming:
       this.shape.on('transformend', () => {
         const txtElem = this.shape.getChildren(node => node.getClassName() === 'Text')[0];
         const rectElem = this.shape.getChildren(node => node.getClassName() === 'Rect')[0];
 
+        let newWidth = Math.max(this.shape.width() * this.shape.scaleX(), ldState.MIN_DIMENSION);
+        let newHeight = Math.max(this.shape.height() * this.shape.scaleY(), ldState.MIN_DIMENSION);
+        const xChange = Math.round(this.shape.scaleX() * 10) / 10;
+        const yChange = Math.round(this.shape.scaleY() * 10) / 10;
+
+        // For QR codes, the width and height have to be kept the same.
+        if (shapeIsQRcode(this.shape) && newWidth !== newHeight) {
+        // if (this.shape.attrs.varAttrs.barcodeSymbology === 'QR_CODE' && newWidth !== newHeight) {
+          if (xChange > 1 || xChange < 1) {
+            newHeight = newWidth;
+          }
+          if (yChange > 1 || yChange < 1) {
+            newWidth = newHeight;
+          }
+        }
         txtElem.setAttrs({
-          width: this.shape.width() * this.shape.scaleX(),
-          height: this.shape.height() * this.shape.scaleY(),
+          width: newWidth,
+          height: newHeight,
           scaleX: 1,
           scaleY: 1,
         });
 
         rectElem.setAttrs({
-          width: this.shape.width() * this.shape.scaleX(),
-          height: this.shape.height() * this.shape.scaleY(),
+          width: newWidth,
+          height: newHeight,
           scaleX: 1,
           scaleY: 1,
         });
 
         this.shape.setAttrs({
-          width: Math.max(this.shape.width() * this.shape.scaleX(), ldState.MIN_DIMENSION),
-          height: Math.max(this.shape.height() * this.shape.scaleY(), ldState.MIN_DIMENSION),
+          width: newWidth,
+          height: newHeight,
           scaleX: 1,
           scaleY: 1,
         });
@@ -726,8 +749,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         const change = {
           x: Math.round(this.shape.x()) - Math.round(startX),
           y: Math.round(this.shape.y()) - Math.round(startY),
-          width: Math.round(this.shape.width() - startW),
-          height: Math.round(this.shape.height() - startH),
+          width: Math.round(newWidth - startW),
+          height: Math.round(newHeight - startH),
         };
 
         UndoEngine.addCommand({
@@ -2121,6 +2144,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       text: txtObj.text(),
       fill: txtObj.fill(),
       stroke: rectObj.stroke(),
+      width: 0,
+      height: 0,
     };
 
     const varAttrs = {
@@ -2142,6 +2167,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       ldState.selectedShape.attrs.varType = variableTypeValue;
     }
     ldState.selectedShape.attrs.varAttrs = varAttrs;
+
     if (varAttrs.whiteOnBlack) {
       txtObj.fill('#CA48BC');
       rectObj.stroke('#CA48BC');
@@ -2152,8 +2178,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       txtObj.fill('black');
       rectObj.stroke('#188FA7');
     }
-    ldState.stage.draw();
-    ldState.changesMade = true;
 
     const newState = {
       varAttrs,
@@ -2161,7 +2185,35 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       text: txtObj.text(),
       fill: txtObj.fill(),
       stroke: rectObj.stroke(),
+      width: 0,
+      height: 0,
     };
+
+    if (varAttrs.barcodeSymbology === 'QR_CODE' && ldState.selectedShape.attrs.width !== ldState.selectedShape.attrs.height) {
+      if (ldState.selectedShape.attrs.width > ldState.selectedShape.attrs.height) {
+        if (ldState.selectedShape.attrs.rotation === 90 || ldState.selectedShape.attrs.rotation === 270) {
+          newState.height = ldState.selectedShape.attrs.height - ldState.selectedShape.attrs.width;
+          prevState.height = newState.height * -1;
+          adjustHeight(ldState.selectedShape, newState.height);
+        } else {
+          newState.width = ldState.selectedShape.attrs.height - ldState.selectedShape.attrs.width;
+          prevState.width = newState.width * -1;
+          adjustWidth(ldState.selectedShape, newState.width);
+        }
+      } else {
+        if (ldState.selectedShape.attrs.rotation === 90 || ldState.selectedShape.attrs.rotation === 270) {
+          newState.width = ldState.selectedShape.attrs.width - ldState.selectedShape.attrs.height;
+          prevState.width = newState.width * -1;
+          adjustWidth(ldState.selectedShape, newState.width);
+        } else {
+          newState.height = ldState.selectedShape.attrs.width - ldState.selectedShape.attrs.height;
+          prevState.height = newState.height * -1;
+          adjustHeight(ldState.selectedShape, newState.height);
+        }
+      }
+    }
+    ldState.stage.draw();
+    ldState.changesMade = true;
 
     UndoEngine.addCommand({
       shapeId: ldState.selectedShape._id, // eslint-disable-line no-underscore-dangle
@@ -2177,6 +2229,12 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         txtItem.text(this.previous.text);
         txtItem.fill(this.previous.fill);
         rectItem.stroke(this.previous.stroke);
+        if (this.previous.width !== 0) {
+          adjustWidth(item, this.previous.width);
+        }
+        if (this.previous.height !== 0) {
+          adjustHeight(item, this.previous.height);
+        }
         ldState.stage.draw();
         console.log('UNDO', this.shapeId, this.action, this.previous);
       },
@@ -2189,6 +2247,12 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         txtItem.text(this.current.text);
         txtItem.fill(this.current.fill);
         rectItem.stroke(this.current.stroke);
+        if (this.current.width !== 0) {
+          adjustWidth(item, this.current.width);
+        }
+        if (this.current.height !== 0) {
+          adjustHeight(item, this.current.height);
+        }
         ldState.stage.draw();
         console.log('REDO', this.shapeId, this.action, this.current);
       },
@@ -2619,6 +2683,17 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           registerMoveUndo([ldState.selectedShape], move);
         }
         ldState.changesMade = true;
+      }
+
+      // Ensure QR code stays square.
+
+      if (ldState.selectedShape && shapeIsQRcode(ldState.selectedShape) && (width || height)) {
+      // if (ldState.selectedShape && ldState.selectedShape.attrs.varAttrs.barcodeSymbology === 'QR_CODE' && (width || height)) {
+        if (width) {
+          height = width;
+        } else {
+          width = height;
+        }
       }
 
       // Apply Resize
@@ -3267,14 +3342,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
   // Convert an old label design to a version 1 design
   const convert = (strConfig) => {
-    // const config = JSON.parse(strConfig);
-    // const config = JSON.parse(strConfig.labelJSON);
-    // const config = JSON.parse(strConfig);
     const config = strConfig;
-    // console.log(strConfig);
     const shapes = config.shapes;
     const images = JSON.parse(config.imageKeeperJSON);
-    // const images = config.imageKeeperJSON;
     let node;
     let points;
     let groupAttrs;
@@ -3293,7 +3363,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       height: ldState.stage.height(),
       nodes: [],
     };
-    // console.log('shapes', shapes.length);
 
     shapes.forEach((shape) => {
       // Convert IMAGE
@@ -3433,8 +3502,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           x: groupAttrs.x,
           y: groupAttrs.y,
           name: 'variableBox',
-          width: dShape.width,
-          height: dShape.height,
+          width: groupAttrs.rotation === 90 || groupAttrs.rotation === 270 ? dShape.height : dShape.width,
+          height: groupAttrs.rotation === 90 || groupAttrs.rotation === 270 ? dShape.width : dShape.height,
 
           fontSize: Number(dShape.fontSizePx),
           fontFamily: family,
@@ -3442,7 +3511,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           fontStyle: style,
           textDecoration: textAttrs.textDecoration || '',
           align: dShape.alignment || 'left',
-          rotation: groupAttrs.rotation || 0, // TODO: correct the x & y & width  + height (might need to "correct the shape" first to horiz.
+          rotation: rationaliseRotation(groupAttrs.rotation),
           varType: shape.attrs.variableType,
           varAttrs,
         };
@@ -3517,7 +3586,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
             family = 'Arial';
             style = 'normal';
         }
-        rotation = groupAttrs.rotation || 0;
+        rotation = rationaliseRotation(groupAttrs.rotation);
         if (rotation === 0) {
           rotX = groupAttrs.x + (dShape.padding || 0);
           rotY = groupAttrs.y + (dShape.padding || 0);
