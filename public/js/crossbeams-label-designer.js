@@ -62,6 +62,14 @@ const UndoEngine = (function UndoEngine() {
       if (item.shapeIds && item.shapeIds.includes(prevId)) {
         item.shapeIds[item.shapeIds.indexOf(prevId)] = newId;
       }
+      if (item.changes) {
+        item.changes = item.changes.map((change) => {
+          if (change.id && change.id === prevId) {
+            change.id = newId;
+          }
+          return change;
+        });
+      }
     });
   };
 
@@ -83,7 +91,7 @@ const UndoEngine = (function UndoEngine() {
   return returnObject;
 }());
 
-const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-classes-per-file
+const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-classes-per-file, no-unused-vars
   const ldState = { changesMade: false };
   const debugSpace = document.getElementById('debugSpace');
   const menuNode = document.getElementById('varMenu');
@@ -148,19 +156,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         elem.points(points);
       }
     } else if (elem.name() === 'variableBox') {
-      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
-        elem.height(elem.height() + width);
-        if (elem.height() < ldState.MIN_DIMENSION) {
-          elem.height(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.height(elem.height()));
-      } else {
-        elem.width(elem.width() + width);
-        if (elem.width() < ldState.MIN_DIMENSION) {
-          elem.width(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.width(elem.width()));
+      elem.width(elem.width() + width);
+      if (elem.width() < ldState.MIN_DIMENSION) {
+        elem.width(ldState.MIN_DIMENSION);
       }
+      elem.getChildren().forEach(node => node.width(elem.width()));
       ldState.tr.forceUpdate();
     } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
       elem.height(elem.height() + width);
@@ -201,19 +201,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         elem.points(points);
       }
     } else if (elem.name() === 'variableBox') {
-      if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
-        elem.width(elem.width() + height);
-        if (elem.width() < ldState.MIN_DIMENSION) {
-          elem.width(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.width(elem.width()));
-      } else {
-        elem.height(elem.height() + height);
-        if (elem.height() < ldState.MIN_DIMENSION) {
-          elem.height(ldState.MIN_DIMENSION);
-        }
-        elem.getChildren().forEach(node => node.height(elem.height()));
+      elem.height(elem.height() + height);
+      if (elem.height() < ldState.MIN_DIMENSION) {
+        elem.height(ldState.MIN_DIMENSION);
       }
+      elem.getChildren().forEach(node => node.height(elem.height()));
       ldState.tr.forceUpdate();
     } else if (elem.attrs.rotation === 90 || elem.attrs.rotation === 270) {
       elem.width(elem.width() + height);
@@ -244,7 +236,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     return node;
   };
 
-  const shapeIsQRcode = shape => shape.attrs.varAttrs.barcodeSymbology === 'QR_CODE';
+  const shapeIsQRcode = shape => shape.attrs.varAttrs && shape.attrs.varAttrs.barcodeSymbology === 'QR_CODE';
 
   /**
    * LdShape.
@@ -1846,18 +1838,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       height: ((labelConfig.height !== undefined) ? (labelConfig.height - 1) * labelConfig.pxPerMm : 500),
     });
 
-    // Start of drag
     ldState.stage.on('dragstart', (event) => {
       if (ldState.currentMode !== 'select') {
         ldState.stage.stopDrag();
-      } else if (ldState.selectedMultiple.length > 0) {
-        if (!event.target.nodes) { // Use transformer
-          return null;
-        }
-        const pos = event.target.absolutePosition();
-        ldState.dragStartX = pos.x;
-        ldState.dragStartY = pos.y;
-      } else if (!event.target.nodes) { // Ignore when a Transformer is dragged
+      } else if (ldState.selectedMultiple.length === 0 && !event.target.nodes) { // Ignore when a Transformer is dragged
         const pos = event.target.absolutePosition();
         if (event.target.points) { // Lines do not have absolutePosition
           const points = event.target.points();
@@ -1955,8 +1939,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     // Multiple shapes selected
     ldState.stage.on('ldSelectMultiple', () => {
       document.querySelector('#send-to-back-opt').dataset.menu = 'off';
-      ldState.tr.enabledAnchors(['top-left', 'top-center', 'top-right', 'middle-right', 'middle-left',
-        'bottom-left', 'bottom-center', 'bottom-right']);
+      ldState.tr.enabledAnchors([]);
       setSelectedButtons(false);
       setLineButtons(false);
       // setTextButtons(false); // TODO: more nuanced - depends on what shapes have in common..
@@ -1974,64 +1957,16 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     konvaDiv.classList.add('bg-white');
     ldState.tr = new Konva.Transformer({ rotateEnabled: false });
     ldState.tr.nodes([]);
-    // ldState.tr.on('transformstart', (event) => {
-    //   ldState.startTransform = event.target.getClientRect();
-    //   // console.log('tr.start', event.target.getAbsoluteTransform());
-    //   console.log('tr.startrect', ldState.tr.getClientRect());
-    //   console.log('tr.starttfr', ldState.tr.getAbsoluteTransform());
-    // });
-    // ldState.tr.on('transformend', (event) => {
-    //   console.log('tr.endrect', ldState.tr.getClientRect());
-    //   console.log('tr.endtfr', ldState.tr.getAbsoluteTransform());
-    //   const endTransform = event.target.getClientRect();
-    //   const width = endTransform.width - ldState.startTransform.width;
-    //   const height = endTransform.height - ldState.startTransform.height;
-    //   const change = {
-    //     width,
-    //     height,
-    //   };
-    //   console.log('change', change);
-    //
-    //   UndoEngine.addCommand({
-    //     shapeIds: ldState.tr.nodes().map(item => item._id), // eslint-disable-line no-underscore-dangle
-    //     action: 'resize',
-    //     current: change,
-    //     previous: { width: change.width * -1, height: change.height * -1 },
-    //     executeUndo() {
-    //       let item;
-    //       this.shapeIds.forEach((id) => {
-    //         item = getShapeById(id);
-    //         if (this.previous.width !== 0) {
-    //           adjustWidth(item, this.previous.width);
-    //         }
-    //         if (this.previous.height !== 0) {
-    //           adjustHeight(item, this.previous.height);
-    //         }
-    //       });
-    //       ldState.stage.draw();
-    //       console.log('UNDO', this.shapeIds, this.previous);
-    //     },
-    //     executeRedo() {
-    //       let item;
-    //       this.shapeIds.forEach((id) => {
-    //         item = getShapeById(id);
-    //         if (this.current.width !== 0) {
-    //           adjustWidth(item, this.current.width);
-    //         }
-    //         if (this.current.height !== 0) {
-    //           adjustHeight(item, this.current.height);
-    //         }
-    //       });
-    //       ldState.stage.draw();
-    //       console.log('REDO', this.shapeIds, this.current);
-    //     },
-    //   });
-    //   // console.log('tr.end', event.target.getAbsoluteTransform());
-    //   // console.log('tr.endrect', event.target.getClientRect());
-    // });
     ldState.layer.add(ldState.tr);
     ldState.stage.add(ldState.layer);
     ldState.stage.add(ldState.layerVar);
+
+    // Start of drag for multiselects
+    ldState.tr.on('dragstart', (event) => {
+      const pos = event.target.absolutePosition();
+      ldState.dragStartX = pos.x;
+      ldState.dragStartY = pos.y;
+    });
 
     // Listen for select/unselect in the canvas stage
     ldState.stage.on('click tap', (e) => {
@@ -2817,7 +2752,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
               console.log('UNDO', this.shapeId, this.previous);
             },
             executeRedo() {
-              const node = getTextPartById(this.shapeId);
+              const node = getShapeById(this.shapeId);
               node.rotate(this.current);
               ldState.stage.draw();
               console.log('REDO', this.shapeId, this.current);
@@ -3196,6 +3131,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     } else {
       ldState.layer.add(recttmp);
     }
+
+    if (ldState.tr.nodes().length > 1) {
+      setNodeSelectionColours(false, ldState.tr.nodes());
+    }
     ldState.tr.nodes([recttmp]);
 
     ldState.stage.draw();
@@ -3231,6 +3170,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           // remove node from array
           hold.splice(hold.indexOf(item), 1);
           ldState.tr.nodes(hold);
+        }
+        if (ldState.tr.nodes().length === 1) {
+          setNodeSelectionColours(false, ldState.tr.nodes());
         }
 
         item.destroy();
@@ -3646,6 +3588,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
   const hasUnsetVariables = () => ldState.layerVar.getChildren().some(item => item.attrs.varType === 'unset');
 
   const changesMade = () => ldState.changesMade;
+  const whereAreWe = () => {
+    console.log('STATE: sel shape', ldState.selectedShape !== undefined, 'Multiple:', ldState.selectedMultiple.length);
+  };
 
   // Variable numbers can develop gaps when any are deleted, and static barcodes must not be counted
   // This function renumbers the variables, keeping the existing sequence as much as possible
@@ -3815,5 +3760,6 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     renumberVariables,
     hasUnsetVariables,
     changesMade,
+    whereAreWe,
   };
 }());
