@@ -22,6 +22,7 @@ const UndoEngine = (function UndoEngine() {
     undoStack.splice(undoIndex);
     undoStack.push(cmd);
     undoButton.disabled = false;
+    redoButton.disabled = true;
   };
 
   returnObject.undo = function undo() {
@@ -3558,6 +3559,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           align: dShape.align || 'left',
           rotation,
         };
+
+        // Some old labels do not have height attribute for text (!) ...
+        if (!dShape.height) {
+          node.height = 25;
+        }
         jsonOut.nodes.push(node);
       }
     });
