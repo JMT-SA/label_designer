@@ -622,6 +622,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         barcodeTop: optAttrs.barcodeTop || 'true',
         barcodeWidthFactor: optAttrs.barcodeWidthFactor || 1.5,
         barcodeSymbology: optAttrs.barcodeSymbology || 'CODE_128',
+        barcodeErrorLevel: optAttrs.barcodeErrorLevel || 'N',
         staticValue: optAttrs.staticValue || null,
       };
 
@@ -1646,6 +1647,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       staticInput: document.querySelector('#static_barcode'),
       staticInputValue: document.querySelector('#static_barcode_value'),
       barcodeSymbology: document.querySelector('#barcode_symbology'),
+      barcodeErrorLevelWrapper: document.querySelector('#barcode_error_level_wrap'),
+      barcodeErrorLevel: document.querySelector('#barcode_error_level'),
       barcodeBoolWrapper: document.querySelector('#barcode_bool_wrapper'),
       barcodeBool: document.querySelector('#barcode_bool'),
       barcodeText: document.querySelector('#barcode_text'),
@@ -2091,6 +2094,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       barcodeTop: ldState.variableUI.barcodeTop.value,
       barcodeWidthFactor: ldState.variableUI.barcodeWidthFactor.value,
       barcodeSymbology: ldState.variableUI.barcodeSymbology.value,
+      barcodeErrorLevel: ldState.variableUI.barcodeErrorLevel.value,
       staticValue: variableTypeValue === 'Static Barcode' ? ldState.variableUI.staticInputValue.value : null,
     };
     if (txtObj.text() === 'Unset Variable' || ldState.selectedShape.attrs.varType === txtObj.text()) {
@@ -2275,6 +2279,14 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     }
   };
 
+  const barcodeSymbologyChange = (value) => {
+    if (value === 'QR_CODE') {
+      ldState.variableUI.barcodeErrorLevelWrapper.hidden = false;
+    } else {
+      ldState.variableUI.barcodeErrorLevelWrapper.hidden = true;
+    }
+  };
+
   const shapeForClipboard = (shape) => {
     const marshal = new LdMarshal(shape);
     return marshal.dump();
@@ -2398,10 +2410,12 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     ldState.variableUI.barcodeTop.value = curr.barcodeTop;
     ldState.variableUI.barcodeWidthFactor.value = curr.barcodeWidthFactor;
     ldState.variableUI.barcodeSymbology.value = curr.barcodeSymbology;
+    ldState.variableUI.barcodeErrorLevel.value = curr.barcodeErrorLevel;
     ldState.variableUI.staticInputValue.value = curr.staticValue ? curr.staticValue : '';
 
     // Set the UI barcode show/hide state
     varChange(varType);
+    barcodeSymbologyChange(curr.barcodeSymbology);
     toggleBarcodeOptions(curr.barcode);
   };
 
@@ -2474,6 +2488,10 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
     ldState.variableUI.variableSelect.addEventListener('change', (event) => {
       varChange(event.detail.value);
+    });
+
+    ldState.variableUI.barcodeSymbology.addEventListener('change', (event) => {
+      barcodeSymbologyChange(event.target.value);
     });
 
     // Make the compound variable select a Choices dropdown
@@ -3438,6 +3456,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           barcodeTop: shape.attrs.barcodeTop,
           barcodeWidthFactor: Number(shape.attrs.barcodeWidthFactor),
           barcodeSymbology: shape.attrs.barcodeSymbology,
+          barcodeErrorLevel: shape.attrs.barcodeErrorLevel,
           staticValue: shape.attrs.staticValue || null,
         };
 

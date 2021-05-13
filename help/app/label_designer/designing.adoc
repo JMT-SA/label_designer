@@ -162,6 +162,12 @@ Please note that barcodes might not print _exactly_ in the space you have select
 **Show barcode text at**:: Select this to have the barcode print its value next to the barcode. Select _top_ or _bottom_ for the placement (_top_ is the default). Note that QR Codes and PDF419 barcodes do not allow for text to be printed.
 **Barcode width factor**:: Enter any number here. This governs the width of the bars in the barcode and thus also the effective width of the whole barcode.A large number will generally lead to a more easily-scannable barcode (but it will also be wider).
 **Barcode Symbology**:: The type of barcode to be generated. Note that some barcodes have strict rules as to what will print. Some will not print if the variable contains alphabetic text for example.
+**QR Code error level**:: If the symbology is QR code, the code can optionally be printed with built-in error correction. Error correction improves the ability to scan a damaged barcode. Possible values (in ascending level of correction) are No correction, low, medium, quartile and high. These represent, respectively, 0%, 7%, 15%, 25% and 30% of the label that can be damaged (approximately) while still remaining scannable.
+
+.QR Code error levels
+image::label_designer_qr_code_error_level.png[QR Code error level]
+
+NOTE: The higher the error level, the longer the scanner will take to read the code, and the less information the barcode can store.
 
 === Compound Variables
 
@@ -185,7 +191,7 @@ Adjust the barcode settings in the same way as for a dynamic barcode.
 
 == Undo/Redo
 
-Almost any action taken in the drawing process between saves can be undone or redone. Resizing of multiple shapes together cannot be undone.
+Almost any action taken in the drawing process between saves can be undone or redone.
 
 Press the undo button to undo the previous action. If you press undo again, the action before that will be undone and so on.
 
