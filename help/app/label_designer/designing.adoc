@@ -51,10 +51,10 @@ The top toolbar includes the following buttons (from left to right):
 1. **Ellipse** -- drag the mouse to generate an ellipse. If you hold the `CTRL` key down while drawing, you will generate a circle.
 1. **Remove** -- click to remove the selected shape(s) from the drawing area.
 1. **Rotate** -- click to rotate the selected shape 90 degrees (clockwise). This only applies to _text_ and _variable_ shapes.
-1. **Undo** -- (CTRL-Z) click to undo the last action.
-1. **Redo** -- (CTRL-Y) click to redo the last undone action.
 1. **Copy** -- (CTRL-C) copy the selected shape(s).
 1. **Paste** -- (CTRL-V) paste the copied shape(s) to the drawing area.
+1. **Undo** -- (CTRL-Z) click to undo the last action.
+1. **Redo** -- (CTRL-Y) click to redo the last undone action.
 1. **Set stroke width** -- change the stroke width (line thickness) of selected lines, rectangles and ellipses.
 1. **Align left edges** -- align the left edges of two or more selected shapes to the 1st selected.
 1. **Align top edges** -- align the top edges of two or more selected shapes to the 1st selected.

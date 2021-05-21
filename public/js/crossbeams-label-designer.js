@@ -1663,6 +1663,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
       const post = ldState.textButtons.text.value;
 
       txtObj.text(ldState.textButtons.text.value);
+      // txtObj.text(`\u200f${ldState.textButtons.text.value}`);
+      // txtObj.text(`\u202B${ldState.textButtons.text.value}\u202C`);
+      // console.log('txt:', txtObj.text());
       ldState.stage.draw();
       ldState.changesMade = true;
       UndoEngine.addCommand({
