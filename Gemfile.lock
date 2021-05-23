@@ -6,6 +6,15 @@ GIT
       pg_query (= 1.1.0)
 
 GIT
+  remote: https://github.com/NoSoft-SA/crossbeams-label_designer.git
+  revision: 31879a07181683fd04893f47b9e09b71735c06cb
+  specs:
+    crossbeams-label_designer (1.0.0)
+      dry-configurable
+      erubi
+      json
+
+GIT
   remote: https://github.com/NoSoft-SA/crossbeams-layout.git
   revision: bb2fb941c7495472efdd4c4856cdf8bf50117cd0
   specs:
@@ -28,14 +37,6 @@ GIT
       crossbeams-dataminer
       crossbeams-layout
       roda
-
-PATH
-  remote: /home/james/ra/crossbeams/crossbeams-label_designer
-  specs:
-    crossbeams-label_designer (1.0.0)
-      dry-configurable
-      erubi
-      json
 
 GEM
   remote: https://rubygems.org/
