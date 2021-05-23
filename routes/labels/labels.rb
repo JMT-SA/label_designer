@@ -216,7 +216,7 @@ class LabelDesigner < Roda
             flash[:notice] = res.message
             redirect_to_last_grid(r)
           else
-            re_show_form(r, res) { Labels::Labels::Label::Complete.call(id, params[:label], res.errors) }
+            re_show_form(r, res) { Labels::Labels::Label::Complete.call(id, form_values: params[:label], form_errors: res.errors) }
           end
         end
       end
@@ -266,8 +266,9 @@ class LabelDesigner < Roda
         r.patch do     # UPDATE
           res = interactor.update_label(id, params[:label])
           if res.success
-            row_keys = %i[label_name container_type commodity market language category updated_by sub_category]
-            update_grid_row(id, changes: select_attributes(res.instance, row_keys), notice: res.message)
+            row_keys = %i[label_name container_type commodity market language category updated_by sub_category print_rotation]
+            tr_rot = { print_rotation: { 90 => 'Right', -90 => 'Left' }[res.instance[:print_rotation]] }
+            update_grid_row(id, changes: select_attributes(res.instance.to_h.merge(tr_rot), row_keys), notice: res.message)
             # update_grid_row(id, changes: select_attributes(res.instance, row_keys, interactor.extended_columns_for_row(res.instance)), notice: res.message)
             # grid_cols = res.instance.to_h
             # update_grid_row(id, changes:
@@ -342,11 +343,12 @@ class LabelDesigner < Roda
 
       r.on 'add_import' do
         res = interactor.import_label(params[:label])
+        p res
         if res.success
           flash[:notice] = res.message
           r.redirect("/labels/labels/labels/#{res.instance.id}/edit")
         else
-          flash[:error] = res.message
+          flash[:error] = unwrap_failed_response(res)
           r.redirect('/labels/labels/labels/import')
         end
       end

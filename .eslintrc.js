@@ -30,6 +30,7 @@ module.exports = {
     Sortable: false,
     multi: false,
     HttpError: false,
+    LabelDesigner: false,
     crossbeamsRmdScan: false,
     crossbeamsDialogLevel1: false,
     crossbeamsDialogLevel2: false,

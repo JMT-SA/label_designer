@@ -4,6 +4,10 @@ require 'rake/clean'
 require 'yard'
 require 'rubocop/rake_task'
 require 'crossbeams/menu_migrations'
+require 'crossbeams/label_designer'
+
+spec = Gem::Specification.find_by_name 'crossbeams-label_designer'
+load "#{spec.gem_dir}/tasks/upgrade.rake"
 
 Dir['./lib/tasks/**/*.rake'].sort.each { |ext| load ext }
 

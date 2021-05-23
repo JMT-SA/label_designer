@@ -1,0 +1,200 @@
+== Designing labels
+
+The label designer page offers a rich environment for quickly designing label backgrounds and for positioning dynamic text or barcode content.
+
+Add shapes, text and dynamic variables. Set properties of variables, move and align shapes and press the _Save Label_ button when you're done. The save button will reload the page, so you can do this often while you work. It is usually best to save small changes as you go. Then you can easily reload the page to revert to a known good state without losing a lot of changes.
+
+The page is laid out with toolbars on top and a white area in which to design shapes.
+
+At the top and left of the design area are rulers to show the mouse position with markings in millimetres.
+
+A pair of numbers in brackets at the top right shows the current pixel position of the mouse. This number is roughly the pixels per mm multiplied by milimetres. e.g. a label 100mm x 100mm for an 8 pixel per mm printer will be 800 pixels wide.
+
+The orange frame around the drawing area represents a half millimetre margin all round the label. This is in place to allow for minor movement of labels during printing -- to avoid cuttting off information at the edge of the label.
+
+== Label shapes
+
+The designer offers the following shapes for forming the background:
+
+**Line**:: - a line can be drawn either horizontally or vertically.
+**Rectangle**:: - can be drawn as a square by holding the CTRL button down while dragging the mouse.
+**Ellipse**:: - can be drawn as a cirlce by holding the CTRL button down while dragging the mouse.
+**Image**:: - images can be uploaded, positioned and resized. Uploaded images should be black and white only.
+**Text**:: - can be rotated and formatted in various ways.
+
+== Dynamic variables
+
+These are represented as text within a rectangle. The rectangle denotes the print area and the text represents the format that will be used when printing the dynamic value. Each shape is associated with the variable to be used for printing and with other attributes -- especially for barcodes.
+
+There are four types of variable:
+
+1. _Standard dynamic variable_ -- the value of the variable will be printed as-is.
+2. _Standard dynamic variable barcode_ -- the value of the variable will be printed as a barcode.
+3. _Compound variable_ -- a grouping of variables with static text to be printed together.
+4. _Static barcode_ -- a non-dynamic value that will be printed as a barcode.
+
+== Toolbars
+
+=== Select and draw
+
+.Top (select and draw) toolbar
+image::label_designer_toolbar_top.png[Top Toolbar]
+
+The top toolbar includes the following buttons (from left to right):
+
+1. **Select** -- when this button is highlighted you can click on a shape in the drawing surface to select it. If you hold SHIFT or CTRL while clicking you can select multiple shapes.
+1. **Text** -- drag the mouse on the drawing surface to generate text. Use the area to the right of the toolbar to write the text content.
+1. **Variable** -- drag the mouse to generate a shape where a dynamic variable will be placed.
+1. **Image** -- opens a dialog which allows you to select an image to upload and place in the drawing surface.
+1. **Line** -- drag the mouse to generate a line. Lines will be either horizontal or vertical, depending on the shape of the area you drag.
+1. **Rectangle** -- drag the mouse to generate a rectangle. If you hold the `CTRL` key down while drawing, you will generate a square.
+1. **Ellipse** -- drag the mouse to generate an ellipse. If you hold the `CTRL` key down while drawing, you will generate a circle.
+1. **Remove** -- click to remove the selected shape(s) from the drawing area.
+1. **Rotate** -- click to rotate the selected shape 90 degrees (clockwise). This only applies to _text_ and _variable_ shapes.
+1. **Copy** -- (CTRL-C) copy the selected shape(s).
+1. **Paste** -- (CTRL-V) paste the copied shape(s) to the drawing area.
+1. **Undo** -- (CTRL-Z) click to undo the last action.
+1. **Redo** -- (CTRL-Y) click to redo the last undone action.
+1. **Set stroke width** -- change the stroke width (line thickness) of selected lines, rectangles and ellipses.
+1. **Align left edges** -- align the left edges of two or more selected shapes to the 1st selected.
+1. **Align top edges** -- align the top edges of two or more selected shapes to the 1st selected.
+
+=== Text formatting
+
+.Bottom (text formatting) toolbar
+image::label_designer_toolbar_text.png[Bottom (text) Toolbar]
+
+The bottom toolbar applies to text and variable shapes only and includes the following buttons (from left to right):
+
+1. **Bold** -- toggle text between bold and regular.
+1. **Underline** -- toggle underline for the selected text.
+1. **Italic** -- toggle between italic and standard font.
+1. **Left Justify** -- left-align text (default). Only one of the three _Justify_ buttons will be active at a time.
+1. **Centre Justify** -- centre-align text.
+1. **Right Justify** -- right-align text.
+1. **Font Size** -- choose the font size.
+1. **Font** -- choose the font. **NB**. Not all fonts can be used for variables, but they can all be chosen for background text.
+
+== Selecting shapes
+
+* Click on a shape to select it. It will be surrounded by a blue border with squares that can be dragged to resize it. Any shapes that are already selected will be de-selected.
+* Click on a shape while the CTRL or SHIFT keys are down, and the shape will be added to the selection. The shape's border turns orange. If the shape was already part of the selection, it will be de-selected.
+* Click anywhere on the background to de-select all shapes.
+
+=== Overlapping
+
+If two shapes overlap it might be difficult to select one of them. To remedy this, right-click on the shape and choose the _Move to bottom_ option.
+This will invisibly move the selected shape to a lower level of the drawing. Click elsewhere and then select the shape that was overlapped -- which is now accessible because it is "above" the first shape.
+
+== Positioning and resizing shapes
+
+You can use the mouse to drag a shape to another part of the drawing area.
+
+For selected shape(s) you can use the up, down, left and right arrows to move shapes very precisely a small distance at a time.
+
+Click on the small squares of a selected shape to resize it. Using the squares at the corner of a shape will keep the aspect ratio of the shape while resizing (this can be especially important for _images_). The squares at the middle parts of a shape will resize without keeping the aspect ratio.
+
+If you hold down the CTRL key while pressing up, down, left or right arrows, the shape will shrink or grow as follows:
+
+* CTRL and UP :: shrinks the height. The bottom of the shape moves up.
+* CTRL and DOWN :: grows the height. The bottom of the shape moves down.
+* CTRL and LEFT :: shrinks the width. The right of the shape moves left.
+* CTRL and RIGHT :: grows the width. The right of the shape moves right.
+
+NOTE: Be aware that when text or variable shapes are rotated, the side of the shape that moves will change. 
+For example: If a shape is rotated once to the right (90&deg;), the up/down arrows will move the left side, while the left/right arrows will move the bottom side.
+
+=== Align
+
+If you multiselect two or more shapes, you can align the tops or left sides to the top or left of the first shape you selected.
+
+* Select the shapes starting from the one whose position you want to keep.
+* Click the _Align top_ button to move the shapes so their top position is the same as the first shape's top position.
+* Click the _Align left_ button to move the shapes so their left position is the same as the first shape's left position.
+
+=== Some notes about lining-up shapes and setting their sizes
+
+When you place variables on your design, you do not know exactly what the label will look like until you preview or print it. Here are some design hints.
+
+To line up text and a variable, look at the bottom of the text in each shape. Try to line up the bottom of the letters in each shape (ignoring the dropped parts of letters like "p", "g", "y" etc.). This will usually give the most pleasing layout in the label.
+
+You can always draw a line and move it to check that letters line up and then delete it when you have the layout you want.
+
+==== Barcode sizes
+
+Different barcodes have different rules governing how they are created. This means that a barcode will not always fit inside the variable box you design -- and you won't know until you do a preview with _**relevant**_ data.
+
+A QR Code must be a square (same width and height).
+
+Usually the dimension that will expand is the horizontal one -- the barcode will become wider from left to right. This also depends on the size of the data that the barcode represents ("_123456789_" will print wider than "_123_" for most symbologies).
+
+If the _barcode width factor_ is low, the bars of the code will be closer together and the barcode will be smaller. However the lower the factor, the more difficult it is for scanners to read them (especially in low-light or at a distance).
+
+A higher width factor will make thicker, more widely-spaced bars which are easier and quicker to scan.
+Small (_0.1_) increments make a big difference, and you're unlikely to need a width factor above _3.0_.
+
+The default setting for _barcode width factor_ (_1.5_) is a good choice for most situations. If scanners take a long time to scan a barcode, consider a higher factor.
+
+== Variable settings
+
+Right-click on a variable shape and choose _variable settings_ to open a dialog to define the dynamic variable to be printed.
+You can also hover over the _Options_ button and choose _variable settings_ from there.
+
+Choose a variable name in the first dropdown of the dialog. The text in the variable shape will show the same name. However you can change this by overwriting it in the text box.
+
+Once you have configured the settigs to your liking, press the _Save_ button to apply them to the shape.
+
+**Variable Type**:: Choose a _Variable Type_ in the first dropdown of the dialog. The text in the variable shape will show the same name. However you can change this by overwriting it in the text box.
+**Variable type: _Compound Variable_**:: Choose this to build up a combination of dynamic variables with fixed text. See below for further details.
+**Variable type: _Static Barcode_**:: Choose this to enter fixed text to be printed as a barcode. See below for further details.
+**Print white on black?**:: Select this if the text should be printed in white instead of black. **NB**. the variable should be positioned on top of a black image in order for it to show. **NB**. Barcodes cannot be printed in white text.
+**Is this a barcode?**:: Select this to render the dynamic variable as a barcode. See below for further details.
+
+=== Barcodes
+
+Barcodes have a few settings that govern how they are generated.
+
+.Barcode options
+image::label_designer_barcode_options.png[Barcode Variable options]
+
+Please note that barcodes might not print _exactly_ in the space you have selected -- the rules of how a barcode is to be generated can force it to be printed wider or higher than designed. For this reason it is important to preview your label design often in order to see how the barcode renders and adjust your design accordingly.
+
+**Show barcode text at**:: Select this to have the barcode print its value next to the barcode. Select _top_ or _bottom_ for the placement (_top_ is the default). Note that QR Codes and PDF419 barcodes do not allow for text to be printed.
+**Barcode width factor**:: Enter any number here. This governs the width of the bars in the barcode and thus also the effective width of the whole barcode.A large number will generally lead to a more easily-scannable barcode (but it will also be wider).
+**Barcode Symbology**:: The type of barcode to be generated. Note that some barcodes have strict rules as to what will print. Some will not print if the variable contains alphabetic text for example.
+**QR Code error level**:: If the symbology is QR code, the code can optionally be printed with built-in error correction. Error correction improves the ability to scan a damaged barcode. Possible values (in ascending level of correction) are No correction, low, medium, quartile and high. These represent, respectively, 0%, 7%, 15%, 25% and 30% of the label that can be damaged (approximately) while still remaining scannable.
+
+.QR Code error levels
+image::label_designer_qr_code_error_level.png[QR Code error level]
+
+NOTE: The higher the error level, the longer the scanner will take to read the code, and the less information the barcode can store.
+
+=== Compound Variables
+
+Use the _Variable_ dropdown and the _Text_ box to build up a combination of variable(s) and text.
+
+.Compound Variable options
+image::label_designer_compound_variable.png[Compound Variable options]
+
+1. Select a variable and press the _Add_ button. You'll see a representation in the area marked _Layout of this compound variable_.
+1. Enter text and press the _Add_ button. You'll see a representation in the area marked _Layout of this compound variable_.
+1. At any time you can press the _Clear_ button and start over again.
+
+=== Static Barcode
+
+.Static barcode options
+image::label_designer_static_barcode.png[Static barcode Variable options]
+
+Fill in the static value to be rendered as a barcode next to _Static Barcode text_.
+
+Adjust the barcode settings in the same way as for a dynamic barcode.
+
+== Undo/Redo
+
+Almost any action taken in the drawing process between saves can be undone or redone.
+
+Press the undo button to undo the previous action. If you press undo again, the action before that will be undone and so on.
+
+At any point you can press redo to "undo" the undo action. However if you go back two steps and then make a new change, you will no longer have redo actions available because you have started a new drawing process.
+
+You can press CTRL-Z to undo an action and CTRL-Y to redo an action.

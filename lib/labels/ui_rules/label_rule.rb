@@ -26,6 +26,14 @@ module UiRules
 
     def set_properties_fields
       fields[:variable_set] = AppConst::LABEL_VARIABLE_SETS.length == 1 ? { renderer: :hidden } : { renderer: :label }
+      fields[:print_rotation] = {
+        renderer: :select,
+        options: [['None', 0], ['Right', 90], ['Left', -90]],
+        required: true,
+        sort_items: false,
+        invisible: cannot_rotate,
+        hint: '<p>When printing, rotate the label design from horizontal to vertical.</p><p>Choose "Right" to rotate clockwise (90&deg;) and "Left" to rotate anti-clockwise (-90&deg;).</p>'
+      }
     end
 
     def set_approve_fields
@@ -50,6 +58,7 @@ module UiRules
       fields[:category] = { renderer: :label }
       fields[:sub_category] = { renderer: :label }
       fields[:variable_set] = AppConst::LABEL_VARIABLE_SETS.length == 1 ? { renderer: :hidden } : { renderer: :label }
+      fields[:print_rotation] = { renderer: :label, with_value: rotation_string }
     end
 
     def set_import_fields
@@ -79,7 +88,14 @@ module UiRules
         category: { renderer: :select, options: @master_repo.for_select_master_lists(where: { list_type: 'category' }) },
         sub_category: { renderer: :select, options: @master_repo.for_select_master_lists(where: { list_type: 'sub_category' }) },
         multi_label: { renderer: :checkbox },
-        variable_set: variable_set_rule
+        variable_set: variable_set_rule,
+        print_rotation: {
+          renderer: :select,
+          options: [['None', 0], ['Right', 90], ['Left', -90]],
+          required: true,
+          sort_items: false,
+          hint: '<p>When printing, rotate the label design from horizontal to vertical.</p><p>Choose "Right" to rotate clockwise (90&deg;) and "Left" to rotate anti-clockwise (-90&deg;).</p>'
+        }
       }
     end
 
@@ -105,6 +121,7 @@ module UiRules
                                     category: nil,
                                     sub_category: nil,
                                     multi_label: false,
+                                    print_rotation: 0,
                                     variable_set: AppConst::LABEL_VARIABLE_SETS.first)
       apply_extended_column_defaults_to_form_object(:labels)
     end
@@ -114,6 +131,26 @@ module UiRules
     def add_approve_behaviours
       behaviours do |behaviour|
         behaviour.enable :reject_reason, when: :approve_action, changes_to: ['r']
+      end
+    end
+
+    def cannot_rotate
+      return false if @form_object.variable_xml.nil?
+
+      doc = Nokogiri::XML(@form_object.variable_xml)
+      ver = doc.search('label_version')
+      # Older labels do not have a label version node
+      ver.empty?
+    end
+
+    def rotation_string
+      case @form_object.print_rotation
+      when 90
+        'Right'
+      when -90
+        'Left'
+      else
+        ''
       end
     end
   end
