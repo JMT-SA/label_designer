@@ -21,6 +21,7 @@ module LabelApp
     attribute :updated_by, Types::String
     attribute :completed, Types::Bool
     attribute :approved, Types::Bool
+    attribute :print_rotation, Types::Integer
     # attribute :extended_columns, Types::JSON::Hash.optional
     attribute :extended_columns, Types::Hash.optional
 

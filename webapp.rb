@@ -5,12 +5,6 @@
 
 require './app_loader'
 
-Crossbeams::LabelDesigner::Config.configure do |config| # Set up configuration for label designer gem.
-  # config.json_load_path = '/load_label'
-  # config.json_save_path = '/save_label'
-  # config.json_save_path = '/save_label'
-end
-
 class LabelDesigner < Roda
   include CommonHelpers
   include ErrorHelpers
@@ -254,11 +248,17 @@ class LabelDesigner < Roda
                 else
                   Sequel.blob(interactor.image_from_param(params[:imageString]))
                 end
+          xml = interactor.variable_xml_from_params(params)
+          puts '---'
+          puts xml
+          puts '---'
 
           changeset = { label_json: params[:label],
-                        variable_xml: params[:XMLString],
+                        # variable_xml: params[:XMLString],
+                        variable_xml: xml,
                         png_image: img }
 
+          p params[:label]
           DB.transaction do
             repo.update_label(id, interactor.include_updated_by_in_changeset(changeset))
             repo.log_action(user_name: current_user.user_name, context: 'update label', route_url: request.path, request_ip: request.ip)
@@ -270,6 +270,7 @@ class LabelDesigner < Roda
       end
 
       r.post do
+        # TODO: include print rotation....
         # if session new_label_attr nil? redirect to list with an error message
         repo = LabelApp::LabelRepo.new
         extra_attributes = session[:new_label_attributes] ### WHAT IF THESE nil? (as happened at SRCC at 00:40) <session cleared? problem if cloned? OR double-send? - 1st end has session data and second has it replaced with nil...>
@@ -280,6 +281,14 @@ class LabelDesigner < Roda
               else
                 Sequel.blob(interactor.image_from_param(params[:imageString]))
               end
+        # p params[:label]
+        # puts '>>> XML'
+        # puts '---'
+        xml = interactor.variable_xml_from_params(params)
+        puts '---'
+        puts xml
+        puts '---'
+        # GENERATE XML... (use gem?)
         changeset = { label_json: params[:label],
                       label_name: params[:labelName],
                       label_dimension: params[:labelDimension],
@@ -291,7 +300,9 @@ class LabelDesigner < Roda
                       category: extra_attributes[:category],
                       sub_category: extra_attributes[:sub_category],
                       variable_set: extra_attributes[:variable_set],
-                      variable_xml: params[:XMLString],
+                      print_rotation: extra_attributes[:print_rotation].to_i,
+                      # variable_xml: params[:XMLString],
+                      variable_xml: xml,
                       png_image: img }
 
         id = nil
@@ -307,6 +318,8 @@ class LabelDesigner < Roda
         end
         session[:new_label_attributes] = nil
         flash[:notice] = 'Created'
+        # TESTING....
+        # id = 38
         redirect_via_json "/labels/labels/labels/#{id}/edit"
       end
     end

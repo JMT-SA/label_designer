@@ -2,11 +2,42 @@
 
 module LabelApp
   class LabelRepo < BaseRepo # rubocop:disable Metrics/ClassLength
-    crud_calls_for :labels, name: :label, wrapper: Label
     crud_calls_for :multi_labels, name: :multi_label
     crud_calls_for :label_publish_logs, name: :label_publish_log, wrapper: LabelPublishLog
     crud_calls_for :label_publish_log_details, name: :label_publish_log_detail, wrapper: LabelPublishLogDetail
     crud_calls_for :label_publish_notifications, name: :label_publish_notification, wrapper: LabelPublishNotification
+
+    def find_label(id)
+      find_with_association(:labels, id,
+                            wrapper: Label,
+                            sub_tables: [{ sub_table: :label_images,
+                                           one_to_one: { png_image: :png_image } }])
+    end
+
+    def create_label(attrs)
+      png_image = attrs.delete(:png_image)
+      id = create(:labels, attrs)
+      create(:label_images, label_id: id, png_image: png_image) if png_image
+      id
+    end
+
+    def update_label(id, attrs)
+      png_image = attrs.delete(:png_image)
+      update(:labels, id, attrs)
+      DB[:label_images].where(label_id: id).update(png_image: png_image) if png_image
+    end
+
+    def delete_label(id)
+      DB[:label_images].where(label_id: id).delete
+      delete(:labels, id)
+    end
+
+    def delete_label_with_sub_labels(id)
+      DB.transaction do
+        DB[:multi_labels].where(label_id: id).delete
+        delete_label(id)
+      end
+    end
 
     def sub_label_list(sub_label_ids)
       DB[:labels].select(:id, :label_name)
@@ -23,13 +54,6 @@ module LabelApp
                              sub_label_id: sub_label_id,
                              print_sequence: index + 1)
         end
-      end
-    end
-
-    def delete_label_with_sub_labels(id)
-      DB.transaction do
-        DB[:multi_labels].where(label_id: id).delete
-        delete_label(id)
       end
     end
 
@@ -127,6 +151,22 @@ module LabelApp
     def label_publishing_user_login_name(label_publish_log_id)
       name = get(:label_publish_logs, label_publish_log_id, :user_name)
       get_value(:users, :login_name, user_name: name)
+    end
+
+    def check_label_for_unset_variables(id) # rubocop:disable Metrics/AbcSize
+      label_json = get(:labels, id, :label_json)
+      hash = JSON.parse(label_json)
+      json = UtilityFunctions.symbolize_keys(hash)
+      return ok_response if json[:version].nil?
+
+      unset = false
+      json[:nodes].each do |node|
+        next unless node[:name] == 'variableBox'
+        next unless node[:varAttrs][:staticValue].nil?
+
+        unset = true if node[:varType] == 'unset'
+      end
+      unset ? failed_response('Cannot complete - this label has unset variables') : ok_response
     end
 
     private
