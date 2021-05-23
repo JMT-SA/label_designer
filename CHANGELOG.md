@@ -8,6 +8,12 @@ and this project adheres roughly to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+### Fixed
+
+## [1.0.0] - 2021-05-23
+### Added
+### Changed
+- Release 1.0 :: using upgraded label designer interface.
 - Dataminer grids now share standard javascript grid logic.
 - New grid to display label publish notification events.
 ### Fixed
