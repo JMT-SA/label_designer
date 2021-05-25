@@ -3321,6 +3321,8 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     let rotation;
     let rotX;
     let rotY;
+    let grpX;
+    let grpY;
 
     const jsonOut = {
       width: ldState.stage.width(),
@@ -3463,9 +3465,11 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           staticValue: shape.attrs.staticValue || null,
         };
 
+        grpX = groupAttrs.x || 0;
+        grpY = groupAttrs.y || 0;
         node = {
-          x: groupAttrs.x,
-          y: groupAttrs.y,
+          x: grpX,
+          y: grpY,
           name: 'variableBox',
           width: groupAttrs.rotation === 90 || groupAttrs.rotation === 270 ? dShape.height : dShape.width,
           height: groupAttrs.rotation === 90 || groupAttrs.rotation === 270 ? dShape.width : dShape.height,
@@ -3486,10 +3490,9 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
 
       // Convert TEXT
       if (shape.attrs.name === 'TextBox') {
-        // console.log('TextBox', shape.textBox);
         groupAttrs = JSON.parse(shape.group).attrs;
         dShape = JSON.parse(shape.textBox).attrs;
-        // console.log('text', dShape, 'groupAttrs', groupAttrs);
+
         family = 'Arial';
         style = 'normal';
         switch (dShape.fontFamily) {
@@ -3551,19 +3554,21 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
             family = 'Arial';
             style = 'normal';
         }
+        grpX = groupAttrs.x || 0;
+        grpY = groupAttrs.y || 0;
         rotation = rationaliseRotation(groupAttrs.rotation);
         if (rotation === 0) {
-          rotX = groupAttrs.x + (dShape.padding || 0);
-          rotY = groupAttrs.y + (dShape.padding || 0);
+          rotX = grpX + (dShape.padding || 0);
+          rotY = grpY + (dShape.padding || 0);
         } else if (rotation === 90) {
-          rotX = groupAttrs.x - (dShape.padding || 0);
-          rotY = groupAttrs.y + (dShape.padding || 0);
+          rotX = grpX - (dShape.padding || 0);
+          rotY = grpY + (dShape.padding || 0);
         } else if (rotation === 180) {
-          rotX = groupAttrs.x - (dShape.padding || 0);
-          rotY = groupAttrs.y - (dShape.padding || 0);
+          rotX = grpX - (dShape.padding || 0);
+          rotY = grpY - (dShape.padding || 0);
         } else {
-          rotX = groupAttrs.x + (dShape.padding || 0);
-          rotY = groupAttrs.y - (dShape.padding || 0);
+          rotX = grpX + (dShape.padding || 0);
+          rotY = grpY - (dShape.padding || 0);
         }
 
         node = {
