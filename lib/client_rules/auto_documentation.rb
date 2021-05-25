@@ -29,7 +29,7 @@ module Crossbeams
       end
     end
 
-    def method_missing_keys(rules)
+    def method_missing_keys(rules) # rubocop:disable Metrics/AbcSize
       # First find the line number of the first method in the file.
       fn = nil
       start_line = rules.map do |m|
@@ -69,7 +69,8 @@ module Crossbeams
         if rest.empty?
           send(meth, explain: true)
         else
-          send(meth, *rest.map(&:last), explain: true)
+          args = rest.reject { |r| r.first == :key } # Ignore keyword arguments
+          send(meth, *args.map(&:last), explain: true)
         end
       else
         'I AM UNDOCUMENTED... FIXME PLEASE!'

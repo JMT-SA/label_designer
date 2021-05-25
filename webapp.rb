@@ -192,7 +192,7 @@ class LabelDesigner < Roda
       settings = en.client_settings
       @layout = Crossbeams::Layout::Page.build do |page, _|
         page.section do |section|
-          section.add_text("Client Settings &mdash; for <span class='orange'>#{AppConst::CLIENT_CODE}</span>", wrapper: :h2)
+          section.add_text("Client Settings &mdash; for <span class='orange'>#{AppConst::CLIENT_CODE}</span> (<span class='orange'>#{AppConst::CLIENT_SET[AppConst::CLIENT_CODE]}</span>)", wrapper: :h2)
           AppConst.constants.grep(/CR_/).sort.each do |const|
             kl = AppConst.const_get(const)
             next unless kl.class.name.start_with?('Crossbeams::')

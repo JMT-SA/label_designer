@@ -13,6 +13,7 @@ module LabelApp
         label_json: {},
         label_dimension: '100x100',
         px_per_mm: '8',
+        print_rotation: 0,
         variable_xml: '',
         png_image: '',
         container_type: '',

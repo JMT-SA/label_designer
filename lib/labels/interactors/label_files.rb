@@ -115,7 +115,7 @@ module LabelApp
 
     def zip_multi_label(label, fname, label_properties) # rubocop:disable Metrics/AbcSize
       combined_xml = make_combined_xml(label, fname)
-      File.open('combo_vars.xml', 'w') { |f| f << combined_xml }
+      # File.open('combo_vars.xml', 'w') { |f| f << combined_xml }
       Zip::OutputStream.write_buffer do |zio|
         repo.sub_label_ids(label.id).each_with_index do |sub_label_id, index|
           sub_label = repo.find_label(sub_label_id)
