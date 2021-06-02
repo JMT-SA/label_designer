@@ -123,12 +123,25 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
     return lo;
   };
 
+  /**
+   * rationaliseRotation.
+   *
+   * Take a rotation amount and convert it to the relevant 0, 90, 180 or 270 degrees value.
+   *
+   * @param {number} amt - the rotation amount applied to a shape.
+   * @returns {number} the standardised rotation degrees.
+   */
   const rationaliseRotation = (amt) => {
     if (!amt) {
       return 0;
     }
 
-    return ((amt / 90) % 4) * 90;
+    let rot = amt;
+    while (rot < 0) {
+      rot += 360;
+    }
+
+    return ((rot / 90) % 4) * 90;
   };
 
   /**
@@ -1053,7 +1066,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         node.textDecoration = this.elem.textDecoration();
         node.text = this.elem.text();
         node.align = this.elem.align();
-        node.rotation = this.elem.rotation();
+        node.rotation = rationaliseRotation(this.elem.rotation());
       }
 
       if (this.elem.name() === 'variableBox') {
@@ -1063,7 +1076,7 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
           name: this.elem.name(),
           width: this.elem.width(),
           height: this.elem.height(),
-          rotation: this.elem.rotation(),
+          rotation: rationaliseRotation(this.elem.rotation()),
         };
 
         node.variableNumber = `F${this.elem.getAttr('varNum')}`;
