@@ -3454,6 +3454,12 @@ const LabelDesigner = (function LabelDesigner() { // eslint-disable-line max-cla
         dShape = shape.attrs;
         groupAttrs = JSON.parse(shape.group).attrs;
         textAttrs = JSON.parse(shape.textBox).attrs;
+        if (Number(shape.attrs.barcodeWidthFactor) > 1.9) {
+          console.log('Attrs', dShape);
+          console.log('Group', groupAttrs);
+          console.log('Text', textAttrs);
+          console.log('SHAPE', shape);
+        }
         family = dShape.fontFamily;
         if (dShape.bold) {
           if (dShape.italic) {

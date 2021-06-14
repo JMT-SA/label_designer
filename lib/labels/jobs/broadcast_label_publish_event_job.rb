@@ -36,7 +36,7 @@ module LabelApp
       @payload = { printer_type: @label_publish_log.printer_type, labels: [] }
 
       @label_ids.each do |label_id|
-        label = repo.find_label(label_id)
+        label = @repo.find_label(label_id)
         vars = extract_variable_data(label)
         @payload[:labels] << {
           id: label.id,
