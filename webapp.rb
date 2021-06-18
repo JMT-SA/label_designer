@@ -270,7 +270,6 @@ class LabelDesigner < Roda
       end
 
       r.post do
-        # TODO: include print rotation....
         # if session new_label_attr nil? redirect to list with an error message
         repo = LabelApp::LabelRepo.new
         extra_attributes = session[:new_label_attributes] ### WHAT IF THESE nil? (as happened at SRCC at 00:40) <session cleared? problem if cloned? OR double-send? - 1st end has session data and second has it replaced with nil...>

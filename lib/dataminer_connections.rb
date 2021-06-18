@@ -9,7 +9,7 @@ class DataminerConnections
     configs.each_pair do |name, config|
       # Dry Valid? && dry type?
       @connections[name] = DataminerConnection.new(name: name,
-                                                   connection_string: config['db'],
+                                                   connection_string: connection_string(config['db']),
                                                    report_path: config['path'],
                                                    prepared_report_path: config['prepared_path'])
     end
@@ -46,6 +46,14 @@ class DataminerConnections
   # Disconnect all DB connections
   def disconnect_all
     connections.each { |_, conn| conn.disconnect }
+  end
+
+  def connection_string(str)
+    if str == 'system'
+      DB.url
+    else
+      str
+    end
   end
 end
 

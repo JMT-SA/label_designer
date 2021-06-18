@@ -17,6 +17,7 @@ Bundler.require(:default, ENV.fetch('RACK_ENV', 'development'))
 require_relative 'config/environment'
 
 require 'base64'
+require 'benchmark'
 require 'pstore'
 require 'net/http'
 require 'net/ping'
@@ -49,6 +50,8 @@ require './lib/document_sequence'
 require './lib/export_data'
 require './lib/help_index_builder'
 require './lib/http_calls'
+require './lib/http_base_call_logger'
+require './lib/http_text_call_logger'
 require './lib/local_store' # Will only work for processes running from one dir.
 require './lib/rmd_form'
 require './lib/ui_rules'

@@ -138,13 +138,21 @@ class BaseRepoAssocationFinder # rubocop:disable Metrics/ClassLength
   end
 
   def apply_parent_table_rule(rule)
-    cols = rule[:columns] || Sequel.lit('*')
+    cols = selected_columns(rule)
     entity = DB[@parent_table].where(id: @rec[@foreign_key || parent_table_id]).select(*cols).first
     if entity.nil?
       blank_parent_entity(cols, rule)
     else
       add_flattened_columns(rule, entity)
       @rec[parent_table_key] = entity unless entity.empty?
+    end
+  end
+
+  def selected_columns(rule)
+    if rule[:flatten_columns]
+      rule[:columns] || rule[:flatten_columns].keys || Sequel.lit('*')
+    else
+      rule[:columns] || Sequel.lit('*')
     end
   end
 

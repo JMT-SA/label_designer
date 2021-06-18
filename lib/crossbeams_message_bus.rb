@@ -21,7 +21,7 @@ module Crossbeams
     def send_bus_message(message, message_type: :information, target_user: 'broadcast')
       ::MessageBus.publish('/terminus',
                            messageType: message_type,
-                           targetUser: target_user,
+                           targetUser: target_user || 'broadcast',
                            message: message)
     end
 

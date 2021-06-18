@@ -4,13 +4,14 @@
 module Crossbeams
   class HTTPCalls # rubocop:disable Metrics/ClassLength
     include Crossbeams::Responses
-    attr_reader :use_ssl
+    attr_reader :use_ssl, :call_logger
 
-    def initialize(use_ssl: false, responder: nil, open_timeout: 5, read_timeout: 10)
+    def initialize(use_ssl: false, responder: nil, open_timeout: 5, read_timeout: 10, call_logger: nil)
       @use_ssl = use_ssl
       @responder = responder
       @open_timeout = open_timeout
       @read_timeout = read_timeout
+      @call_logger = call_logger
     end
 
     # See if a host is reachable via ping.
@@ -34,13 +35,19 @@ module Crossbeams
 
       log_request(request)
 
-      response = http.request(request)
-      format_response(response, uri)
-    rescue Timeout::Error
+      bm = Benchmark.realtime do
+        @response = http.request(request)
+      end
+      call_logger&.log_call(url, request, @response, bm)
+      format_response(@response, uri)
+    rescue Timeout::Error => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The call to the server timed out.', timeout: true)
-    rescue Errno::ECONNREFUSED
+    rescue Errno::ECONNREFUSED => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The connection was refused. Perhaps the server is not running.', refused: true)
     rescue StandardError => e
+      call_logger&.log_fail(url, request, e)
       ErrorMailer.send_exception_email(e, subject: self.class.name, message: "URI is #{uri}")
       failed_response("There was an error: #{e.message}")
     end
@@ -55,13 +62,19 @@ module Crossbeams
 
       log_request(request)
 
-      response = http.request(request)
-      format_response(response, uri)
-    rescue Timeout::Error
+      bm = Benchmark.realtime do
+        @response = http.request(request)
+      end
+      call_logger&.log_call(url, request, @response, bm)
+      format_response(@response, uri)
+    rescue Timeout::Error => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The call to the server timed out.', timeout: true)
-    rescue Errno::ECONNREFUSED
+    rescue Errno::ECONNREFUSED => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The connection was refused. Perhaps the server is not running.', refused: true)
     rescue StandardError => e
+      call_logger&.log_fail(url, request, e)
       ErrorMailer.send_exception_email(e, subject: self.class.name, message: "URI is #{uri}")
       failed_response("There was an error: #{e.message}")
     end
@@ -76,31 +89,43 @@ module Crossbeams
 
       log_request(request)
 
-      response = http.request(request)
-      format_response(response, uri)
-    rescue Timeout::Error
+      bm = Benchmark.realtime do
+        @response = http.request(request)
+      end
+      call_logger&.log_call(url, request, @response, bm)
+      format_response(@response, uri)
+    rescue Timeout::Error => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The call to the server timed out.', timeout: true)
-    rescue Errno::ECONNREFUSED
+    rescue Errno::ECONNREFUSED => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The connection was refused. Perhaps the server is not running.', refused: true)
     rescue StandardError => e
+      call_logger&.log_fail(url, request, e)
       ErrorMailer.send_exception_email(e, subject: self.class.name, message: "URI is #{uri}")
       failed_response("There was an error: #{e.message}")
     end
 
-    def xml_post(url, xml)
+    def xml_post(url, xml) # rubocop:disable Metrics/AbcSize
       uri, http = setup_http(url)
       request = Net::HTTP::Post.new(uri.request_uri, 'Content-Type' => 'application/xml')
       request.body = xml
 
       log_request(request)
 
-      response = http.request(request)
-      format_response(response, uri)
-    rescue Timeout::Error
+      bm = Benchmark.realtime do
+        @response = http.request(request)
+      end
+      call_logger&.log_call(url, request, @response, bm)
+      format_response(@response, uri)
+    rescue Timeout::Error => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The call to the server timed out.', timeout: true)
-    rescue Errno::ECONNREFUSED
+    rescue Errno::ECONNREFUSED => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The connection was refused. Perhaps the server is not running.', refused: true)
     rescue StandardError => e
+      call_logger&.log_fail(url, request, e)
       ErrorMailer.send_exception_email(e, subject: self.class.name, message: "URI is #{uri}")
       failed_response("There was an error: #{e.message}")
     end
@@ -111,15 +136,22 @@ module Crossbeams
       headers.each do |k, v|
         request.add_field(k.to_s, v.to_s)
       end
-      response = http.request(request)
+
+      bm = Benchmark.realtime do
+        @response = http.request(request)
+      end
+      call_logger&.log_call(url, request, @response, bm)
       log_request(request)
 
-      format_response(response, uri)
-    rescue Timeout::Error
+      format_response(@response, uri)
+    rescue Timeout::Error => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The call to the server timed out.', timeout: true)
-    rescue Errno::ECONNREFUSED
+    rescue Errno::ECONNREFUSED => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The connection was refused. Perhaps the server is not running.', refused: true)
     rescue StandardError => e
+      call_logger&.log_fail(url, request, e)
       ErrorMailer.send_exception_email(e, subject: self.class.name, message: "URI is #{uri}")
       failed_response("There was an error: #{e.message}")
     end
@@ -133,14 +165,20 @@ module Crossbeams
 
       request.set_form_data(fields)
       log_request(request)
-      response = http.request(request)
+      bm = Benchmark.realtime do
+        @response = http.request(request)
+      end
+      call_logger&.log_call(url, request, @response, bm)
 
-      format_response(response, uri)
-    rescue Timeout::Error
+      format_response(@response, uri)
+    rescue Timeout::Error => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The call to the server timed out.', timeout: true)
-    rescue Errno::ECONNREFUSED
+    rescue Errno::ECONNREFUSED => e
+      call_logger&.log_fail(url, request, e)
       failed_response('The connection was refused. Perhaps the server is not running.', refused: true)
     rescue StandardError => e
+      call_logger&.log_fail(url, request, e)
       ErrorMailer.send_exception_email(e, subject: self.class.name, message: "URI is #{uri}")
       failed_response("There was an error: #{e.message}")
     end
@@ -188,6 +226,8 @@ module Crossbeams
     end
 
     def log_request(request)
+      return if AppConst.test?
+
       if request.method == 'GET'
         puts ">>> HTTP call: #{request.method} >> #{request.path}"
       else

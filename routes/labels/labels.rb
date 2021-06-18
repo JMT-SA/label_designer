@@ -343,7 +343,7 @@ class LabelDesigner < Roda
 
       r.on 'add_import' do
         res = interactor.import_label(params[:label])
-        p res
+        # p res
         if res.success
           flash[:notice] = res.message
           r.redirect("/labels/labels/labels/#{res.instance.id}/edit")

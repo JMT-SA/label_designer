@@ -137,7 +137,7 @@ module LabelApp
 
     def zip_single_label(label, fname, label_properties) # rubocop:disable Metrics/AbcSize
       if rotation.zero?
-        File.open('vars.xml', 'w') { |f| f << label.variable_xml }
+        # File.open('vars.xml', 'w') { |f| f << label.variable_xml }
         Zip::OutputStream.write_buffer do |zio|
           zio.put_next_entry("#{fname}_1.png")
           zio.write label.png_image
@@ -222,7 +222,7 @@ module LabelApp
         baseline_y.content = adjust[:baseline_y]
       end
       # puts doc.to_xml
-      File.open('vars.xml', 'w') { |f| f << doc.to_xml }
+      # File.open('vars.xml', 'w') { |f| f << doc.to_xml }
       doc.to_xml.gsub(/>\s+</, '><')
     end
 

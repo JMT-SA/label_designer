@@ -16,6 +16,11 @@ require './app_loader'
 module Que
   class Job
     attr_reader :enqueued, :job
+
+    def self.enqueue(*args)
+      self.new.enqueue(args)
+    end
+
     def initialize
       @enqueued = nil
     end

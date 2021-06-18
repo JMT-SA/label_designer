@@ -215,7 +215,7 @@ module LabelApp
       repo.update_label(id, sample_data: repo.hash_for_jsonb_col(vars))
 
       fname, binary_data = LabelFiles.new(instance.print_rotation).make_label_zip(instance, vars)
-      File.open('nsld_lbl.zip', 'w') { |f| f.puts binary_data }
+      # File.open('nsld_lbl.zip', 'w') { |f| f.puts binary_data }
 
       mes_repo = MesserverApp::MesserverRepo.new
       res = mes_repo.preview_label(screen_or_print, vars, fname, binary_data)
@@ -327,12 +327,6 @@ module LabelApp
       css  = page.css         # --> ASCII-8BIT
       js   = page.javascript  # --> UTF-8
 
-      # p html
-      # puts '---'
-      # p css
-      # puts '---'
-      # p js
-      # puts '---'
       # ">>> HTML enc"
       # #<Encoding:ASCII-8BIT>
       # ">>> CSS enc"
@@ -388,9 +382,9 @@ module LabelApp
     end
 
     def variable_xml_from_params(params) # rubocop:disable Metrics/AbcSize
-      p params.keys
+      # p params.keys
       label_def = UtilityFunctions.symbolize_keys(JSON.parse(params[:label]))
-      p label_def
+      # p label_def
       formatted_name = params[:labelName].downcase.gsub(/[^a-zA-Z0-9 \\-]/, '').gsub(' ', '_')
       var_xml = Crossbeams::LabelDesigner::VariableXML.new(formatted_name, params[:pixelPerMM], label_def)
       var_xml.to_xml(pretty: true)

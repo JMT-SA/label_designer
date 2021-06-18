@@ -86,7 +86,7 @@ class LibraryVersions
   end
 
   def selectr_version
-    format_lib('Selectr', File.readlines('public/js/selectr.min.js', encoding: 'UTF-8')[1].chomp.split.last)
+    format_lib('Selectr', File.readlines('public/js/selectr.min.js', encoding: 'UTF-8')[1].chomp.split(' ').last)
   end
 
   def choices_version
