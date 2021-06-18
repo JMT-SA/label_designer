@@ -37,7 +37,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param args [Hash] the optional where-clause conditions.
   # @return [Array] the table rows.
   def all(table_name, wrapper, args = nil)
-    ds = all_hash(table_name, args, return_dataset: true)
+    ds = args.nil? ? DB[table_name] : DB[table_name].where(args)
     dataset_wrapped(ds, wrapper)
   end
 
@@ -51,16 +51,13 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
     dataset.with_row_proc(->(h) { wrapper.new(h) }).all
   end
 
-  # Return all rows from a table as Hashes or just the Sequel::Dataset
-  # without running the query.
+  # Return all rows from a table as Hashes.
   #
   # @param table_name [Symbol] the db table name.
   # @param args [Hash] the optional where-clause conditions.
-  # @param return_dataset [boolean] if true, returns the Sequel dataset, else the records. Default is false.
   # @return [Array] the table rows.
-  def all_hash(table_name, args = nil, return_dataset: false)
-    ds = args.nil? ? DB[table_name] : DB[table_name].where(args)
-    return_dataset ? ds : ds.all
+  def all_hash(table_name, args = nil)
+    args.nil? ? DB[table_name].all : DB[table_name].where(args).all
   end
 
   # Find a row in a table. Raises an exception if it is not found.
@@ -191,7 +188,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param args [Hash] the where-clause conditions.
   # @return [Boolean] true if the row exists.
   def exists?(table_name, args)
-    DB.select(1).where(DB[table_name].where(args).exists).one?
+    !DB[table_name].where(args).empty?
   end
 
   # Find a row in a table with one or more associated sub-tables, parent tables or lookup functions.
@@ -223,7 +220,7 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # parent_table: Symbol - If no :columns array provided, returns all columns.
   #
   # Optional keys:
-  # columns: Array of Symbols - one for each desired column. If not present, all columns are returned
+  # columns: Array of Symbols - one for each desired column. If not present and there are no flatten_columns, all columns are returned
   # flatten_columns: Hash of Symbol => Symbol - key is the column in the parent and value is the new name to be used on the entity.
   # foreign_key: Symbol - name of the foreign key in the table that joins to the parent table's id column.
   #
@@ -275,6 +272,15 @@ class BaseRepo # rubocop:disable Metrics/ClassLength
   # @param id [Integer] the id of the record.
   def delete(table_name, id)
     DB[table_name].where(id: id).delete
+  end
+
+  # Reactivate a record.
+  # Sets the +active+ column to true.
+  #
+  # @param table_name [Symbol] the db table name.
+  # @param id [Integer] the id of the record.
+  def activate(table_name, id)
+    DB[table_name].where(id: id).update(active: true)
   end
 
   # Deactivate a record.
