@@ -73,6 +73,7 @@ module LabelApp
       stringio = Zip::OutputStream.write_buffer do |zio|
         label_ids.each do |sub_id|
           sub_label = repo.find_label(sub_id)
+          @rotation = sub_label.print_rotation || 0
           fname, binary_data = make_label_zip(sub_label)
           zio.put_next_entry("#{fname}.zip")
           zio.write binary_data
@@ -221,6 +222,10 @@ module LabelApp
         baseline_x.content = adjust[:baseline_x]
         baseline_y.content = adjust[:baseline_y]
       end
+
+      # Rotated 90 or -90 degrees, so swap width and height:
+      doc.at_xpath('//image_height').content = image_width
+      doc.at_xpath('//image_width').content = image_height
       # puts doc.to_xml
       # File.open('vars.xml', 'w') { |f| f << doc.to_xml }
       doc.to_xml.gsub(/>\s+</, '><')
